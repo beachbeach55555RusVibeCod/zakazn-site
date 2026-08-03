@@ -210,6 +210,25 @@
   .modal-body{ padding:22px 24px; max-height:72vh; overflow-y:auto; }
   .modal-foot{ display:flex; justify-content:space-between; align-items:center; padding:16px 24px; border-top:1px solid var(--border); gap:10px; flex-wrap:wrap; }
 
+  /* Order form — compact document strip in header */
+  .of-dochead{
+    display:flex; align-items:center; gap:18px; flex-wrap:wrap;
+    padding:14px 24px; border-bottom:1px solid var(--border);
+  }
+  .of-doc-num{ display:flex; align-items:center; gap:8px; }
+  .of-doc-num label{ font-size:11.5px; color:#7C8290; }
+  .of-doc-num input{
+    font-family:'JetBrains Mono', monospace; font-size:13.5px; font-weight:600; color: var(--accent);
+    background: var(--bg-panel-2); border:1px solid var(--border); border-radius:6px; padding:5px 9px; width:110px;
+  }
+  .of-doc-num input:focus{ outline:none; border-color: var(--accent); }
+  .of-doc-date{ display:flex; align-items:center; gap:8px; font-size:12.5px; color:#9CA3AF; }
+  .of-doc-date input{
+    background: var(--bg-panel-2); border:1px solid var(--border); border-radius:6px; padding:5px 9px;
+    color:#E8E6E0; font-size:12.5px; font-family:inherit; width:132px;
+  }
+  .of-doc-date input:focus{ outline:none; border-color: var(--accent); }
+
   /* Order form — sidebar navigation */
   .modal-body.of-body{ padding:0; display:flex; align-items:stretch; }
   .of-nav{
@@ -679,6 +698,9 @@
     }
     .of-nav-item{ flex-shrink:0; }
     .of-scroll{ padding:16px; }
+    .of-dochead{ padding:10px 16px; gap:10px; }
+    .of-doc-num input{ width:92px; }
+    .of-doc-date input{ width:112px; }
 
     /* Сетки форм */
     .grid2, .grid3{ grid-template-columns:1fr !important; }
@@ -2989,26 +3011,20 @@
             '<h2>' + (editId ? 'Редактирование наряда' : 'Новый заказ-наряд') + '</h2>' +
             '<button class="modal-close" id="formClose">&times;</button>' +
           '</div>' +
+          '<div class="of-dochead">' +
+            '<div class="of-doc-num"><label>№</label><input id="f_orderNumber" type="text" value="' + escapeHtml(order.orderNumber) + '"></div>' +
+            '<div class="of-doc-date">Приём<input id="f_dateIn" type="date" value="' + order.dateIn + '"></div>' +
+            '<div class="of-doc-date">Выдача<input id="f_dateOut" type="date" value="' + (order.dateOut||'') + '"></div>' +
+          '</div>' +
           '<div class="modal-body of-body">' +
             '<div class="of-nav" id="ofNav">' +
-              '<div class="of-nav-item" data-target="of-sec-doc"><span class="of-num">1</span>Документ</div>' +
-              '<div class="of-nav-item" data-target="of-sec-client"><span class="of-num">2</span>Клиент</div>' +
-              '<div class="of-nav-item" data-target="of-sec-car"><span class="of-num">3</span>Автомобиль</div>' +
-              '<div class="of-nav-item" data-target="of-sec-reception"><span class="of-num">4</span>Приёмка</div>' +
-              '<div class="of-nav-item" data-target="of-sec-lines"><span class="of-num">5</span>Работы и запчасти</div>' +
-              '<div class="of-nav-item" data-target="of-sec-sig"><span class="of-num">6</span>Подпись</div>' +
+              '<div class="of-nav-item" data-target="of-sec-client"><span class="of-num">1</span>Клиент</div>' +
+              '<div class="of-nav-item" data-target="of-sec-car"><span class="of-num">2</span>Автомобиль</div>' +
+              '<div class="of-nav-item" data-target="of-sec-reception"><span class="of-num">3</span>Приёмка</div>' +
+              '<div class="of-nav-item" data-target="of-sec-lines"><span class="of-num">4</span>Работы и запчасти</div>' +
+              '<div class="of-nav-item" data-target="of-sec-sig"><span class="of-num">5</span>Подпись</div>' +
             '</div>' +
             '<div class="of-scroll" id="ofScroll">' +
-
-            '<div class="form-section of-sec" id="of-sec-doc">' +
-              '<div class="form-section-title">Документ</div>' +
-              '<div class="grid3">' +
-                '<div class="field required"><label>Номер наряда</label><input id="f_orderNumber" type="text" value="' + escapeHtml(order.orderNumber) + '"></div>' +
-                '<div class="field"><label>Дата приёма</label><input id="f_dateIn" type="date" value="' + order.dateIn + '"></div>' +
-                '<div class="field"><label>Дата выдачи</label><input id="f_dateOut" type="date" value="' + (order.dateOut||'') + '"></div>' +
-              '</div>' +
-              '<div class="status-select-row" id="formStatusRow">' + statusChips + '</div>' +
-            '</div>' +
 
             '<div class="form-section of-sec" id="of-sec-client">' +
               '<div class="form-section-title" style="display:flex;justify-content:space-between;align-items:center;">Клиент<button type="button" class="btn btn-ghost btn-sm" id="btnPickClient" style="font-size:12px;">👤 Выбрать из базы</button></div>' +
@@ -3073,7 +3089,7 @@
             '</div>' +
           '</div>' +
           '<div class="modal-foot">' +
-            '<span></span>' +
+            '<div class="status-select-row" id="formStatusRow">' + statusChips + '</div>' +
             '<div style="display:flex; gap:10px;">' +
               '<button class="btn btn-ghost" id="formCancel">Отмена</button>' +
               '<button class="btn btn-primary" id="formSave">Сохранить наряд</button>' +

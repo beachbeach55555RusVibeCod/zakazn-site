@@ -210,6 +210,25 @@
   .modal-body{ padding:22px 24px; max-height:72vh; overflow-y:auto; }
   .modal-foot{ display:flex; justify-content:space-between; align-items:center; padding:16px 24px; border-top:1px solid var(--border); gap:10px; flex-wrap:wrap; }
 
+  /* Order form — sidebar navigation */
+  .modal-body.of-body{ padding:0; display:flex; align-items:stretch; }
+  .of-nav{
+    width:176px; flex-shrink:0; border-right:1px solid var(--border);
+    padding:18px 10px; display:flex; flex-direction:column; gap:2px; overflow-y:auto;
+  }
+  .of-nav-item{
+    display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:8px;
+    font-size:13px; color:#7C8290; cursor:pointer;
+  }
+  .of-nav-item:hover{ color:#D8D5CC; }
+  .of-num{
+    width:20px; height:20px; border-radius:50%; background:var(--bg-panel-2);
+    display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:700; flex-shrink:0;
+  }
+  .of-nav-item.active{ background:rgba(255,107,53,0.1); color:#E8E6E0; font-weight:600; }
+  .of-nav-item.active .of-num{ background:var(--accent); color:#1C1110; }
+  .of-scroll{ flex:1; min-width:0; overflow-y:auto; padding:22px 24px; }
+
   .form-section{ margin-bottom:22px; }
   .form-section:last-child{ margin-bottom:0; }
   .form-section-title{
@@ -651,6 +670,15 @@
     .modal-foot > div{ display:flex; gap:8px; width:100%; }
     .modal-foot > div .btn{ flex:1; justify-content:center; }
     .modal-foot > .btn-danger{ width:100%; }
+
+    /* Форма наряда: боковая навигация -> горизонтальная полоса сверху */
+    .modal-body.of-body{ flex-direction:column; }
+    .of-nav{
+      width:100%; flex-direction:row; overflow-x:auto; -webkit-overflow-scrolling:touch;
+      border-right:none; border-bottom:1px solid var(--border); white-space:nowrap; padding:10px 12px;
+    }
+    .of-nav-item{ flex-shrink:0; }
+    .of-scroll{ padding:16px; }
 
     /* Сетки форм */
     .grid2, .grid3{ grid-template-columns:1fr !important; }
@@ -2956,14 +2984,23 @@
 
     var html =
       '<div class="modal-overlay" id="formOverlay">' +
-        '<div class="modal" style="max-width:980px;">' +
+        '<div class="modal" style="max-width:1060px;">' +
           '<div class="modal-head">' +
             '<h2>' + (editId ? 'Редактирование наряда' : 'Новый заказ-наряд') + '</h2>' +
             '<button class="modal-close" id="formClose">&times;</button>' +
           '</div>' +
-          '<div class="modal-body">' +
+          '<div class="modal-body of-body">' +
+            '<div class="of-nav" id="ofNav">' +
+              '<div class="of-nav-item" data-target="of-sec-doc"><span class="of-num">1</span>Документ</div>' +
+              '<div class="of-nav-item" data-target="of-sec-client"><span class="of-num">2</span>Клиент</div>' +
+              '<div class="of-nav-item" data-target="of-sec-car"><span class="of-num">3</span>Автомобиль</div>' +
+              '<div class="of-nav-item" data-target="of-sec-reception"><span class="of-num">4</span>Приёмка</div>' +
+              '<div class="of-nav-item" data-target="of-sec-lines"><span class="of-num">5</span>Работы и запчасти</div>' +
+              '<div class="of-nav-item" data-target="of-sec-sig"><span class="of-num">6</span>Подпись</div>' +
+            '</div>' +
+            '<div class="of-scroll" id="ofScroll">' +
 
-            '<div class="form-section">' +
+            '<div class="form-section of-sec" id="of-sec-doc">' +
               '<div class="form-section-title">Документ</div>' +
               '<div class="grid3">' +
                 '<div class="field required"><label>Номер наряда</label><input id="f_orderNumber" type="text" value="' + escapeHtml(order.orderNumber) + '"></div>' +
@@ -2973,7 +3010,7 @@
               '<div class="status-select-row" id="formStatusRow">' + statusChips + '</div>' +
             '</div>' +
 
-            '<div class="form-section">' +
+            '<div class="form-section of-sec" id="of-sec-client">' +
               '<div class="form-section-title" style="display:flex;justify-content:space-between;align-items:center;">Клиент<button type="button" class="btn btn-ghost btn-sm" id="btnPickClient" style="font-size:12px;">👤 Выбрать из базы</button></div>' +
               '<div id="selectedClientBadge" style="display:none;"></div>' +
               '<div class="grid2">' +
@@ -2982,7 +3019,7 @@
               '</div>' +
             '</div>' +
 
-            '<div class="form-section">' +
+            '<div class="form-section of-sec" id="of-sec-car">' +
               '<div class="form-section-title">Автомобиль</div>' +
               '<div class="grid2">' +
                 '<div class="field required"><label>Марка</label><input id="f_carMake" type="text" list="carMakeList" placeholder="Начните вводить или выберите" autocomplete="off" value="' + escapeHtml(order.carMake) + '"><datalist id="carMakeList">' + CAR_MAKES.map(function(m){ return '<option value="' + escapeHtml(m) + '">'; }).join('') + '</datalist></div>' +
@@ -2996,7 +3033,7 @@
               '<div id="vehicleAutofillHint"></div>' +
             '</div>' +
 
-            '<div class="form-section">' +
+            '<div class="form-section of-sec" id="of-sec-reception">' +
               '<div class="form-section-title">Приёмка</div>' +
               '<div class="grid2">' +
                 '<div class="field"><label>Мастер-приёмщик</label><input id="f_master" type="text" placeholder="Имя мастера" value="' + escapeHtml(order.master) + '"></div>' +
@@ -3004,25 +3041,27 @@
               '</div>' +
             '</div>' +
 
-            '<div class="lines-columns">' +
-              '<div class="form-section lines-column">' +
-                '<div class="form-section-title">Работы</div>' +
-                '<div class="lines" id="workLinesWrap"></div>' +
-                '<button type="button" class="add-line-btn" id="addWorkLineBtn">+ Добавить работу</button>' +
-                '<div class="total-row"><span class="label">Сумма работ</span><span class="value" id="workLinesTotal">0 ₽</span></div>' +
+            '<div class="of-sec" id="of-sec-lines" style="margin-bottom:22px;">' +
+              '<div class="lines-columns">' +
+                '<div class="form-section lines-column">' +
+                  '<div class="form-section-title">Работы</div>' +
+                  '<div class="lines" id="workLinesWrap"></div>' +
+                  '<button type="button" class="add-line-btn" id="addWorkLineBtn">+ Добавить работу</button>' +
+                  '<div class="total-row"><span class="label">Сумма работ</span><span class="value" id="workLinesTotal">0 ₽</span></div>' +
+                '</div>' +
+
+                '<div class="form-section lines-column">' +
+                  '<div class="form-section-title">Запчасти</div>' +
+                  '<div class="lines" id="partLinesWrap"></div>' +
+                  '<button type="button" class="add-line-btn" id="addPartLineBtn">+ Добавить запчасть</button>' +
+                  '<div class="total-row"><span class="label">Сумма запчастей</span><span class="value" id="partLinesTotal">0 ₽</span></div>' +
+                '</div>' +
               '</div>' +
 
-              '<div class="form-section lines-column">' +
-                '<div class="form-section-title">Запчасти</div>' +
-                '<div class="lines" id="partLinesWrap"></div>' +
-                '<button type="button" class="add-line-btn" id="addPartLineBtn">+ Добавить запчасть</button>' +
-                '<div class="total-row"><span class="label">Сумма запчастей</span><span class="value" id="partLinesTotal">0 ₽</span></div>' +
-              '</div>' +
+              '<div class="total-row" style="background:var(--bg-panel); border:1px solid var(--border);"><span class="label" style="font-weight:600;">Итого к оплате</span><span class="value" id="formTotal">0 ₽</span></div>' +
             '</div>' +
 
-            '<div class="total-row" style="background:var(--bg-panel); border:1px solid var(--border);"><span class="label" style="font-weight:600;">Итого к оплате</span><span class="value" id="formTotal">0 ₽</span></div>' +
-
-            '<div class="form-section">' +
+            '<div class="form-section of-sec" id="of-sec-sig">' +
               '<div class="form-section-title">Подпись клиента (приёмка)</div>' +
               '<canvas class="signature-box" id="sigCanvas"></canvas>' +
               '<div class="sig-controls">' +
@@ -3031,6 +3070,7 @@
               '</div>' +
             '</div>' +
 
+            '</div>' +
           '</div>' +
           '<div class="modal-foot">' +
             '<span></span>' +
@@ -3043,6 +3083,32 @@
       '</div>';
 
     document.getElementById('modalRoot').innerHTML = html;
+
+    (function(){
+      var scrollArea = document.getElementById('ofScroll');
+      var navItems = Array.prototype.slice.call(document.querySelectorAll('.of-nav-item'));
+      var sections = Array.prototype.slice.call(document.querySelectorAll('.of-sec'));
+      if(!scrollArea || !navItems.length) return;
+
+      function updateActiveNav(){
+        var top = scrollArea.getBoundingClientRect().top;
+        var current = sections[0];
+        sections.forEach(function(sec){
+          if(sec.getBoundingClientRect().top - top <= 90) current = sec;
+        });
+        navItems.forEach(function(item){
+          item.classList.toggle('active', !!current && item.dataset.target === current.id);
+        });
+      }
+      navItems.forEach(function(item){
+        item.addEventListener('click', function(){
+          var target = document.getElementById(item.dataset.target);
+          if(target) target.scrollIntoView({ behavior:'smooth', block:'start' });
+        });
+      });
+      scrollArea.addEventListener('scroll', updateActiveNav);
+      updateActiveNav();
+    })();
 
     document.querySelectorAll('#formStatusRow .status-chip').forEach(function(chip){
       if(chip.dataset.status === order.status) chip.classList.add('active');

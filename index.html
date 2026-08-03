@@ -231,6 +231,25 @@
   }
   .field input:focus, .field select:focus, .field textarea:focus{ outline:none; border-color: var(--accent); }
   .field textarea{ resize:vertical; min-height:60px; font-family:inherit; }
+
+  /* Settings forms (Реквизиты организации и т.п.) */
+  .form-group{ margin-bottom:0; }
+  .form-label{ display:block; font-size:12.5px; color:#9CA3AF; margin-bottom:5px; font-weight:500; }
+  .form-control{
+    width:100%; padding:10px 12px; border-radius:8px;
+    border:1px solid var(--border); background:var(--bg-panel-2); color:#E8E6E0;
+    font-family:inherit; font-size:14px; box-sizing:border-box;
+    transition:border-color .15s ease, background .15s ease;
+  }
+  .form-control::placeholder{ color:#5C6270; }
+  .form-control:hover{ border-color:#4A5163; }
+  .form-control:focus{ outline:none; border-color:var(--accent); background:var(--bg-panel); }
+  select.form-control{ cursor:pointer; }
+
+  .settings-card{
+    background:var(--bg-panel); border:1px solid var(--border); border-radius:14px;
+    padding:26px 28px;
+  }
   /* Tabs */
   .tabs{ display:flex; gap:6px; margin-bottom:20px; border-bottom:1px solid var(--border); }
   .tab-btn{
@@ -4736,18 +4755,20 @@
         '<h2 style="margin:0 0 4px;font-size:18px;">Реквизиты организации</h2>' +
         '<div style="font-size:13px;color:#7C8290;">Отображаются в шапке печатного заказ-наряда</div>' +
       '</div>' +
-      '<div style="max-width:460px;display:flex;flex-direction:column;gap:14px;">' +
+      '<div class="settings-card" style="max-width:460px;display:flex;flex-direction:column;gap:16px;">' +
         '<div class="form-group"><label class="form-label">Название организации</label>' +
           '<input class="form-control" id="setCName" value="' + escapeHtml(c.name||'') + '" placeholder="ООО «Автосервис»"></div>' +
         '<div class="form-group"><label class="form-label">Телефон</label>' +
           '<input class="form-control" id="setCPhone" value="' + escapeHtml(c.phone||'') + '" placeholder="+7 (999) 123-45-67"></div>' +
         '<div class="form-group"><label class="form-label">Адрес</label>' +
           '<input class="form-control" id="setCAddress" value="' + escapeHtml(c.address||'') + '" placeholder="г. Москва, ул. Примерная, 1"></div>' +
-        '<div class="form-group"><label class="form-label">ИНН</label>' +
-          '<input class="form-control" id="setCInn" value="' + escapeHtml(c.inn||'') + '" placeholder="1234567890"></div>' +
-        '<div class="form-group"><label class="form-label">КПП</label>' +
-          '<input class="form-control" id="setCKpp" value="' + escapeHtml(c.kpp||'') + '" placeholder="123456789"></div>' +
-        '<div style="margin:16px 0 8px;font-size:13px;font-weight:600;color:#9CA3AF;text-transform:uppercase;letter-spacing:0.05em;">Банковские реквизиты</div>' +
+        '<div class="grid2">' +
+          '<div class="form-group"><label class="form-label">ИНН</label>' +
+            '<input class="form-control" id="setCInn" value="' + escapeHtml(c.inn||'') + '" placeholder="1234567890"></div>' +
+          '<div class="form-group"><label class="form-label">КПП</label>' +
+            '<input class="form-control" id="setCKpp" value="' + escapeHtml(c.kpp||'') + '" placeholder="123456789"></div>' +
+        '</div>' +
+        '<div class="form-section-title" style="margin:6px 0 -4px;">Банковские реквизиты</div>' +
         '<div class="form-group"><label class="form-label">Банк</label>' +
           '<input class="form-control" id="setCBank" value="' + escapeHtml(c.bank||'') + '" placeholder="ПАО «Сбербанк»"></div>' +
         '<div class="form-group"><label class="form-label">БИК</label>' +
@@ -4759,10 +4780,10 @@
         '<div><button class="btn btn-primary" id="btnSaveCompany">Сохранить</button></div>' +
       '</div>' +
 
-      '<div style="margin-top:36px;padding-top:28px;border-top:1px solid var(--border);max-width:460px;">' +
+      '<div style="margin-top:28px;max-width:460px;">' +
         '<h2 style="margin:0 0 4px;font-size:18px;">Данные и резервные копии</h2>' +
         '<div style="font-size:13px;color:#7C8290;margin-bottom:18px;">Экспорт и импорт всех данных приложения</div>' +
-        '<div style="display:flex;flex-direction:column;gap:10px;">' +
+        '<div class="settings-card" style="display:flex;flex-direction:column;gap:10px;">' +
           '<button class="btn btn-ghost" id="btnRefresh" style="justify-content:flex-start;gap:10px;">↻&nbsp; Обновить данные</button>' +
           '<button class="btn btn-ghost" id="btnExport" style="justify-content:flex-start;gap:10px;">⬇&nbsp; Скачать резервную копию</button>' +
           '<button class="btn btn-ghost" id="btnImport" style="justify-content:flex-start;gap:10px;">⬆&nbsp; Восстановить из файла</button>' +

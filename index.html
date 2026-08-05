@@ -2787,11 +2787,18 @@
         /* Тело */
         '<div style="overflow-y:auto;flex:1;padding:16px 18px;display:flex;flex-direction:column;gap:14px;">' +
 
-          /* Строки */
-          '<div>' +
-            '<label style="' + fl + '">Работы и запчасти</label>' +
-            '<div id="qLines" style="display:flex;flex-direction:column;gap:6px;"></div>' +
-            '<button type="button" id="qAddLine" style="margin-top:8px;width:100%;padding:9px;border-radius:9px;border:1.5px dashed var(--border);background:transparent;color:#7C8290;cursor:pointer;font-size:13px;font-family:inherit;">+ Добавить строку</button>' +
+          /* Строки: работы и запчасти двумя столбцами */
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">' +
+            '<div>' +
+              '<label style="' + fl + '">🔧 Работы</label>' +
+              '<div id="qWorkLines" style="display:flex;flex-direction:column;gap:6px;"></div>' +
+              '<button type="button" id="qAddWork" style="margin-top:8px;width:100%;padding:9px;border-radius:9px;border:1.5px dashed var(--border);background:transparent;color:#7C8290;cursor:pointer;font-size:13px;font-family:inherit;">+ Добавить работу</button>' +
+            '</div>' +
+            '<div>' +
+              '<label style="' + fl + '">🔩 Запчасти</label>' +
+              '<div id="qPartLines" style="display:flex;flex-direction:column;gap:6px;"></div>' +
+              '<button type="button" id="qAddPart" style="margin-top:8px;width:100%;padding:9px;border-radius:9px;border:1.5px dashed var(--border);background:transparent;color:#7C8290;cursor:pointer;font-size:13px;font-family:inherit;">+ Добавить запчасть</button>' +
+            '</div>' +
           '</div>' +
 
         '</div>' +
@@ -2815,25 +2822,21 @@
     document.getElementById('qOrderNum').textContent = '№ ' + orderNum + ' · ' + new Date().toLocaleDateString('ru-RU');
 
     /* Добавление строк */
-    function addLine(){
+    function addLine(type){
       var key = lineId();
-      var line = { _key: key, type: 'work', name: '', qty: 1, price: 0 };
+      var line = { _key: key, type: type, name: '', qty: 1, price: 0 };
       qOrder.lines.push(line);
       renderQLines();
     }
 
-    function renderQLines(){
-      var wrap = document.getElementById('qLines');
+    function renderLineGroup(wrapId, type){
+      var wrap = document.getElementById(wrapId);
       if(!wrap) return;
       wrap.innerHTML = '';
-      qOrder.lines.forEach(function(line){
+      qOrder.lines.filter(function(l){ return l.type === type; }).forEach(function(line){
         var row = document.createElement('div');
-        row.style.cssText = 'display:grid;grid-template-columns:auto 1fr 80px 80px auto;gap:6px;align-items:center;';
+        row.style.cssText = 'display:grid;grid-template-columns:1fr 56px 70px auto;gap:6px;align-items:center;';
         row.innerHTML =
-          '<select data-key="' + line._key + '" data-f="type" style="padding:8px 6px;border-radius:8px;border:1.5px solid var(--border);background:var(--bg-panel-2);color:#D8D5CC;font-size:12px;cursor:pointer;">' +
-            '<option value="work"' + (line.type==='work'?' selected':'') + '>🔧</option>' +
-            '<option value="part"' + (line.type==='part'?' selected':'') + '>🔩</option>' +
-          '</select>' +
           '<input data-key="' + line._key + '" data-f="name" value="' + escapeHtml(line.name) + '" placeholder="Наименование" style="' + fi + 'padding:8px 10px;">' +
           '<input data-key="' + line._key + '" data-f="qty" type="number" min="1" value="' + line.qty + '" placeholder="Кол" style="' + fi + 'padding:8px 8px;text-align:center;">' +
           '<input data-key="' + line._key + '" data-f="price" type="number" min="0" value="' + (line.price||'') + '" placeholder="Цена" style="' + fi + 'padding:8px 8px;">' +
@@ -2841,13 +2844,12 @@
         wrap.appendChild(row);
       });
 
-      wrap.querySelectorAll('input,select').forEach(function(el){
+      wrap.querySelectorAll('input').forEach(function(el){
         el.addEventListener('input', function(){
           var k = el.dataset.key, f = el.dataset.f;
           var line = qOrder.lines.find(function(l){ return l._key === k; });
           if(!line) return;
           if(f === 'name') line.name = el.value;
-          if(f === 'type') line.type = el.value;
           if(f === 'qty')  line.qty  = Number(el.value)||1;
           if(f === 'price') line.price = Number(el.value)||0;
           updateQTotal();
@@ -2864,13 +2866,19 @@
       });
     }
 
+    function renderQLines(){
+      renderLineGroup('qWorkLines', 'work');
+      renderLineGroup('qPartLines', 'part');
+    }
+
     function updateQTotal(){
       var sum = qOrder.lines.reduce(function(s,l){ return s + (l.qty||1)*(l.price||0); }, 0);
       var el = document.getElementById('qTotal');
       if(el) el.textContent = fmtMoney(sum);
     }
 
-    document.getElementById('qAddLine').addEventListener('click', function(){ addLine(); });
+    document.getElementById('qAddWork').addEventListener('click', function(){ addLine('work'); });
+    document.getElementById('qAddPart').addEventListener('click', function(){ addLine('part'); });
     document.getElementById('qClose').addEventListener('click', function(){ overlay.remove(); });
     overlay.addEventListener('click', function(e){ if(e.target === overlay) overlay.remove(); });
 
@@ -2923,7 +2931,7 @@
     });
 
     /* Одна пустая строка по умолчанию */
-    addLine();
+    addLine('work');
   }
 
   function openOrderForm(editId){

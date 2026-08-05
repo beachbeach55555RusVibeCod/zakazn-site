@@ -2787,32 +2787,6 @@
         /* Тело */
         '<div style="overflow-y:auto;flex:1;padding:16px 18px;display:flex;flex-direction:column;gap:14px;">' +
 
-          /* Клиент */
-          '<div style="display:flex;flex-direction:column;gap:6px;">' +
-            '<div style="display:flex;justify-content:space-between;align-items:center;">' +
-              '<label style="' + fl + 'margin:0;">Клиент</label>' +
-              '<button type="button" id="qPickClient" style="font-size:12px;padding:3px 8px;border-radius:6px;border:1px solid var(--border);background:transparent;color:#D8D5CC;cursor:pointer;">👤 Из базы</button>' +
-            '</div>' +
-            '<div id="qClientBadge" style="display:none;"></div>' +
-            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
-              '<input id="qClientName" style="' + fi + '" placeholder="Имя клиента *">' +
-              '<input id="qClientPhone" style="' + fi + '" placeholder="Телефон">' +
-            '</div>' +
-          '</div>' +
-
-          /* Авто */
-          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
-            '<div style="display:flex;flex-direction:column;gap:5px;">' +
-              '<label style="' + fl + '">Гос. номер *</label>' +
-              '<input id="qPlate" style="' + fi + 'text-transform:uppercase;" placeholder="АА1234АА">' +
-            '</div>' +
-            '<div style="display:flex;flex-direction:column;gap:5px;">' +
-              '<label style="' + fl + '">Марка</label>' +
-              '<input id="qMake" style="' + fi + '" list="qMakeList" placeholder="Toyota" autocomplete="off">' +
-              '<datalist id="qMakeList">' + CAR_MAKES.map(function(m){ return '<option value="' + escapeHtml(m) + '">'; }).join('') + '</datalist>' +
-            '</div>' +
-          '</div>' +
-
           /* Строки */
           '<div>' +
             '<label style="' + fl + '">Работы и запчасти</label>' +
@@ -2896,38 +2870,6 @@
       if(el) el.textContent = fmtMoney(sum);
     }
 
-    /* Выбор клиента из базы */
-    document.getElementById('qPickClient').addEventListener('click', function(){
-      showClientPickerPopup(function(client){
-        qOrder.clientId = client.id;
-        document.getElementById('qClientName').value  = client.name  || '';
-        document.getElementById('qClientPhone').value = client.phone || '';
-        var badge = document.getElementById('qClientBadge');
-        badge.style.display = '';
-        badge.innerHTML = '<div style="display:inline-flex;align-items:center;gap:8px;background:var(--bg-panel-2);border:1px solid var(--border);border-radius:8px;padding:5px 10px;margin-bottom:4px;font-size:13px;">' +
-          '<span style="color:#7C8290;">Выбран:</span><b>' + escapeHtml(client.name||'') + '</b>' +
-          '<button id="qClearClient" style="background:none;border:none;color:#7C8290;cursor:pointer;font-size:14px;padding:0;">✕</button></div>';
-        document.getElementById('qClearClient').onclick = function(){
-          qOrder.clientId = null;
-          badge.style.display = 'none';
-          document.getElementById('qClientName').value  = '';
-          document.getElementById('qClientPhone').value = '';
-          document.getElementById('qPlate').value = '';
-          document.getElementById('qMake').value  = '';
-        };
-        var cars = carsOfClient(client.id);
-        if(cars.length === 1){
-          document.getElementById('qPlate').value = cars[0].plate || '';
-          document.getElementById('qMake').value  = cars[0].carMake || '';
-        } else if(cars.length > 1){
-          showVehiclePickerPopup(cars, function(car){
-            document.getElementById('qPlate').value = car.plate   || '';
-            document.getElementById('qMake').value  = car.carMake || '';
-          });
-        }
-      });
-    });
-
     document.getElementById('qAddLine').addEventListener('click', function(){ addLine(); });
     document.getElementById('qClose').addEventListener('click', function(){ overlay.remove(); });
     overlay.addEventListener('click', function(e){ if(e.target === overlay) overlay.remove(); });
@@ -2940,13 +2882,6 @@
 
     /* Сохранить */
     document.getElementById('qSave').addEventListener('click', async function(){
-      var clientName = document.getElementById('qClientName').value.trim();
-      var plate = document.getElementById('qPlate').value.trim().toUpperCase();
-      var make  = document.getElementById('qMake').value.trim();
-
-      if(!clientName){ document.getElementById('qClientName').focus(); showToast('Укажите имя клиента'); return; }
-      if(!plate){ document.getElementById('qPlate').focus(); showToast('Укажите гос. номер'); return; }
-
       var btn = document.getElementById('qSave');
       btn.disabled = true; btn.textContent = 'Сохранение…';
 
@@ -2957,11 +2892,11 @@
         dateIn: new Date().toISOString().slice(0,10),
         dateOut: '',
         clientId: qOrder.clientId,
-        clientName: clientName,
-        clientPhone: document.getElementById('qClientPhone').value.trim(),
-        carMake: make,
+        clientName: '',
+        clientPhone: '',
+        carMake: '',
         carModel: '',
-        plate: plate,
+        plate: '',
         vin: '',
         mileage: '',
         master: '',

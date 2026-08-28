@@ -755,6 +755,31 @@
   .auth-input:focus{ outline:none; border-color:var(--accent); }
   #authSubmit{ transition: background .12s; }
   #authSubmit:hover{ background:#2DD4BF; }
+
+  /* === Salary widgets in header === */
+  .salary-widgets-row{
+    display:flex; gap:8px; align-items:center;
+    flex-wrap:wrap; flex:1; padding:0 8px;
+  }
+  .salary-widget{
+    background:var(--bg-panel); border:1px solid var(--border);
+    border-radius:12px; padding:7px 13px;
+    cursor:pointer; user-select:none;
+    transition:border-color .15s, background .15s, transform .1s;
+    min-width:110px;
+  }
+  .salary-widget:hover{
+    border-color:var(--accent); background:var(--bg-panel-2);
+    transform:translateY(-1px);
+  }
+  .salary-widget .sw-name{
+    font-size:11.5px; color:#9CA3AF; margin-bottom:3px;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:120px;
+  }
+  .salary-widget .sw-amount{
+    font-family:'JetBrains Mono',monospace;
+    font-size:15px; font-weight:700; color:var(--accent);
+  }
 </style>
 </head>
 <body>
@@ -803,6 +828,7 @@
         <div class="sub" id="shopSubtitle">Автосервис</div>
       </div>
     </div>
+    <div id="salaryWidgetsRow" class="salary-widgets-row"></div>
     <div class="header-actions">
       <span class="stat-pill" id="statTotal">Всего: <b>0</b></span>
       <span class="stat-pill" id="statSum">Сумма в работе: <b>0 ₽</b></span>
@@ -2024,9 +2050,32 @@
       }
     });
     document.getElementById('statSum').innerHTML = 'Сумма в работе: <b>' + fmtMoney(sum) + '</b>';
+    renderSalaryWidgets();
   }
 
-  async function changeStatus(id, newStatus){
+  function renderSalaryWidgets(){
+    var row = document.getElementById('salaryWidgetsRow');
+    if(!row) return;
+    if(!state.loaded){ row.innerHTML = ''; return; }
+    var map = aggregateCommissionsByStaff(state.orders);
+    var rows = Object.keys(map).map(function(k){ return map[k]; });
+    rows.sort(function(a,b){ return b.amount - a.amount; });
+    if(rows.length === 0){ row.innerHTML = ''; return; }
+    row.innerHTML = rows.map(function(r){
+      var firstName = escapeHtml(r.name.split(' ')[0]);
+      return '<div class="salary-widget" onclick="openPayrollTab()" title="' + escapeHtml(r.name) + '">' +
+        '<div class="sw-name">' + firstName + '</div>' +
+        '<div class="sw-amount">' + fmtMoney(r.amount) + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  function openPayrollTab(){
+    var btn = document.querySelector('[data-tab="payroll"]');
+    if(btn) btn.click();
+  }
+
+    async function changeStatus(id, newStatus){
     var order = state.orders.find(function(o){ return o.id === id; });
     if(!order || order.status === newStatus) return;
     var prev = order.status;

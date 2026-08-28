@@ -2064,11 +2064,15 @@
     if(rows.length === 0){ row.innerHTML = ''; return; }
     row.innerHTML = rows.map(function(r){
       var firstName = escapeHtml(r.name.split(' ')[0]);
-      return '<div class="salary-widget" onclick="openSalaryDetail(\'' + r.staffId + '\')" title="' + escapeHtml(r.name) + '">' +
+      return '<div class="salary-widget" data-staffid="' + r.staffId + '" title="' + escapeHtml(r.name) + '">' +
         '<div class="sw-name">' + firstName + '</div>' +
         '<div class="sw-amount">' + fmtMoney(r.amount) + '</div>' +
       '</div>';
     }).join('');
+    row.addEventListener('click', function(e){
+      var widget = e.target.closest('.salary-widget');
+      if(widget) openSalaryDetail(widget.dataset.staffid);
+    });
   }
 
   function openSalaryDetail(staffId){
@@ -2116,7 +2120,7 @@
         '<div class="modal" style="max-width:500px;">' +
           '<div class="modal-head">' +
             '<h2>' + escapeHtml(rec.name) + '</h2>' +
-            '<button class="modal-close" onclick="closeModal()">&times;</button>' +
+            '<button class="modal-close" id="salaryModalClose">&times;</button>' +
           '</div>' +
           '<div class="modal-body">' +
             '<div style="display:flex;align-items:center;justify-content:space-between;' +
@@ -2131,9 +2135,11 @@
         '</div>' +
       '</div>';
 
-    document.getElementById('salaryDetailOverlay').addEventListener('click', function(e){
-      if(e.target === this) closeModal();
+    var overlay = document.getElementById('salaryDetailOverlay');
+    overlay.addEventListener('click', function(e){
+      if(e.target === overlay) closeModal();
     });
+    document.getElementById('salaryModalClose').addEventListener('click', closeModal);
   }
 
     async function changeStatus(id, newStatus){

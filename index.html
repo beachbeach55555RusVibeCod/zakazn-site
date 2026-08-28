@@ -2064,7 +2064,7 @@
     if(rows.length === 0){ row.innerHTML = ''; return; }
     row.innerHTML = rows.map(function(r){
       var firstName = escapeHtml(r.name.split(' ')[0]);
-      return '<div class="salary-widget" onclick="openSalaryDetail('" + r.staffId + "')" title="' + escapeHtml(r.name) + '">' +
+      return '<div class="salary-widget" onclick="openSalaryDetail(\'' + r.staffId + '\')" title="' + escapeHtml(r.name) + '">' +
         '<div class="sw-name">' + firstName + '</div>' +
         '<div class="sw-amount">' + fmtMoney(r.amount) + '</div>' +
       '</div>';

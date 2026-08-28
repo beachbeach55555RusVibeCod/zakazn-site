@@ -781,6 +781,88 @@
     font-family:'JetBrains Mono',monospace;
     font-size:15px; font-weight:700; color:var(--accent);
   }
+
+  /* ===== Light theme ===== */
+  [data-theme="light"]{
+    --bg: #F3F4F6;
+    --bg-panel: #FFFFFF;
+    --bg-panel-2: #F9FAFB;
+    --border: #E5E7EB;
+  }
+  [data-theme="light"] body{ color: #111827; }
+  [data-theme="light"] .header .sub{ color: #6B7280; }
+  [data-theme="light"] .column-title{ color: #374151; }
+  [data-theme="light"] .sw-name{ color: #6B7280; }
+  [data-theme="light"] .tab-btn{ color: #374151; }
+  [data-theme="light"] .tab-btn.active{ color: var(--accent); }
+  [data-theme="light"] .stat-pill{ color: #374151; }
+  [data-theme="light"] .sidebar-label{ color: #6B7280; }
+
+  /* ===== Theme toggle button ===== */
+  .theme-toggle{
+    background:var(--bg-panel-2); border:1px solid var(--border);
+    border-radius:8px; width:34px; height:34px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; font-size:17px; flex-shrink:0;
+    transition: background .15s, border-color .15s;
+  }
+  .theme-toggle:hover{ border-color:var(--accent); }
+
+  /* ===== App body layout (sidebar + content) ===== */
+  .app-body{
+    display:flex; gap:0; align-items:flex-start;
+  }
+  .sidebar{
+    width:230px; min-width:230px; flex-shrink:0;
+    border-right:1px solid var(--border);
+    padding:0 16px 32px 0;
+    margin-right:24px;
+    position:sticky; top:28px;
+  }
+  .main-content{ flex:1; min-width:0; }
+
+  /* ===== Sidebar widgets ===== */
+  .sidebar-section{ margin-bottom:20px; }
+  .sidebar-label{
+    font-size:10.5px; font-weight:600; letter-spacing:.06em;
+    text-transform:uppercase; color:#9CA3AF;
+    margin-bottom:8px; display:block;
+  }
+  .dash-stat{
+    background:var(--bg-panel); border:1px solid var(--border);
+    border-radius:10px; padding:10px 12px; margin-bottom:8px;
+  }
+  .dash-stat .ds-label{ font-size:12px; color:#9CA3AF; margin-bottom:3px; }
+  .dash-stat .ds-value{
+    font-family:'JetBrains Mono',monospace;
+    font-size:18px; font-weight:700; color:var(--accent);
+  }
+  .dash-stat .ds-sub{ font-size:11px; color:#6B7280; margin-top:2px; }
+
+  .status-pill-row{ display:flex; flex-direction:column; gap:5px; }
+  .status-pill-item{
+    display:flex; justify-content:space-between; align-items:center;
+    font-size:12.5px; padding:5px 0;
+    border-bottom:1px solid var(--border);
+  }
+  .status-pill-item:last-child{ border-bottom:none; }
+  .status-dot{ width:7px; height:7px; border-radius:50%; display:inline-block; margin-right:6px; flex-shrink:0; }
+
+  .export-btn{
+    width:100%; padding:9px; border-radius:8px;
+    background:var(--bg-panel-2); border:1px solid var(--border);
+    color:#E8E6E0; font-family:inherit; font-size:13px; font-weight:500;
+    cursor:pointer; text-align:left; display:flex; align-items:center; gap:7px;
+    transition: border-color .15s, background .15s;
+    margin-bottom:6px;
+  }
+  .export-btn:hover{ border-color:var(--accent); background:var(--bg-panel); }
+  [data-theme="light"] .export-btn{ color:#111827; }
+
+  @media(max-width:760px){
+    .app-body{ flex-direction:column; }
+    .sidebar{ width:100%; min-width:0; border-right:none; border-bottom:1px solid var(--border); padding:0 0 16px; margin-right:0; margin-bottom:20px; position:static; }
+  }
 </style>
 </head>
 <body>
@@ -833,10 +915,36 @@
     <div class="header-actions">
       <span class="stat-pill" id="statTotal">Всего: <b>0</b></span>
       <span class="stat-pill" id="statSum">Сумма в работе: <b>0 ₽</b></span>
+      <button class="theme-toggle" id="btnTheme" title="Сменить тему">🌙</button>
       <button class="btn btn-ghost btn-sm" id="btnLogout">Выйти</button>
     </div>
   </div>
 
+  <div class="app-body">
+    <!-- ===== SIDEBAR DASHBOARD ===== -->
+    <aside class="sidebar" id="dashSidebar">
+      <div class="sidebar-section">
+        <span class="sidebar-label">Сегодня</span>
+        <div class="dash-stat"><div class="ds-label">Выручка</div><div class="ds-value" id="dTodayRev">—</div></div>
+        <div class="dash-stat"><div class="ds-label">Закрыто нарядов</div><div class="ds-value" id="dTodayDone">—</div></div>
+      </div>
+      <div class="sidebar-section">
+        <span class="sidebar-label">Этот месяц</span>
+        <div class="dash-stat"><div class="ds-label">Выручка</div><div class="ds-value" id="dMonthRev">—</div></div>
+        <div class="dash-stat"><div class="ds-label">Нарядов закрыто</div><div class="ds-value" id="dMonthDone">—</div></div>
+      </div>
+      <div class="sidebar-section">
+        <span class="sidebar-label">Открытые наряды</span>
+        <div class="status-pill-row" id="dStatusRow"></div>
+      </div>
+      <div class="sidebar-section">
+        <span class="sidebar-label">Экспорт</span>
+        <button class="export-btn" id="btnExportCSV">📄 Наряды (CSV)</button>
+        <button class="export-btn" id="btnExportPayroll">💰 Зарплата (CSV)</button>
+      </div>
+    </aside>
+    <!-- ===== MAIN CONTENT ===== -->
+    <div class="main-content">
   <div class="tabs" id="mainTabs">
     <button class="tab-btn active" data-tab="board">Доска заказов</button>
     <button class="tab-btn" data-tab="clients">Клиенты</button>
@@ -870,6 +978,8 @@
   <div id="crmWrap" style="display:none;"></div>
   <div id="settingsWrap" style="display:none;"></div>
 </div>
+    </div><!-- /main-content -->
+  </div><!-- /app-body -->
 
 <div id="modalRoot"></div>
 <div id="toastRoot"></div>
@@ -2140,6 +2250,97 @@
       if(e.target === overlay) closeModal();
     });
     document.getElementById('salaryModalClose').addEventListener('click', closeModal);
+  }
+
+  
+  // ===== Dashboard =====
+  function pad2(n){ return String(n).padStart(2,'0'); }
+
+  function renderDashboard(){
+    if(!state.loaded) return;
+    var now = new Date();
+    var todayStr = now.getFullYear()+'-'+pad2(now.getMonth()+1)+'-'+pad2(now.getDate());
+    var monthStr = now.getFullYear()+'-'+pad2(now.getMonth()+1);
+
+    var todayDone = state.orders.filter(function(o){ return o.status==='done' && (o.dateOut||'').startsWith(todayStr); });
+    var monthDone = state.orders.filter(function(o){ return o.status==='done' && (o.dateOut||'').startsWith(monthStr); });
+
+    var todayRev = todayDone.reduce(function(s,o){ return s+calcOrderTotal(o); },0);
+    var monthRev = monthDone.reduce(function(s,o){ return s+calcOrderTotal(o); },0);
+
+    var el = function(id){ return document.getElementById(id); };
+    if(el('dTodayRev'))  el('dTodayRev').textContent  = fmtMoney(todayRev);
+    if(el('dTodayDone')) el('dTodayDone').textContent = todayDone.length;
+    if(el('dMonthRev'))  el('dMonthRev').textContent  = fmtMoney(monthRev);
+    if(el('dMonthDone')) el('dMonthDone').textContent = monthDone.length;
+
+    // Status breakdown (open only)
+    var statusRow = el('dStatusRow');
+    if(statusRow){
+      var counts = {};
+      state.orders.forEach(function(o){ if(o.status!=='done') counts[o.status]=(counts[o.status]||0)+1; });
+      var dotColors = { new:'#3B82F6', progress:'#F59E0B', ready:'#22C55E' };
+      var labels    = { new:'Новые', progress:'В работе', ready:'Готово' };
+      var rows = Object.keys(labels).map(function(k){
+        return '<div class="status-pill-item">' +
+          '<span><span class="status-dot" style="background:' + (dotColors[k]||'#9CA3AF') + '"></span>' + labels[k] + '</span>' +
+          '<b>' + (counts[k]||0) + '</b>' +
+        '</div>';
+      }).join('');
+      statusRow.innerHTML = rows;
+    }
+  }
+
+  // ===== Theme toggle =====
+  function initTheme(){
+    var saved = localStorage.getItem('theme') || 'dark';
+    applyTheme(saved);
+  }
+  function applyTheme(theme){
+    document.documentElement.setAttribute('data-theme', theme);
+    var btn = document.getElementById('btnTheme');
+    if(btn) btn.textContent = theme==='dark' ? '🌙' : '☀️';
+    localStorage.setItem('theme', theme);
+  }
+  function toggleTheme(){
+    var cur = document.documentElement.getAttribute('data-theme') || 'dark';
+    applyTheme(cur==='dark' ? 'light' : 'dark');
+  }
+
+  // ===== Export CSV =====
+  function downloadCSV(content, filename){
+    var bom = '\uFEFF';
+    var blob = new Blob([bom + content], { type:'text/csv;charset=utf-8;' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = filename; a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function exportOrdersCSV(){
+    var cols = ['Номер','Дата создания','Клиент','Телефон','Авто','Гос номер','Статус','Мастер','Итого'];
+    var rows = [cols.join(';')];
+    state.orders.forEach(function(o){
+      var car = [o.carMake, o.carModel, o.carYear].filter(Boolean).join(' ');
+      var status = ({new:'Новый',progress:'В работе',ready:'Готово',done:'Выдан'})[o.status]||o.status;
+      rows.push([
+        o.orderNumber||'', o.createdAt ? new Date(o.createdAt).toLocaleDateString('ru-RU') : '',
+        o.clientName||'', o.clientPhone||'', car, o.plate||'', status, o.master||'',
+        calcOrderTotal(o)
+      ].map(function(v){ return '"'+String(v).replace(/"/g,'""')+'"'; }).join(';'));
+    });
+    downloadCSV(rows.join('\n'), 'naryady_' + new Date().toISOString().slice(0,10) + '.csv');
+  }
+
+  function exportPayrollCSV(){
+    var map = aggregateCommissionsByStaff(state.orders);
+    var cols = ['Сотрудник','Начислено'];
+    var rows = [cols.join(';')];
+    Object.keys(map).forEach(function(k){
+      var r = map[k];
+      rows.push(['"'+r.name.replace(/"/g,'""')+'"', r.amount].join(';'));
+    });
+    downloadCSV(rows.join('\n'), 'zarplata_' + new Date().toISOString().slice(0,10) + '.csv');
   }
 
     async function changeStatus(id, newStatus){
@@ -5080,7 +5281,11 @@
     if(e.key === 'Enter') document.getElementById('authSubmit').click();
   });
 
-  document.getElementById('btnLogout').addEventListener('click', async function(){
+  document.getElementById('btnTheme').addEventListener('click', toggleTheme);
+    document.getElementById('btnExportCSV').addEventListener('click', exportOrdersCSV);
+    document.getElementById('btnExportPayroll').addEventListener('click', exportPayrollCSV);
+    initTheme();
+    document.getElementById('btnLogout').addEventListener('click', async function(){
     await getSB().auth.signOut();
     showAuthScreen();
     showToast('Вы вышли из системы');

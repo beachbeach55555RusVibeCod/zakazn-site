@@ -2064,16 +2064,76 @@
     if(rows.length === 0){ row.innerHTML = ''; return; }
     row.innerHTML = rows.map(function(r){
       var firstName = escapeHtml(r.name.split(' ')[0]);
-      return '<div class="salary-widget" onclick="openPayrollTab()" title="' + escapeHtml(r.name) + '">' +
+      return '<div class="salary-widget" onclick="openSalaryDetail('" + r.staffId + "')" title="' + escapeHtml(r.name) + '">' +
         '<div class="sw-name">' + firstName + '</div>' +
         '<div class="sw-amount">' + fmtMoney(r.amount) + '</div>' +
       '</div>';
     }).join('');
   }
 
-  function openPayrollTab(){
-    var btn = document.querySelector('[data-tab="payroll"]');
-    if(btn) btn.click();
+  function openSalaryDetail(staffId){
+    var map = aggregateCommissionsByStaff(state.orders);
+    var rec = map[staffId];
+    if(!rec) return;
+
+    // Collect orders and commission per order for this employee
+    var orderDetails = [];
+    state.orders.forEach(function(o){
+      var commission = 0;
+      (o.lines||[]).forEach(function(l){
+        calcLineCommissions(l).forEach(function(c){
+          if(c.staffId === staffId) commission += c.amount;
+        });
+      });
+      if(commission > 0) orderDetails.push({ order: o, commission: commission });
+    });
+    orderDetails.sort(function(a,b){ return b.commission - a.commission; });
+
+    var rows = orderDetails.map(function(d){
+      var o = d.order;
+      var carLabel = [o.carMake, o.carModel].filter(Boolean).join(' ') || '—';
+      var statusObj = (typeof STATUSES !== 'undefined' ? STATUSES : []).find(function(s){ return s.key === o.status; });
+      var statusLabel = statusObj ? statusObj.label : (o.status||'—');
+      return '<div style="display:flex;justify-content:space-between;align-items:center;' +
+        'padding:10px 0;border-bottom:1px solid var(--border);">' +
+        '<div>' +
+          '<div style="font-size:14px;font-weight:600;">Наряд № ' + escapeHtml(o.orderNumber||'—') + '</div>' +
+          '<div style="font-size:12px;color:#9CA3AF;margin-top:2px;">' +
+            escapeHtml(o.clientName||'—') + '· ' + escapeHtml(carLabel) +
+            ' <span style="color:#6B7280;">· ' + escapeHtml(statusLabel) + '</span>' +
+          '</div>' +
+        '</div>' +
+        '<div style="font-family:\'JetBrains Mono\',monospace;font-size:15px;font-weight:700;color:var(--accent);">' +
+          fmtMoney(d.commission) +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    if(!rows) rows = '<div style="color:#9CA3AF;text-align:center;padding:24px;">Нет нарядов с начислениями</div>';
+
+    document.getElementById('modalRoot').innerHTML =
+      '<div class="modal-overlay" id="salaryDetailOverlay">' +
+        '<div class="modal" style="max-width:500px;">' +
+          '<div class="modal-head">' +
+            '<h2>' + escapeHtml(rec.name) + '</h2>' +
+            '<button class="modal-close" onclick="closeModal()">&times;</button>' +
+          '</div>' +
+          '<div class="modal-body">' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;' +
+              'padding:10px 0 16px;border-bottom:1px solid var(--border);margin-bottom:14px;">' +
+              '<div style="color:#9CA3AF;font-size:13px;">Итого начислено</div>' +
+              '<div style="font-family:\'JetBrains Mono\',monospace;font-size:22px;font-weight:700;color:var(--accent);">' +
+                fmtMoney(rec.amount) +
+              '</div>' +
+            '</div>' +
+            rows +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    document.getElementById('salaryDetailOverlay').addEventListener('click', function(e){
+      if(e.target === this) closeModal();
+    });
   }
 
     async function changeStatus(id, newStatus){

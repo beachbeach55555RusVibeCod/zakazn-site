@@ -1865,7 +1865,7 @@
   // Returns map staffId -> { name, amount, ordersCount(set) } aggregated across given orders
   function aggregateCommissionsByStaff(orders){
     var map = {};
-    orders.forEach(function(o){
+    orders.filter(function(o){ return o.status === 'done'; }).forEach(function(o){
       (o.lines||[]).forEach(function(l){
         calcLineCommissions(l).forEach(function(c){
           if(!map[c.staffId]){

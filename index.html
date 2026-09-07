@@ -3104,6 +3104,12 @@
         /* Тело */
         '<div style="overflow-y:auto;flex:1;padding:16px 18px;display:flex;flex-direction:column;gap:14px;">' +
 
+          /* Марка автомобиля — свободный ввод */
+          '<div>' +
+            '<label style="' + fl + '">🚗 Марка автомобиля</label>' +
+            '<input id="qCarMake" type="text" placeholder="Например: Toyota" autocomplete="off" style="' + fi + '">' +
+          '</div>' +
+
           /* Строки: работы и запчасти двумя столбцами */
           '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">' +
             '<div>' +
@@ -3219,7 +3225,7 @@
         clientId: qOrder.clientId,
         clientName: '',
         clientPhone: '',
-        carMake: '',
+        carMake: (document.getElementById('qCarMake').value || '').trim(),
         carModel: '',
         plate: '',
         vin: '',

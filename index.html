@@ -863,6 +863,22 @@
     .app-body{ flex-direction:column; }
     .sidebar{ width:100%; min-width:0; border-right:none; border-bottom:1px solid var(--border); padding:0 0 16px; margin-right:0; margin-bottom:20px; position:static; }
   }
+
+/* ---------- Демо-режим: только просмотр ---------- */
+.demo-badge{display:none;align-items:center;gap:6px;font-size:12px;padding:5px 10px;
+  border:1px solid var(--border,#d0d5db);border-radius:6px;color:#8a6d1f;background:#fff8e1;white-space:nowrap}
+body.demo-mode .demo-badge{display:inline-flex}
+body.demo-mode #btnNewOrder,
+body.demo-mode #btnQuickOrder,
+body.demo-mode #btnAddClient,
+body.demo-mode #btnAddPriceItem,
+body.demo-mode #btnAddStockItem,
+body.demo-mode #btnAddStaff,
+body.demo-mode #btnEditClientReqs,
+body.demo-mode #btnSaveCompany,
+body.demo-mode #btnImport,
+body.demo-mode #btnPickClient{display:none !important}
+@media (max-width:640px){ body.demo-mode .demo-badge{font-size:11px;padding:4px 7px} }
 </style>
 </head>
 <body>
@@ -916,6 +932,7 @@
       <span class="stat-pill" id="statTotal">Всего: <b>0</b></span>
       <span class="stat-pill" id="statSum">Сумма в работе: <b>0 ₽</b></span>
       <button class="theme-toggle" id="btnTheme" title="Сменить тему">🌙</button>
+      <span class="demo-badge" id="demoBadge">Демо · только просмотр</span>
       <button class="btn btn-ghost btn-sm" id="btnLogout">Выйти</button>
     </div>
   </div>
@@ -1240,6 +1257,15 @@
 
   // ---------- Storage (Supabase-backed) ----------
 
+  var IS_DEMO = false;
+  var DEMO_EMAIL = 'demo@kairos-demo.ru';
+
+  function demoBlock(){
+    if(!IS_DEMO) return false;
+    try { showToast('Демо-режим: только просмотр'); } catch(e){}
+    return true;
+  }
+
   var localStore = {
     get: async function(key){
       var r = await getSB().from('kv_store').select('value').eq('key', key).maybeSingle();
@@ -1248,11 +1274,13 @@
       return { key: key, value: r.data.value };
     },
     set: async function(key, value){
+      if(demoBlock()) throw new Error('demo-readonly');
       var r = await getSB().from('kv_store').upsert({ key: key, value: value }, { onConflict: 'key' });
       if(r.error) throw r.error;
       return { key: key, value: value };
     },
     delete: async function(key){
+      if(demoBlock()) throw new Error('demo-readonly');
       var r = await getSB().from('kv_store').delete().eq('key', key);
       if(r.error) throw r.error;
       return { key: key, deleted: true };
@@ -5255,12 +5283,19 @@
   function showApp(){
     document.getElementById('authScreen').style.display = 'none';
     document.getElementById('appRoot').style.display = '';
+    getSB().auth.getUser().then(function(r){
+      var em = (r && r.data && r.data.user && r.data.user.email) ? r.data.user.email : '';
+      IS_DEMO = em.toLowerCase() === DEMO_EMAIL;
+      document.body.classList.toggle('demo-mode', IS_DEMO);
+    }).catch(function(){});
     init();
   }
 
   function showAuthScreen(){
     document.getElementById('authScreen').style.display = 'flex';
     document.getElementById('appRoot').style.display = 'none';
+    IS_DEMO = false;
+    document.body.classList.remove('demo-mode');
   }
 
   document.getElementById('authSubmit').addEventListener('click', async function(){

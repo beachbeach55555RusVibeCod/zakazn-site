@@ -877,7 +877,8 @@ body.demo-mode #btnAddStaff,
 body.demo-mode #btnEditClientReqs,
 body.demo-mode #btnSaveCompany,
 body.demo-mode #btnImport,
-body.demo-mode #btnPickClient{display:none !important}
+body.demo-mode #btnPickClient,
+body.demo-mode #mainTabs .tab-btn[data-tab="settings"]{display:none !important}
 @media (max-width:640px){ body.demo-mode .demo-badge{font-size:11px;padding:4px 7px} }
 </style>
 </head>
@@ -3909,6 +3910,7 @@ body.demo-mode #btnPickClient{display:none !important}
   // ---------- Tabs ----------
 
   function switchTab(tab){
+    if(IS_DEMO && tab === 'settings'){ tab = 'board'; }
     state.activeTab = tab;
     document.querySelectorAll('#mainTabs .tab-btn').forEach(function(btn){
       btn.classList.toggle('active', btn.dataset.tab === tab);
@@ -5287,6 +5289,7 @@ body.demo-mode #btnPickClient{display:none !important}
       var em = (r && r.data && r.data.user && r.data.user.email) ? r.data.user.email : '';
       IS_DEMO = em.toLowerCase() === DEMO_EMAIL;
       document.body.classList.toggle('demo-mode', IS_DEMO);
+      if(IS_DEMO && state.activeTab === 'settings'){ switchTab('board'); }
     }).catch(function(){});
     init();
   }

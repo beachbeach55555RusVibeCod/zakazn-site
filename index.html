@@ -863,6 +863,57 @@
     .app-body{ flex-direction:column; }
     .sidebar{ width:100%; min-width:0; border-right:none; border-bottom:1px solid var(--border); padding:0 0 16px; margin-right:0; margin-bottom:20px; position:static; }
   }
+
+  /* ===== Mobile app shell ===== */
+  .mobile-bottom-nav{ display:none; }
+  @media (max-width:640px){
+    body{ padding-bottom:72px; }
+    .app{ padding-bottom:92px; }
+    .header{ position:sticky; top:0; z-index:40; background:var(--bg); padding-top:10px; }
+    .header-mark{ width:38px; height:38px; }
+    .header .sub{ display:none; }
+    .salary-widgets-row{ display:none; }
+    .header-actions{ justify-content:flex-end; }
+    #statTotal,#statSum{ display:none; }
+    #btnLogout{ display:none; }
+    #dashSidebar{ display:none; }
+    .app-body{ display:block; }
+    .main-content{ width:100%; }
+    #mainTabs{ display:none; }
+    #boardToolbar{ position:sticky; top:72px; z-index:30; background:var(--bg); padding:8px 0 10px; }
+    #boardToolbar .search-wrap{ order:1; width:100%; }
+    #boardToolbar #btnQuickOrder{ order:2; width:calc(42% - 4px); }
+    #boardToolbar #btnNewOrder{ order:3; width:calc(58% - 4px); }
+    .toolbar{ flex-direction:row; flex-wrap:wrap; }
+    .search-wrap input{ min-height:44px; font-size:16px; }
+    .btn{ min-height:44px; }
+    .column{ min-width:88vw; }
+    .order-card{ min-height:112px; }
+    .mobile-bottom-nav{
+      position:fixed; left:0; right:0; bottom:0; z-index:120;
+      display:grid; grid-template-columns:repeat(5,1fr);
+      background:var(--bg-panel); border-top:1px solid var(--border);
+      padding:6px 6px calc(6px + env(safe-area-inset-bottom));
+      box-shadow:0 -6px 18px rgba(0,0,0,.18);
+    }
+    .mobile-nav-btn{
+      appearance:none; border:0; background:transparent; color:#9CA3AF;
+      font-family:inherit; font-size:10.5px; padding:6px 2px;
+      display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer;
+    }
+    .mobile-nav-btn .mi{ font-size:19px; line-height:1; }
+    .mobile-nav-btn.active{ color:var(--accent); font-weight:600; }
+    .mobile-nav-btn.mobile-create{
+      margin-top:-20px; color:#1C1110;
+    }
+    .mobile-nav-btn.mobile-create .mi{
+      width:44px; height:44px; border-radius:50%; background:var(--accent);
+      display:flex; align-items:center; justify-content:center; font-size:25px;
+      box-shadow:0 5px 15px rgba(0,0,0,.25);
+    }
+    .toast{ left:12px; right:12px; bottom:86px; text-align:center; }
+  }
+
 </style>
 </head>
 <body>
@@ -980,6 +1031,15 @@
 </div>
     </div><!-- /main-content -->
   </div><!-- /app-body -->
+
+
+  <nav class="mobile-bottom-nav" id="mobileBottomNav" aria-label="Мобильная навигация">
+    <button class="mobile-nav-btn active" data-mobile-tab="board"><span class="mi">▦</span><span>Заказы</span></button>
+    <button class="mobile-nav-btn" data-mobile-tab="clients"><span class="mi">◉</span><span>Клиенты</span></button>
+    <button class="mobile-nav-btn mobile-create" id="mobileCreateOrder"><span class="mi">+</span><span>Наряд</span></button>
+    <button class="mobile-nav-btn" data-mobile-tab="stock"><span class="mi">▣</span><span>Склад</span></button>
+    <button class="mobile-nav-btn" data-mobile-tab="more"><span class="mi">•••</span><span>Ещё</span></button>
+  </nav>
 
 <div id="modalRoot"></div>
 <div id="toastRoot"></div>
@@ -3881,6 +3941,7 @@
   // ---------- Tabs ----------
 
   function switchTab(tab){
+    syncMobileNav(tab);
     state.activeTab = tab;
     document.querySelectorAll('#mainTabs .tab-btn').forEach(function(btn){
       btn.classList.toggle('active', btn.dataset.tab === tab);
@@ -5122,6 +5183,54 @@
     };
     reader.readAsText(file);
   }
+
+
+  // ---------- Mobile app navigation ----------
+  function syncMobileNav(tab){
+    document.querySelectorAll('.mobile-nav-btn[data-mobile-tab]').forEach(function(btn){
+      btn.classList.toggle('active', btn.dataset.mobileTab === tab);
+    });
+  }
+
+  document.querySelectorAll('.mobile-nav-btn[data-mobile-tab]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var tab = btn.dataset.mobileTab;
+      if(tab === 'more'){
+        var names = [
+          ['pricelist','Прайс-лист'],
+          ['staff','Сотрудники'],
+          ['payroll','Зарплата'],
+          ['crm','CRM'],
+          ['settings','Настройки']
+        ];
+        var overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.innerHTML = '<div class="modal" style="max-width:420px;"><div class="modal-head"><h2>Ещё</h2><button class="modal-close" id="mobileMoreClose">×</button></div><div class="modal-body" id="mobileMoreList"></div></div>';
+        document.body.appendChild(overlay);
+        var list = overlay.querySelector('#mobileMoreList');
+        names.forEach(function(item){
+          var b = document.createElement('button');
+          b.className = 'btn btn-ghost';
+          b.style.cssText = 'width:100%;justify-content:flex-start;margin-bottom:8px;';
+          b.textContent = item[1];
+          b.addEventListener('click', function(){ document.body.removeChild(overlay); switchTab(item[0]); syncMobileNav('more'); });
+          list.appendChild(b);
+        });
+        overlay.querySelector('#mobileMoreClose').onclick = function(){ document.body.removeChild(overlay); };
+        overlay.addEventListener('click', function(e){ if(e.target === overlay) document.body.removeChild(overlay); });
+        return;
+      }
+      switchTab(tab);
+      syncMobileNav(tab);
+      window.scrollTo({top:0, behavior:'smooth'});
+    });
+  });
+
+  var mobileCreateOrder = document.getElementById('mobileCreateOrder');
+  if(mobileCreateOrder){
+    mobileCreateOrder.addEventListener('click', function(){ openQuickOrderForm(); });
+  }
+
 
   // ---------- Init ----------
 

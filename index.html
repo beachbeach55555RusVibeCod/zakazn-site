@@ -757,6 +757,9 @@
   #authSubmit{ transition: background .12s; }
   #authSubmit:hover{ background:#2DD4BF; }
 
+  /* Mobile daily salary in header */
+  .mobile-daily-salary{ display:none; }
+
   /* === Salary widgets in header === */
   .salary-widgets-row{
     display:flex; gap:8px; align-items:center;
@@ -960,6 +963,70 @@
     .header-mark{ width:38px; height:38px; }
     .header .sub{ display:none; }
     .salary-widgets-row{ display:none; }
+
+    .mobile-daily-salary{
+      display:block;
+      width:100%;
+      min-width:0;
+      padding:2px 0 4px;
+    }
+    .mds-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:8px;
+    }
+    .mds-title{
+      font-size:11px;
+      font-weight:700;
+      text-transform:uppercase;
+      letter-spacing:.07em;
+      color:#8E95A3;
+    }
+    .mds-total{
+      font-family:'JetBrains Mono',monospace;
+      font-size:13px;
+      font-weight:700;
+      color:var(--accent);
+      white-space:nowrap;
+    }
+    .mds-list{
+      display:flex;
+      gap:8px;
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+      scrollbar-width:none;
+      padding-bottom:2px;
+    }
+    .mds-list::-webkit-scrollbar{ display:none; }
+    .mds-card{
+      flex:0 0 auto;
+      min-width:122px;
+      max-width:160px;
+      padding:9px 11px;
+      border:1px solid var(--border);
+      border-radius:10px;
+      background:var(--bg-panel-2);
+    }
+    .mds-name{
+      font-size:11.5px;
+      color:#A8AFBC;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      margin-bottom:3px;
+    }
+    .mds-amount{
+      font-family:'JetBrains Mono',monospace;
+      font-size:15px;
+      font-weight:700;
+      color:#E8E6E0;
+      white-space:nowrap;
+    }
+    [data-theme="light"] .mds-name{ color:#6B7280; }
+    [data-theme="light"] .mds-amount{ color:#111827; }
+
     .header-actions{ justify-content:flex-end; }
     #statTotal,#statSum{ display:none; }
     #btnLogout{ display:none; }
@@ -1181,6 +1248,7 @@
         <div class="sub" id="shopSubtitle">Автосервис</div>
       </div>
     </div>
+    <div id="mobileDailySalary" class="mobile-daily-salary"></div>
     <div id="salaryWidgetsRow" class="salary-widgets-row"></div>
     <div class="header-actions">
       <span class="stat-pill" id="statTotal">Всего: <b>0</b></span>
@@ -2707,7 +2775,52 @@
     renderSalaryWidgets();
   }
 
+  function renderMobileDailySalary(){
+    var box = document.getElementById('mobileDailySalary');
+    if(!box) return;
+    if(!state.loaded || !state.staff || state.staff.length === 0){
+      box.innerHTML = '';
+      return;
+    }
+
+    var today = todayStr();
+    var todayOrders = state.orders.filter(function(o){
+      return o.status === 'done' && o.dateOut === today;
+    });
+    var map = aggregateCommissionsByStaff(todayOrders);
+
+    var rows = state.staff.map(function(s){
+      var r = map[s.id];
+      return {
+        staffId: s.id,
+        name: s.name || 'Сотрудник',
+        amount: r ? r.amount : 0
+      };
+    });
+
+    rows.sort(function(a,b){
+      if(b.amount !== a.amount) return b.amount - a.amount;
+      return (a.name||'').localeCompare(b.name||'', 'ru');
+    });
+
+    var total = rows.reduce(function(sum,r){ return sum + r.amount; }, 0);
+    box.innerHTML =
+      '<div class="mds-head">' +
+        '<span class="mds-title">ЗП сегодня</span>' +
+        '<span class="mds-total">' + fmtMoney(total) + '</span>' +
+      '</div>' +
+      '<div class="mds-list">' +
+        rows.map(function(r){
+          return '<div class="mds-card" title="' + escapeHtml(r.name) + '">' +
+            '<div class="mds-name">' + escapeHtml(r.name) + '</div>' +
+            '<div class="mds-amount">' + fmtMoney(r.amount) + '</div>' +
+          '</div>';
+        }).join('') +
+      '</div>';
+  }
+
   function renderSalaryWidgets(){
+    renderMobileDailySalary();
     var row = document.getElementById('salaryWidgetsRow');
     if(!row) return;
     if(!state.loaded){ row.innerHTML = ''; return; }

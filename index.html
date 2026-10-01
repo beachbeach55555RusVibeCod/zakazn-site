@@ -1437,6 +1437,161 @@
 
   function storageAvailable(){ return true; }
 
+  // ---------- Realtime sync (Supabase) ----------
+  var _realtimeChannel = null;
+  var _realtimeRenderTimer = null;
+  var _realtimeFullRefreshTimer = null;
+  var _lastVisibilityRefresh = 0;
+
+  function parseStoredJson(value){
+    try{ return JSON.parse(value); }catch(e){ return null; }
+  }
+
+  function upsertStateItem(listName, item){
+    if(!item || !item.id) return;
+    var list = state[listName] || [];
+    var idx = list.findIndex(function(x){ return x.id === item.id; });
+    if(idx === -1) list.push(item);
+    else list[idx] = item;
+    state[listName] = list;
+  }
+
+  function removeStateItem(listName, id){
+    if(!id) return;
+    state[listName] = (state[listName] || []).filter(function(x){ return x.id !== id; });
+  }
+
+  function renderCurrentView(){
+    if(!state || !state.activeTab) return;
+    if(state.activeTab === 'board'){ render(); return; }
+    if(state.activeTab === 'clients'){ renderClientsTab(); return; }
+    if(state.activeTab === 'pricelist'){ renderPriceListTab(); return; }
+    if(state.activeTab === 'stock'){ renderStockTab(); return; }
+    if(state.activeTab === 'staff'){ renderStaffTab(); return; }
+    if(state.activeTab === 'payroll'){ renderPayrollTab(); return; }
+    if(state.activeTab === 'crm'){ renderCrmTab(); return; }
+    if(state.activeTab === 'settings'){ renderSettingsTab(); }
+  }
+
+  function scheduleRealtimeRender(){
+    clearTimeout(_realtimeRenderTimer);
+    _realtimeRenderTimer = setTimeout(function(){
+      state.orders.sort(function(a,b){ return (b.createdAt||0) - (a.createdAt||0); });
+      state.staff.sort(function(a,b){ return (a.name||'').localeCompare(b.name||'', 'ru'); });
+      state.priceList.sort(function(a,b){ return (a.name||'').localeCompare(b.name||'', 'ru'); });
+      state.stockItems.sort(function(a,b){ return (a.name||'').localeCompare(b.name||'', 'ru'); });
+      renderCurrentView();
+    }, 250);
+  }
+
+  function applyRealtimeChange(payload){
+    var eventType = payload && payload.eventType;
+    var row = eventType === 'DELETE' ? (payload.old || {}) : (payload.new || {});
+    var key = row.key || (payload.old && payload.old.key) || '';
+    if(!key){
+      scheduleFullRealtimeRefresh();
+      return;
+    }
+
+    var isDelete = eventType === 'DELETE';
+    var id = key.indexOf(':') !== -1 ? key.substring(key.indexOf(':') + 1) : '';
+
+    if(key.indexOf('order:') === 0){
+      if(isDelete) removeStateItem('orders', id);
+      else upsertStateItem('orders', parseStoredJson(row.value));
+    } else if(key.indexOf('staff:') === 0){
+      if(isDelete) removeStateItem('staff', id);
+      else upsertStateItem('staff', parseStoredJson(row.value));
+    } else if(key.indexOf('client:') === 0){
+      if(isDelete) removeStateItem('clients', id);
+      else upsertStateItem('clients', parseStoredJson(row.value));
+    } else if(key.indexOf('car:') === 0){
+      if(isDelete) removeStateItem('cars', id);
+      else upsertStateItem('cars', parseStoredJson(row.value));
+    } else if(key.indexOf('priceitem:') === 0){
+      if(isDelete) removeStateItem('priceList', id);
+      else upsertStateItem('priceList', parseStoredJson(row.value));
+    } else if(key.indexOf('stockitem:') === 0){
+      if(isDelete) removeStateItem('stockItems', id);
+      else upsertStateItem('stockItems', parseStoredJson(row.value));
+    } else if(key === 'meta:stockMarkupPct'){
+      if(!isDelete) state.stockMarkupPct = Number(row.value);
+    } else if(key === 'company'){
+      if(!isDelete){
+        var company = parseStoredJson(row.value);
+        if(company) state.company = company;
+      }
+    }
+
+    scheduleRealtimeRender();
+  }
+
+  async function refreshAllFromServer(){
+    if(!state.loaded) return;
+    try{
+      await loadCompany();
+      await loadStaff();
+      await loadClients();
+      await loadCars();
+      await loadPriceList();
+      await loadStockItems();
+      await loadStockMarkup();
+      await loadOrders();
+      renderCurrentView();
+    }catch(e){
+      console.warn('Контрольная синхронизация не удалась', e);
+    }
+  }
+
+  function scheduleFullRealtimeRefresh(){
+    clearTimeout(_realtimeFullRefreshTimer);
+    _realtimeFullRefreshTimer = setTimeout(refreshAllFromServer, 500);
+  }
+
+  function startRealtimeSync(){
+    if(_realtimeChannel) return;
+    try{
+      _realtimeChannel = getSB()
+        .channel('kv-store-live-sync')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'kv_store'
+        }, function(payload){
+          applyRealtimeChange(payload);
+        })
+        .subscribe(function(status){
+          if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT'){
+            console.warn('Supabase Realtime:', status);
+          }
+        });
+    }catch(e){
+      console.warn('Не удалось запустить Realtime', e);
+    }
+  }
+
+  function stopRealtimeSync(){
+    if(!_realtimeChannel) return;
+    try{ getSB().removeChannel(_realtimeChannel); }catch(e){}
+    _realtimeChannel = null;
+  }
+
+  document.addEventListener('visibilitychange', function(){
+    if(document.visibilityState !== 'visible' || !state.loaded) return;
+    var now = Date.now();
+    if(now - _lastVisibilityRefresh < 3000) return;
+    _lastVisibilityRefresh = now;
+    refreshAllFromServer();
+    startRealtimeSync();
+  });
+
+  window.addEventListener('online', function(){
+    if(state.loaded){
+      refreshAllFromServer();
+      startRealtimeSync();
+    }
+  });
+
   // ---------- Storage ----------
 
   async function loadOrders(){
@@ -5558,6 +5713,7 @@
     if(state.activeTab === 'clients'){ renderClientsTab(); }
     if(state.activeTab === 'pricelist'){ renderPriceListTab(); }
     if(state.activeTab === 'stock'){ renderStockTab(); }
+    startRealtimeSync();
   }
 
   // ---------- Auth ----------
@@ -5602,6 +5758,7 @@
     document.getElementById('btnExportPayroll').addEventListener('click', exportPayrollCSV);
     initTheme();
     document.getElementById('btnLogout').addEventListener('click', async function(){
+    stopRealtimeSync();
     await getSB().auth.signOut();
     showAuthScreen();
     showToast('Вы вышли из системы');

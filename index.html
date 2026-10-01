@@ -918,6 +918,8 @@
       overflow:hidden !important;
       overscroll-behavior:contain;
       touch-action:none;
+      z-index:220 !important;
+      padding-bottom:calc(78px + env(safe-area-inset-bottom)) !important;
     }
     .mobile-more-overlay .modal{
       max-height:min(93vh, 720px);
@@ -931,6 +933,7 @@
       touch-action:pan-y;
       flex:1 1 auto;
       min-height:0;
+      padding-bottom:calc(28px + env(safe-area-inset-bottom)) !important;
     }
   }
 

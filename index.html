@@ -893,6 +893,68 @@
       flex-shrink:0;
       padding-bottom:calc(16px + env(safe-area-inset-bottom)) !important;
     }
+
+    /* Быстрый наряд: мобильная компоновка */
+    .quick-order-overlay{
+      padding:8px !important;
+      align-items:flex-end !important;
+      z-index:230 !important;
+    }
+    #qForm{
+      max-width:none !important;
+      max-height:calc(100dvh - 8px) !important;
+      border-radius:18px 18px 0 0 !important;
+    }
+    .q-form-body{
+      padding:14px 16px !important;
+      gap:16px !important;
+      -webkit-overflow-scrolling:touch;
+      overscroll-behavior:contain;
+    }
+    .q-sections{
+      display:flex !important;
+      flex-direction:column !important;
+      gap:18px !important;
+    }
+    .q-section{
+      width:100%;
+      min-width:0;
+    }
+    .q-line-row{
+      display:grid !important;
+      grid-template-columns:72px minmax(0,1fr) 34px !important;
+      gap:7px !important;
+      align-items:center !important;
+    }
+    .q-line-row .q-name{
+      grid-column:1 / -1;
+      min-width:0;
+      font-size:16px !important;
+    }
+    .q-line-row .q-qty{
+      grid-column:1;
+      min-width:0;
+    }
+    .q-line-row .q-price{
+      grid-column:2;
+      min-width:0;
+    }
+    .q-line-row .q-remove{
+      grid-column:3;
+      width:34px;
+      height:38px;
+      padding:0 !important;
+      border-radius:8px !important;
+      background:var(--bg-panel-2) !important;
+    }
+    .q-footer{
+      padding:10px 16px calc(12px + env(safe-area-inset-bottom)) !important;
+      display:grid !important;
+      grid-template-columns:minmax(84px,1fr) auto auto;
+      gap:8px !important;
+    }
+    .q-footer #qFullForm{ padding-left:12px !important; padding-right:12px !important; }
+    .q-footer #qSave{ padding-left:18px !important; padding-right:18px !important; }
     .app{ padding-bottom:92px; }
     .header{ position:sticky; top:0; z-index:40; background:var(--bg); padding-top:10px; }
     .header-mark{ width:38px; height:38px; }
@@ -3570,6 +3632,7 @@
     var fl = 'display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#7C8290;margin-bottom:5px;';
 
     var overlay = document.createElement('div');
+    overlay.className = 'quick-order-overlay';
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px);';
 
     overlay.innerHTML =
@@ -3585,7 +3648,7 @@
         '</div>' +
 
         /* Тело */
-        '<div style="overflow-y:auto;flex:1;padding:16px 18px;display:flex;flex-direction:column;gap:14px;">' +
+        '<div class="q-form-body" style="overflow-y:auto;flex:1;padding:16px 18px;display:flex;flex-direction:column;gap:14px;">' +
 
           /* Марка автомобиля — свободный ввод */
           '<div>' +
@@ -3594,13 +3657,13 @@
           '</div>' +
 
           /* Строки: работы и запчасти двумя столбцами */
-          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">' +
-            '<div>' +
+          '<div class="q-sections" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">' +
+            '<div class="q-section">' +
               '<label style="' + fl + '">🔧 Работы</label>' +
               '<div id="qWorkLines" style="display:flex;flex-direction:column;gap:6px;"></div>' +
               '<button type="button" id="qAddWork" style="margin-top:8px;width:100%;padding:9px;border-radius:9px;border:1.5px dashed var(--border);background:transparent;color:#7C8290;cursor:pointer;font-size:13px;font-family:inherit;">+ Добавить работу</button>' +
             '</div>' +
-            '<div>' +
+            '<div class="q-section">' +
               '<label style="' + fl + '">🔩 Запчасти</label>' +
               '<div id="qPartLines" style="display:flex;flex-direction:column;gap:6px;"></div>' +
               '<button type="button" id="qAddPart" style="margin-top:8px;width:100%;padding:9px;border-radius:9px;border:1.5px dashed var(--border);background:transparent;color:#7C8290;cursor:pointer;font-size:13px;font-family:inherit;">+ Добавить запчасть</button>' +
@@ -3610,7 +3673,7 @@
         '</div>' +
 
         /* Подвал */
-        '<div style="padding:12px 18px 24px;border-top:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;gap:10px;">' +
+        '<div class="q-footer" style="padding:12px 18px 24px;border-top:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;gap:10px;">' +
           '<div style="flex:1;">' +
             '<div style="font-size:11px;color:#7C8290;text-transform:uppercase;letter-spacing:0.05em;">Итого</div>' +
             '<div id="qTotal" style="font-size:20px;font-weight:700;font-family:\'JetBrains Mono\',monospace;">0 ₽</div>' +
@@ -3641,12 +3704,13 @@
       wrap.innerHTML = '';
       qOrder.lines.filter(function(l){ return l.type === type; }).forEach(function(line){
         var row = document.createElement('div');
+        row.className = 'q-line-row';
         row.style.cssText = 'display:grid;grid-template-columns:1fr 56px 70px auto;gap:6px;align-items:center;';
         row.innerHTML =
-          '<input data-key="' + line._key + '" data-f="name" value="' + escapeHtml(line.name) + '" placeholder="Наименование" style="' + fi + 'padding:8px 10px;">' +
-          '<input data-key="' + line._key + '" data-f="qty" type="number" min="1" value="' + line.qty + '" placeholder="Кол" style="' + fi + 'padding:8px 8px;text-align:center;">' +
-          '<input data-key="' + line._key + '" data-f="price" type="number" min="0" value="' + (line.price||'') + '" placeholder="Цена" style="' + fi + 'padding:8px 8px;">' +
-          '<button data-key="' + line._key + '" data-f="remove" style="background:none;border:none;color:#7C8290;cursor:pointer;font-size:18px;padding:0 4px;line-height:1;">×</button>';
+          '<input class="q-name" data-key="' + line._key + '" data-f="name" value="' + escapeHtml(line.name) + '" placeholder="Наименование работы / запчасти" style="' + fi + 'padding:8px 10px;">' +
+          '<input class="q-qty" data-key="' + line._key + '" data-f="qty" type="number" min="1" value="' + line.qty + '" placeholder="Кол" style="' + fi + 'padding:8px 8px;text-align:center;">' +
+          '<input class="q-price" data-key="' + line._key + '" data-f="price" type="number" min="0" value="' + (line.price||'') + '" placeholder="Цена" style="' + fi + 'padding:8px 8px;">' +
+          '<button class="q-remove" data-key="' + line._key + '" data-f="remove" style="background:none;border:none;color:#7C8290;cursor:pointer;font-size:18px;padding:0 4px;line-height:1;">×</button>';
         wrap.appendChild(row);
       });
 

@@ -409,6 +409,29 @@
     background:var(--bg-panel); color:#E8E6E0; border-radius:7px;
     padding:8px 9px; font-family:inherit; font-size:13px;
   }
+  .stock-photo-row .spr-sku.spr-detected label{
+    color:var(--accent);
+  }
+  .stock-photo-row .spr-sku.spr-detected input{
+    border-color:var(--accent);
+    background:rgba(20,184,166,.09);
+    box-shadow:0 0 0 1px rgba(20,184,166,.14);
+    font-weight:700;
+    letter-spacing:.03em;
+  }
+  .spr-detected-badge{
+    display:inline-block;
+    margin-left:5px;
+    padding:2px 5px;
+    border:1px solid rgba(20,184,166,.45);
+    border-radius:999px;
+    background:rgba(20,184,166,.10);
+    color:var(--accent);
+    font-size:8px;
+    font-weight:700;
+    letter-spacing:.06em;
+    vertical-align:1px;
+  }
   .stock-photo-remove{
     width:34px; height:34px; border:1px solid var(--border);
     background:transparent; color:#9CA3AF; border-radius:7px; cursor:pointer;
@@ -5668,11 +5691,24 @@
         row.dataset.photoIndex = idx;
         row.innerHTML =
           '<div class="spr-field spr-name"><label>Название</label><input data-pf="name" value="' + escapeHtml(item.name||'') + '"></div>' +
-          '<div class="spr-field spr-sku"><label>Артикул</label><input data-pf="sku" value="' + escapeHtml(item.sku||'') + '"></div>' +
+          '<div class="spr-field spr-sku' + (item.sku ? ' spr-detected' : '') + '"><label>Артикул' + (item.sku ? ' <span class="spr-detected-badge">НАЙДЕН</span>' : '') + '</label><input data-pf="sku" value="' + escapeHtml(item.sku||'') + '"></div>' +
           '<div class="spr-field spr-qty"><label>Кол-во</label><input data-pf="quantity" type="number" min="0" step="1" value="' + (Number(item.quantity)||1) + '"></div>' +
           '<div class="spr-field spr-cost"><label>Закупка ₽</label><input data-pf="costPrice" type="number" min="0" step="0.01" value="' + (Number(item.costPrice)||0) + '"></div>' +
           '<button class="stock-photo-remove" type="button" title="Убрать">×</button>';
         grid.appendChild(row);
+
+        var skuInput = row.querySelector('[data-pf="sku"]');
+        if(skuInput){
+          skuInput.addEventListener('input', function(){
+            var field = skuInput.closest('.spr-sku');
+            if(!field) return;
+            if(!skuInput.value.trim()){
+              field.classList.remove('spr-detected');
+              var badge = field.querySelector('.spr-detected-badge');
+              if(badge) badge.remove();
+            }
+          });
+        }
       });
 
       grid.onclick = function(e){

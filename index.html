@@ -1024,6 +1024,49 @@
       color:#E8E6E0;
       white-space:nowrap;
     }
+    .mds-periods{
+      display:flex;
+      align-items:flex-end;
+      gap:10px;
+      margin-top:7px;
+      padding-top:6px;
+      border-top:1px solid rgba(127,127,127,.14);
+    }
+    .mds-period-btn{
+      appearance:none;
+      border:0;
+      background:transparent;
+      padding:0;
+      min-width:18px;
+      color:#777F8E;
+      font-family:inherit;
+      cursor:pointer;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      gap:2px;
+    }
+    .mds-period-btn .mds-dot{
+      width:7px;
+      height:7px;
+      border-radius:50%;
+      border:1px solid #697181;
+      background:transparent;
+      display:block;
+      transition:transform .12s ease, background .12s ease, border-color .12s ease;
+    }
+    .mds-period-btn .mds-dot-label{
+      font-size:8px;
+      line-height:1;
+      font-weight:600;
+      color:#777F8E;
+    }
+    .mds-period-btn.active .mds-dot{
+      background:var(--accent);
+      border-color:var(--accent);
+      transform:scale(1.18);
+    }
+    .mds-period-btn.active .mds-dot-label{ color:var(--accent); }
     [data-theme="light"] .mds-name{ color:#6B7280; }
     [data-theme="light"] .mds-amount{ color:#111827; }
 
@@ -2775,6 +2818,43 @@
     renderSalaryWidgets();
   }
 
+  var mobileSalaryPeriod = 'day';
+
+  function localDateKey(d){
+    var y = d.getFullYear();
+    var m = String(d.getMonth()+1).padStart(2,'0');
+    var day = String(d.getDate()).padStart(2,'0');
+    return y + '-' + m + '-' + day;
+  }
+
+  function mobileSalaryOrders(period){
+    var now = new Date();
+    var today = localDateKey(now);
+
+    if(period === 'month'){
+      var monthKey = today.slice(0,7);
+      return state.orders.filter(function(o){
+        return o.status === 'done' && (o.dateOut||'').slice(0,7) === monthKey;
+      });
+    }
+
+    if(period === 'week'){
+      var dayOfWeek = now.getDay();
+      var offset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      var monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - offset);
+      var sunday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6);
+      var from = localDateKey(monday);
+      var to = localDateKey(sunday);
+      return state.orders.filter(function(o){
+        return o.status === 'done' && o.dateOut && o.dateOut >= from && o.dateOut <= to;
+      });
+    }
+
+    return state.orders.filter(function(o){
+      return o.status === 'done' && o.dateOut === today;
+    });
+  }
+
   function renderMobileDailySalary(){
     var box = document.getElementById('mobileDailySalary');
     if(!box) return;
@@ -2783,11 +2863,8 @@
       return;
     }
 
-    var today = todayStr();
-    var todayOrders = state.orders.filter(function(o){
-      return o.status === 'done' && o.dateOut === today;
-    });
-    var map = aggregateCommissionsByStaff(todayOrders);
+    var periodOrders = mobileSalaryOrders(mobileSalaryPeriod);
+    var map = aggregateCommissionsByStaff(periodOrders);
 
     var rows = state.staff.map(function(s){
       var r = map[s.id];
@@ -2803,10 +2880,30 @@
       return (a.name||'').localeCompare(b.name||'', 'ru');
     });
 
+    var titles = {
+      day: 'ЗП сегодня',
+      week: 'ЗП за неделю',
+      month: 'ЗП за месяц'
+    };
+
+    function periodButtons(){
+      return '<div class="mds-periods">' +
+        '<button class="mds-period-btn' + (mobileSalaryPeriod === 'day' ? ' active' : '') + '" data-salary-period="day" title="День">' +
+          '<span class="mds-dot"></span><span class="mds-dot-label">Д</span>' +
+        '</button>' +
+        '<button class="mds-period-btn' + (mobileSalaryPeriod === 'week' ? ' active' : '') + '" data-salary-period="week" title="Неделя">' +
+          '<span class="mds-dot"></span><span class="mds-dot-label">Н</span>' +
+        '</button>' +
+        '<button class="mds-period-btn' + (mobileSalaryPeriod === 'month' ? ' active' : '') + '" data-salary-period="month" title="Месяц">' +
+          '<span class="mds-dot"></span><span class="mds-dot-label">М</span>' +
+        '</button>' +
+      '</div>';
+    }
+
     var total = rows.reduce(function(sum,r){ return sum + r.amount; }, 0);
     box.innerHTML =
       '<div class="mds-head">' +
-        '<span class="mds-title">ЗП сегодня</span>' +
+        '<span class="mds-title">' + titles[mobileSalaryPeriod] + '</span>' +
         '<span class="mds-total">' + fmtMoney(total) + '</span>' +
       '</div>' +
       '<div class="mds-list">' +
@@ -2814,9 +2911,19 @@
           return '<div class="mds-card" title="' + escapeHtml(r.name) + '">' +
             '<div class="mds-name">' + escapeHtml(r.name) + '</div>' +
             '<div class="mds-amount">' + fmtMoney(r.amount) + '</div>' +
+            periodButtons() +
           '</div>';
         }).join('') +
       '</div>';
+
+    box.onclick = function(e){
+      var btn = e.target.closest('[data-salary-period]');
+      if(!btn) return;
+      var period = btn.dataset.salaryPeriod;
+      if(period !== 'day' && period !== 'week' && period !== 'month') return;
+      mobileSalaryPeriod = period;
+      renderMobileDailySalary();
+    };
   }
 
   function renderSalaryWidgets(){

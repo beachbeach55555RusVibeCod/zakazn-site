@@ -815,39 +815,44 @@
     .staff-table td, .pricelist-table td, .stock-table td,
     .detail-table td{ white-space:normal; }
     .stock-name, .pricelist-name, .staff-name{ white-space:normal; min-width:120px; }
-    .stock-mobile-qty{
-      display:flex;
-      align-items:center;
-      gap:6px;
-      margin-top:7px;
-      width:max-content;
-      max-width:100%;
-      padding:5px 8px;
-      border:1px solid var(--border);
-      border-radius:8px;
-      background:var(--bg-panel-2);
-      color:#A8AFBC;
-      font-size:11px;
-      line-height:1;
-      white-space:nowrap;
+    .stock-table{
+      display:table;
+      width:100%;
+      table-layout:fixed;
+      overflow:visible;
+      white-space:normal;
     }
-    .stock-mobile-qty b{
-      font-family:'JetBrains Mono',monospace;
-      font-size:13px;
-      color:#E8E6E0;
+    .stock-table th,
+    .stock-table td{
+      padding:9px 5px;
+      vertical-align:middle;
     }
-    .stock-mobile-qty.low{
-      border-color:rgba(245,158,11,.45);
-      background:rgba(245,158,11,.08);
-      color:#F59E0B;
+    .stock-table th:nth-child(1),
+    .stock-table td:nth-child(1){ width:46%; }
+    .stock-table th:nth-child(2),
+    .stock-table td:nth-child(2){ width:14%; text-align:center !important; }
+    .stock-table th:nth-child(3),
+    .stock-table td:nth-child(3){ width:24%; text-align:right !important; }
+    .stock-table th:nth-child(5),
+    .stock-table td:nth-child(5){ width:16%; }
+    .stock-table .stock-sale-col{ display:none; }
+    .stock-name{ min-width:0; font-size:13px; line-height:1.2; }
+    .stock-sku{ font-size:10px; overflow-wrap:anywhere; }
+    .stock-qty{ font-size:13px; }
+    .stock-num{ font-size:11.5px; white-space:nowrap !important; }
+    .stock-actions{
+      gap:3px;
+      justify-content:flex-end;
+      flex-wrap:wrap;
     }
-    .stock-mobile-qty.low b{ color:#F59E0B; }
-    .stock-mobile-qty.zero{
-      border-color:rgba(229,72,77,.45);
-      background:rgba(229,72,77,.08);
-      color:#E5484D;
+    .stock-actions .icon-btn{
+      width:25px;
+      height:25px;
+      min-width:25px;
+      padding:0;
+      font-size:12px;
     }
-    .stock-mobile-qty.zero b{ color:#E5484D; }
+    .stock-mobile-qty{ display:none !important; }
 
     /* CRM */
     .crm-period-grid{ grid-template-columns:1fr; }
@@ -5434,7 +5439,7 @@
     if(items.length === 0){
       html += '<div class="stock-empty">' + (q ? 'Ничего не найдено' : 'Склад пуст. Добавьте первую запчасть.') + '</div>';
     } else {
-      html += '<table class="stock-table"><thead><tr><th>Название</th><th style="text-align:right;">Закуп. цена</th><th style="text-align:right;">Цена продажи</th><th style="text-align:right;">Остаток</th><th></th></tr></thead><tbody>';
+      html += '<table class="stock-table"><thead><tr><th>Название</th><th class="stock-qty-col" style="text-align:right;">Остаток</th><th class="stock-cost-col" style="text-align:right;">Закуп. цена</th><th class="stock-sale-col" style="text-align:right;">Цена продажи</th><th></th></tr></thead><tbody>';
       items.forEach(function(s){
         var qty = Number(s.quantity)||0;
         var minQty = Number(s.minQuantity)||0;
@@ -5442,10 +5447,10 @@
         var qtyClass = qty <= 0 ? 'zero' : (minQty > 0 && qty <= minQty ? 'low' : '');
         var badge = qty <= 0 ? '<span class="stock-badge zero">нет в наличии</span>' : (minQty > 0 && qty <= minQty ? '<span class="stock-badge low">заканчивается</span>' : '');
         html += '<tr class="' + rowClass + '">' +
-          '<td><div class="stock-name">' + escapeHtml(s.name) + badge + '</div>' + (s.sku ? '<div class="stock-sku">арт. ' + escapeHtml(s.sku) + '</div>' : '') + '<div class="stock-mobile-qty ' + qtyClass + '">Остаток: <b>' + qty + ' шт</b></div></td>' +
-          '<td class="stock-num">' + fmtMoney(s.costPrice) + '</td>' +
-          '<td class="stock-num">' + fmtMoney(stockSellPrice(s)) + '</td>' +
+          '<td><div class="stock-name">' + escapeHtml(s.name) + badge + '</div>' + (s.sku ? '<div class="stock-sku">арт. ' + escapeHtml(s.sku) + '</div>' : '') + '</td>' +
           '<td class="stock-qty ' + qtyClass + '">' + qty + '</td>' +
+          '<td class="stock-num stock-cost-col">' + fmtMoney(s.costPrice) + '</td>' +
+          '<td class="stock-num stock-sale-col">' + fmtMoney(stockSellPrice(s)) + '</td>' +
           '<td><div class="stock-actions">' +
             '<button class="icon-btn" data-edit-stock="' + s.id + '" title="Редактировать">✎</button>' +
             '<button class="icon-btn danger" data-delete-stock="' + s.id + '" title="Удалить">&times;</button>' +

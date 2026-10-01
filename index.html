@@ -868,6 +868,31 @@
   .mobile-bottom-nav{ display:none; }
   @media (max-width:640px){
     body{ padding-bottom:72px; }
+
+    /* Все мобильные модальные окна должны быть выше нижней навигации */
+    .modal-overlay{
+      z-index:220 !important;
+      padding-bottom:0 !important;
+      overscroll-behavior:contain;
+    }
+    .modal-overlay .modal{
+      max-height:calc(100dvh - 8px) !important;
+      display:flex;
+      flex-direction:column;
+      margin:0 !important;
+    }
+    .modal-overlay .modal-body{
+      flex:1 1 auto;
+      min-height:0;
+      overflow-y:auto !important;
+      -webkit-overflow-scrolling:touch;
+      overscroll-behavior:contain;
+      padding-bottom:calc(28px + env(safe-area-inset-bottom)) !important;
+    }
+    .modal-overlay .modal-foot{
+      flex-shrink:0;
+      padding-bottom:calc(16px + env(safe-area-inset-bottom)) !important;
+    }
     .app{ padding-bottom:92px; }
     .header{ position:sticky; top:0; z-index:40; background:var(--bg); padding-top:10px; }
     .header-mark{ width:38px; height:38px; }

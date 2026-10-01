@@ -1385,6 +1385,19 @@
     return parts[2] + '.' + parts[1] + '.' + parts[0];
   }
 
+  function fmtTime(ts){
+    if(!ts) return '';
+    var d = new Date(ts);
+    if(isNaN(d.getTime())) return '';
+    return String(d.getHours()).padStart(2,'0') + ':' + String(d.getMinutes()).padStart(2,'0');
+  }
+
+  function fmtOrderDateTime(dateStr, ts){
+    var dateText = fmtDate(dateStr);
+    var timeText = fmtTime(ts);
+    return dateText + (timeText ? ' · ' + timeText : '');
+  }
+
   function todayStr(){
     var d = new Date();
     var mm = String(d.getMonth()+1).padStart(2,'0');
@@ -2373,7 +2386,7 @@
       '</div>' +
       '<div class="moc-row3">' +
         '<span class="moc-meta">' + escapeHtml(metaLine) + '</span>' +
-        '<span class="moc-date">' + fmtDate(o.dateIn) + '</span>' +
+        '<span class="moc-date">' + fmtOrderDateTime(o.dateIn, o.createdAt) + '</span>' +
         '<span class="moc-actions">' +
           '<button class="moc-action moc-status-btn" title="Статус">●</button>' +
           '<button class="moc-action moc-assign-btn" title="Исполнитель">👤</button>' +
@@ -2437,6 +2450,10 @@
         var newKey = item.dataset.skey;
         if(newKey === order.status) return;
         order.status = newKey;
+        if(newKey === 'done'){
+          if(!order.dateOut) order.dateOut = todayStr();
+          if(!order.issuedAt) order.issuedAt = Date.now();
+        }
         var ok = await saveOrder(order);
         if(ok){
           var idx = state.orders.findIndex(function(x){ return x.id === order.id; });
@@ -2549,7 +2566,7 @@
     card.innerHTML =
       '<div class="oc-top">' +
         '<span class="oc-num">№ ' + escapeHtml(o.orderNumber || '—') + '</span>' +
-        '<span class="oc-date">' + fmtDate(o.dateIn) + '</span>' +
+        '<span class="oc-date">' + fmtOrderDateTime(o.dateIn, o.createdAt) + '</span>' +
       '</div>' +
       '<div class="oc-client">' + escapeHtml(carLine || 'Авто не указано') +
         (o.plate ? ' · <span>' + escapeHtml(o.plate) + '</span>' : '') + '</div>' +
@@ -2763,7 +2780,7 @@
       var car = [o.carMake, o.carModel, o.carYear].filter(Boolean).join(' ');
       var status = ({new:'Новый',progress:'В работе',ready:'Готово',done:'Выдан'})[o.status]||o.status;
       rows.push([
-        o.orderNumber||'', o.createdAt ? new Date(o.createdAt).toLocaleDateString('ru-RU') : '',
+        o.orderNumber||'', o.createdAt ? new Date(o.createdAt).toLocaleString('ru-RU') : '',
         o.clientName||'', o.clientPhone||'', car, o.plate||'', status, o.master||'',
         calcOrderTotal(o)
       ].map(function(v){ return '"'+String(v).replace(/"/g,'""')+'"'; }).join(';'));
@@ -2787,8 +2804,9 @@
     if(!order || order.status === newStatus) return;
     var prev = order.status;
     order.status = newStatus;
-    if(newStatus === 'done' && !order.dateOut){
-      order.dateOut = todayStr();
+    if(newStatus === 'done'){
+      if(!order.dateOut) order.dateOut = todayStr();
+      if(!order.issuedAt) order.issuedAt = Date.now();
     }
     render();
     var ok = await saveOrder(order);
@@ -2862,12 +2880,12 @@
                 '<div class="detail-block-value">' + (o.mileage ? escapeHtml(o.mileage) + ' км' : '—') + '</div>' +
               '</div>' +
               '<div>' +
-                '<div class="detail-block-title">Дата приёма</div>' +
-                '<div class="detail-block-value">' + fmtDate(o.dateIn) + '</div>' +
+                '<div class="detail-block-title">Создан</div>' +
+                '<div class="detail-block-value">' + fmtOrderDateTime(o.dateIn, o.createdAt) + '</div>' +
               '</div>' +
               '<div>' +
-                '<div class="detail-block-title">Дата выдачи</div>' +
-                '<div class="detail-block-value">' + (o.dateOut ? fmtDate(o.dateOut) : '—') + '</div>' +
+                '<div class="detail-block-title">Выдан</div>' +
+                '<div class="detail-block-value">' + (o.dateOut ? fmtOrderDateTime(o.dateOut, o.issuedAt) : '—') + '</div>' +
               '</div>' +
               '<div>' +
                 '<div class="detail-block-title">Мастер-приёмщик</div>' +
@@ -3083,8 +3101,8 @@
 
         /* ── Строка дат и мастера ── */
         '<div class="p-meta-row">' +
-          '<span><b>Принят:</b> ' + fmtDate(o.dateIn) + '</span>' +
-          '<span><b>К выдаче:</b> ' + (o.dateOut ? fmtDate(o.dateOut) : '—') + '</span>' +
+          '<span><b>Создан:</b> ' + fmtOrderDateTime(o.dateIn, o.createdAt) + '</span>' +
+          '<span><b>Выдан:</b> ' + (o.dateOut ? fmtOrderDateTime(o.dateOut, o.issuedAt) : '—') + '</span>' +
           '<span><b>Статус:</b> ' + escapeHtml(STATUS_LABEL[o.status]||'—') + '</span>' +
         '</div>' +
 
@@ -3420,7 +3438,8 @@
       lines: [ { name:'', qty:1, price:0, type:'work', assignees:[] } ],
       signature: '',
       clientId: null, vehicleId: null,
-      createdAt: Date.now()
+      createdAt: Date.now(),
+      issuedAt: null
     };
   }
 
@@ -3674,7 +3693,9 @@
         lines: qOrder.lines.filter(function(l){ return l.name.trim() || l.price > 0; }).map(function(l){
           return { name:l.name, qty:Number(l.qty)||1, price:Number(l.price)||0, type:l.type, assignees:[] };
         }),
-        signature: null
+        signature: null,
+        createdAt: Date.now(),
+        issuedAt: null
       };
 
       var linkResult = await upsertClientAndVehicle(order);

@@ -863,6 +863,166 @@
     .app-body{ flex-direction:column; }
     .sidebar{ width:100%; min-width:0; border-right:none; border-bottom:1px solid var(--border); padding:0 0 16px; margin-right:0; margin-bottom:20px; position:static; }
   }
+
+  /* ===== Mobile app shell ===== */
+  .mobile-bottom-nav{ display:none; }
+  @media (max-width:640px){
+    body{ padding-bottom:72px; }
+    .app{ padding-bottom:92px; }
+    .header{ position:sticky; top:0; z-index:40; background:var(--bg); padding-top:10px; }
+    .header-mark{ width:38px; height:38px; }
+    .header .sub{ display:none; }
+    .salary-widgets-row{ display:none; }
+    .header-actions{ justify-content:flex-end; }
+    #statTotal,#statSum{ display:none; }
+    #btnLogout{ display:none; }
+    #dashSidebar{ display:none; }
+    .app-body{ display:block; }
+    .main-content{ width:100%; }
+    #mainTabs{ display:none; }
+    #boardToolbar{ position:sticky; top:72px; z-index:30; background:var(--bg); padding:8px 0 10px; }
+    #boardToolbar .search-wrap{ order:1; width:100%; }
+    #boardToolbar #btnQuickOrder{ order:2; width:calc(42% - 4px); }
+    #boardToolbar #btnNewOrder{ order:3; width:calc(58% - 4px); }
+    .toolbar{ flex-direction:row; flex-wrap:wrap; }
+    .search-wrap input{ min-height:44px; font-size:16px; }
+    .btn{ min-height:44px; }
+    .column{ min-width:88vw; }
+    .order-card{ min-height:112px; }
+    .mobile-bottom-nav{
+      position:fixed; left:0; right:0; bottom:0; z-index:120;
+      display:grid; grid-template-columns:repeat(5,1fr);
+      background:var(--bg-panel); border-top:1px solid var(--border);
+      padding:6px 6px calc(6px + env(safe-area-inset-bottom));
+      box-shadow:0 -6px 18px rgba(0,0,0,.18);
+    }
+    .mobile-nav-btn{
+      appearance:none; border:0; background:transparent; color:#9CA3AF;
+      font-family:inherit; font-size:10.5px; padding:6px 2px;
+      display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer;
+    }
+    .mobile-nav-btn .mi{ font-size:19px; line-height:1; }
+    .mobile-nav-btn.active{ color:var(--accent); font-weight:600; }
+    .mobile-nav-btn.mobile-create{
+      margin-top:-20px; color:#1C1110;
+    }
+    .mobile-nav-btn.mobile-create .mi{
+      width:44px; height:44px; border-radius:50%; background:var(--accent);
+      display:flex; align-items:center; justify-content:center; font-size:25px;
+      box-shadow:0 5px 15px rgba(0,0,0,.25);
+    }
+    .toast{ left:12px; right:12px; bottom:86px; text-align:center; }
+  }
+
+
+  /* ===== Compact mobile order list v2 ===== */
+  @media (max-width:640px){
+    #boardToolbar .search-wrap{ display:none !important; }
+    #boardToolbar{
+      display:grid !important;
+      grid-template-columns:1fr 1.25fr;
+      gap:8px;
+      position:sticky; top:62px; z-index:30;
+      background:var(--bg); padding:8px 0 10px;
+    }
+    #boardToolbar #btnQuickOrder,
+    #boardToolbar #btnNewOrder{
+      width:100% !important; min-width:0; margin:0; order:unset;
+      white-space:nowrap; padding-left:8px; padding-right:8px;
+    }
+
+    .mobile-order-list{ display:flex; flex-direction:column; gap:14px; }
+    .mobile-status-section{
+      background:transparent; border:0; padding:0;
+    }
+    .mobile-status-head{
+      display:flex; align-items:center; justify-content:space-between;
+      margin:0 2px 7px; min-height:24px;
+    }
+    .mobile-status-head-left{ display:flex; align-items:center; gap:7px; }
+    .mobile-status-title{
+      font-size:12px; font-weight:700; text-transform:uppercase;
+      letter-spacing:.035em; color:#D8D5CC;
+    }
+    [data-theme="light"] .mobile-status-title{ color:#374151; }
+    .mobile-status-count{
+      font-family:'JetBrains Mono',monospace; font-size:10.5px;
+      color:#9CA3AF; background:var(--bg-panel-2);
+      border:1px solid var(--border); border-radius:20px;
+      padding:2px 7px;
+    }
+    .mobile-status-cards{ display:flex; flex-direction:column; gap:7px; }
+
+    .mobile-order-card{
+      background:var(--paper); color:var(--ink);
+      border-radius:9px; border-left:4px solid var(--accent);
+      padding:8px 10px 8px; min-height:0;
+      box-shadow:0 1px 0 rgba(0,0,0,.13);
+      cursor:pointer;
+    }
+    .mobile-order-card.status-new{ border-left-color:var(--status-new); }
+    .mobile-order-card.status-progress{ border-left-color:var(--status-progress); }
+    .mobile-order-card.status-ready{ border-left-color:var(--status-ready); }
+    .mobile-order-card.status-done{ border-left-color:var(--status-done); }
+
+    .moc-row1{
+      display:grid; grid-template-columns:auto 1fr auto;
+      align-items:center; gap:7px; margin-bottom:3px;
+    }
+    .moc-num{
+      font-family:'JetBrains Mono',monospace; font-size:11.5px;
+      font-weight:700; color:var(--accent-dark);
+    }
+    .moc-status{
+      min-width:0; justify-self:start;
+      font-size:10px; line-height:1; color:var(--ink-soft);
+      background:var(--paper-line); border-radius:10px;
+      padding:3px 7px; white-space:nowrap;
+    }
+    .moc-sum{
+      font-family:'JetBrains Mono',monospace; font-size:13px;
+      font-weight:700; white-space:nowrap;
+    }
+    .moc-row2{
+      display:flex; align-items:baseline; gap:7px; min-width:0;
+      margin-bottom:2px;
+    }
+    .moc-car{
+      font-size:13px; font-weight:700; line-height:1.25;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    }
+    .moc-plate{
+      font-family:'JetBrains Mono',monospace; font-size:10.5px;
+      color:var(--ink-soft); white-space:nowrap;
+    }
+    .moc-row3{
+      display:grid; grid-template-columns:minmax(0,1fr) auto auto;
+      align-items:center; gap:7px;
+    }
+    .moc-meta{
+      min-width:0; font-size:10.5px; color:var(--ink-soft);
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    }
+    .moc-date{
+      font-family:'JetBrains Mono',monospace; font-size:9.5px;
+      color:var(--ink-soft); white-space:nowrap;
+    }
+    .moc-actions{ display:flex; gap:4px; }
+    .moc-action{
+      width:26px; height:26px; min-height:26px; padding:0;
+      border-radius:6px; border:1px solid var(--paper-line);
+      background:transparent; color:var(--ink-soft);
+      display:flex; align-items:center; justify-content:center;
+      font-size:12px; cursor:pointer;
+    }
+    .moc-action:hover{ background:var(--paper-line); }
+
+    .mobile-empty-state{
+      font-size:11px; color:#6B7280; padding:7px 9px;
+      border:1px dashed var(--border); border-radius:8px;
+    }
+  }
+
 </style>
 </head>
 <body>
@@ -980,6 +1140,15 @@
 </div>
     </div><!-- /main-content -->
   </div><!-- /app-body -->
+
+
+  <nav class="mobile-bottom-nav" id="mobileBottomNav" aria-label="Мобильная навигация">
+    <button class="mobile-nav-btn active" data-mobile-tab="board"><span class="mi">▦</span><span>Заказы</span></button>
+    <button class="mobile-nav-btn" data-mobile-tab="clients"><span class="mi">◉</span><span>Клиенты</span></button>
+    <button class="mobile-nav-btn mobile-create" id="mobileCreateOrder"><span class="mi">+</span><span>Наряд</span></button>
+    <button class="mobile-nav-btn" data-mobile-tab="stock"><span class="mi">▣</span><span>Склад</span></button>
+    <button class="mobile-nav-btn" data-mobile-tab="more"><span class="mi">•••</span><span>Ещё</span></button>
+  </nav>
 
 <div id="modalRoot"></div>
 <div id="toastRoot"></div>
@@ -1896,6 +2065,12 @@
     var wrap = document.getElementById('boardWrap');
     var list = filteredOrders();
 
+    if(window.innerWidth <= 640){
+      renderMobileBoard(wrap, list);
+      updateStats();
+      return;
+    }
+
     var board = document.createElement('div');
     board.className = 'board';
 
@@ -1952,6 +2127,92 @@
     wrap.appendChild(board);
 
     updateStats();
+  }
+
+
+  function renderMobileBoard(wrap, list){
+    var board = document.createElement('div');
+    board.className = 'mobile-order-list';
+
+    STATUSES.forEach(function(s){
+      var colOrders = list.filter(function(o){ return o.status === s.key; });
+      if(colOrders.length === 0) return;
+
+      var section = document.createElement('section');
+      section.className = 'mobile-status-section';
+
+      var head = document.createElement('div');
+      head.className = 'mobile-status-head';
+      head.innerHTML =
+        '<div class="mobile-status-head-left">' +
+          '<span class="dot ' + s.dot + '"></span>' +
+          '<span class="mobile-status-title">' + escapeHtml(s.label) + '</span>' +
+        '</div>' +
+        '<span class="mobile-status-count">' + colOrders.length + '</span>';
+      section.appendChild(head);
+
+      var cards = document.createElement('div');
+      cards.className = 'mobile-status-cards';
+      colOrders.forEach(function(o){
+        cards.appendChild(renderMobileCard(o, s));
+      });
+      section.appendChild(cards);
+      board.appendChild(section);
+    });
+
+    if(!board.children.length){
+      var empty = document.createElement('div');
+      empty.className = 'mobile-empty-state';
+      empty.textContent = 'Нет заказов';
+      board.appendChild(empty);
+    }
+
+    wrap.innerHTML = '';
+    wrap.appendChild(board);
+  }
+
+  function renderMobileCard(o, statusInfo){
+    var card = document.createElement('div');
+    card.className = 'mobile-order-card status-' + o.status;
+    card.dataset.id = o.id;
+
+    var total = calcOrderTotal(o);
+    var carLine = [o.carMake, o.carModel].filter(Boolean).join(' ');
+    var execNames = getOrderExecutorNames(o);
+    var masterLine = execNames.length ? execNames.join(', ') : (o.master ? o.master : 'Без мастера');
+    var clientLine = o.clientName || 'Без имени';
+    var metaLine = clientLine + ' · ' + masterLine;
+
+    card.innerHTML =
+      '<div class="moc-row1">' +
+        '<span class="moc-num">№ ' + escapeHtml(o.orderNumber || '—') + '</span>' +
+        '<span class="moc-status">' + escapeHtml(statusInfo.label) + '</span>' +
+        '<span class="moc-sum">' + fmtMoney(total) + '</span>' +
+      '</div>' +
+      '<div class="moc-row2">' +
+        '<span class="moc-car">' + escapeHtml(carLine || 'Авто не указано') + '</span>' +
+        (o.plate ? '<span class="moc-plate">' + escapeHtml(o.plate) + '</span>' : '') +
+      '</div>' +
+      '<div class="moc-row3">' +
+        '<span class="moc-meta">' + escapeHtml(metaLine) + '</span>' +
+        '<span class="moc-date">' + fmtDate(o.dateIn) + '</span>' +
+        '<span class="moc-actions">' +
+          '<button class="moc-action moc-status-btn" title="Статус">●</button>' +
+          '<button class="moc-action moc-assign-btn" title="Исполнитель">👤</button>' +
+        '</span>' +
+      '</div>';
+
+    card.querySelector('.moc-status-btn').addEventListener('click', function(e){
+      e.stopPropagation();
+      showStatusPopup(e, o);
+    });
+    card.querySelector('.moc-assign-btn').addEventListener('click', function(e){
+      e.stopPropagation();
+      showAssignPopup(e, o);
+    });
+    card.addEventListener('click', function(){ openDetail(o.id); });
+
+    return card;
   }
 
   function getOrderExecutorNames(o){
@@ -3881,6 +4142,7 @@
   // ---------- Tabs ----------
 
   function switchTab(tab){
+    syncMobileNav(tab);
     state.activeTab = tab;
     document.querySelectorAll('#mainTabs .tab-btn').forEach(function(btn){
       btn.classList.toggle('active', btn.dataset.tab === tab);
@@ -5122,6 +5384,54 @@
     };
     reader.readAsText(file);
   }
+
+
+  // ---------- Mobile app navigation ----------
+  function syncMobileNav(tab){
+    document.querySelectorAll('.mobile-nav-btn[data-mobile-tab]').forEach(function(btn){
+      btn.classList.toggle('active', btn.dataset.mobileTab === tab);
+    });
+  }
+
+  document.querySelectorAll('.mobile-nav-btn[data-mobile-tab]').forEach(function(btn){
+    btn.addEventListener('click', function(){
+      var tab = btn.dataset.mobileTab;
+      if(tab === 'more'){
+        var names = [
+          ['pricelist','Прайс-лист'],
+          ['staff','Сотрудники'],
+          ['payroll','Зарплата'],
+          ['crm','CRM'],
+          ['settings','Настройки']
+        ];
+        var overlay = document.createElement('div');
+        overlay.className = 'modal-overlay';
+        overlay.innerHTML = '<div class="modal" style="max-width:420px;"><div class="modal-head"><h2>Ещё</h2><button class="modal-close" id="mobileMoreClose">×</button></div><div class="modal-body" id="mobileMoreList"></div></div>';
+        document.body.appendChild(overlay);
+        var list = overlay.querySelector('#mobileMoreList');
+        names.forEach(function(item){
+          var b = document.createElement('button');
+          b.className = 'btn btn-ghost';
+          b.style.cssText = 'width:100%;justify-content:flex-start;margin-bottom:8px;';
+          b.textContent = item[1];
+          b.addEventListener('click', function(){ document.body.removeChild(overlay); switchTab(item[0]); syncMobileNav('more'); });
+          list.appendChild(b);
+        });
+        overlay.querySelector('#mobileMoreClose').onclick = function(){ document.body.removeChild(overlay); };
+        overlay.addEventListener('click', function(e){ if(e.target === overlay) document.body.removeChild(overlay); });
+        return;
+      }
+      switchTab(tab);
+      syncMobileNav(tab);
+      window.scrollTo({top:0, behavior:'smooth'});
+    });
+  });
+
+  var mobileCreateOrder = document.getElementById('mobileCreateOrder');
+  if(mobileCreateOrder){
+    mobileCreateOrder.addEventListener('click', function(){ openQuickOrderForm(); });
+  }
+
 
   // ---------- Init ----------
 

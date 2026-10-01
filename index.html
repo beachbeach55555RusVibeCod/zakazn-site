@@ -2902,28 +2902,12 @@
   function mobileSalaryOrders(period){
     var now = new Date();
     var today = localDateKey(now);
-
-    if(period === 'month'){
-      var monthKey = today.slice(0,7);
-      return state.orders.filter(function(o){
-        return o.status === 'done' && (o.dateOut||'').slice(0,7) === monthKey;
-      });
-    }
-
-    if(period === 'week'){
-      var dayOfWeek = now.getDay();
-      var offset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-      var monday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - offset);
-      var sunday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate() + 6);
-      var from = localDateKey(monday);
-      var to = localDateKey(sunday);
-      return state.orders.filter(function(o){
-        return o.status === 'done' && o.dateOut && o.dateOut >= from && o.dateOut <= to;
-      });
-    }
+    var daysBack = period === 'month' ? 29 : (period === 'week' ? 6 : 0);
+    var fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysBack);
+    var from = localDateKey(fromDate);
 
     return state.orders.filter(function(o){
-      return o.status === 'done' && o.dateOut === today;
+      return o.status === 'done' && o.dateOut && o.dateOut >= from && o.dateOut <= today;
     });
   }
 
@@ -2954,8 +2938,8 @@
 
     var titles = {
       day: 'ЗП сегодня',
-      week: 'ЗП за неделю',
-      month: 'ЗП за месяц'
+      week: 'ЗП за 7 дней',
+      month: 'ЗП за 30 дней'
     };
 
     function periodButtons(){
@@ -2984,7 +2968,7 @@
             '<div class="mds-revenue-title">Общая выручка автосервиса</div>' +
             '<div class="mds-revenue-amount">' + fmtMoney(revenue) + '</div>' +
             '<div class="mds-revenue-meta">Выдано нарядов: ' + periodOrders.length + '</div>' +
-            '<div class="mds-revenue-note">Круг: доля зарплаты от выручки</div>' +
+
           '</div>' +
           '<div class="mds-revenue-ring" style="background:conic-gradient(var(--accent) 0 ' + visualShare + '%, #414857 ' + visualShare + '% 100%);">' +
             '<span class="mds-revenue-pct">' + salaryShare + '%</span>' +
@@ -2999,7 +2983,7 @@
       '</div>' +
       '<div class="mds-list">' +
         rows.map(function(r){
-          return '<div class="mds-card" title="' + escapeHtml(r.name) + '">' +
+          return '<div class="mds-card mds-staff-card" data-staffid="' + r.staffId + '" title="' + escapeHtml(r.name) + '">' +
             '<div class="mds-name">' + escapeHtml(r.name) + '</div>' +
             '<div class="mds-amount">' + fmtMoney(r.amount) + '</div>' +
             periodButtons() +
@@ -3023,9 +3007,44 @@
       var period = btn.dataset.salaryPeriod;
       if(period !== 'day' && period !== 'week' && period !== 'month') return;
 
-      mobileSalaryView = btn.closest('.mds-revenue-card') ? 'revenue' : 'salary';
+      mobileSalaryView = btn.closest('.mds-revenue-card') ? 'revenue' : mobileSalaryView;
       mobileSalaryPeriod = period;
-      renderMobileDailySalary();
+
+      var nextOrders = mobileSalaryOrders(period);
+      var nextMap = aggregateCommissionsByStaff(nextOrders);
+      var nextTotal = 0;
+
+      box.querySelectorAll('.mds-staff-card').forEach(function(card){
+        var sid = card.dataset.staffid;
+        var amount = nextMap[sid] ? nextMap[sid].amount : 0;
+        nextTotal += amount;
+        var amountEl = card.querySelector('.mds-amount');
+        if(amountEl) amountEl.textContent = fmtMoney(amount);
+      });
+
+      var nextRevenue = nextOrders.reduce(function(sum,o){ return sum + calcOrderTotal(o); }, 0);
+      var nextShare = nextRevenue > 0 ? Math.round((nextTotal / nextRevenue) * 100) : 0;
+      var nextVisualShare = Math.max(0, Math.min(100, nextShare));
+
+      var titleEl = box.querySelector('.mds-title');
+      if(titleEl){
+        titleEl.textContent = period === 'day' ? 'ЗП сегодня' : (period === 'week' ? 'ЗП за 7 дней' : 'ЗП за 30 дней');
+      }
+      var revenueAmountEl = box.querySelector('.mds-revenue-amount');
+      if(revenueAmountEl) revenueAmountEl.textContent = fmtMoney(nextRevenue);
+
+      var revenueMetaEl = box.querySelector('.mds-revenue-meta');
+      if(revenueMetaEl) revenueMetaEl.textContent = 'Выдано нарядов: ' + nextOrders.length;
+
+      var ring = box.querySelector('.mds-revenue-ring');
+      if(ring) ring.style.background = 'conic-gradient(var(--accent) 0 ' + nextVisualShare + '%, #414857 ' + nextVisualShare + '% 100%)';
+
+      var pct = box.querySelector('.mds-revenue-pct');
+      if(pct) pct.textContent = nextShare + '%';
+
+      box.querySelectorAll('[data-salary-period]').forEach(function(periodBtn){
+        periodBtn.classList.toggle('active', periodBtn.dataset.salaryPeriod === period);
+      });
     };
 
     if(list){

@@ -352,6 +352,50 @@
   }
   .stock-markup-pill:hover{ border-color:#4A5163; }
   .stock-markup-pill b{ color: var(--accent); font-weight:600; }
+  .stock-photo-preview{
+    width:100%; max-height:220px; object-fit:contain;
+    border-radius:10px; border:1px solid var(--border); background:#111;
+    margin-bottom:14px;
+  }
+  .stock-photo-status{
+    font-size:13px; color:#9CA3AF; padding:10px 0;
+  }
+  .stock-photo-grid{
+    display:flex; flex-direction:column; gap:10px;
+  }
+  .stock-photo-row{
+    border:1px solid var(--border); border-radius:10px;
+    background:var(--bg-panel-2); padding:10px;
+    display:grid; grid-template-columns:minmax(0,1.6fr) minmax(100px,.8fr) 72px 100px 34px;
+    gap:8px; align-items:end;
+  }
+  .stock-photo-row .spr-field label{
+    display:block; font-size:9.5px; text-transform:uppercase;
+    letter-spacing:.05em; color:#7C8290; margin-bottom:4px;
+  }
+  .stock-photo-row input{
+    width:100%; box-sizing:border-box; border:1px solid var(--border);
+    background:var(--bg-panel); color:#E8E6E0; border-radius:7px;
+    padding:8px 9px; font-family:inherit; font-size:13px;
+  }
+  .stock-photo-remove{
+    width:34px; height:34px; border:1px solid var(--border);
+    background:transparent; color:#9CA3AF; border-radius:7px; cursor:pointer;
+  }
+  @media (max-width:640px){
+    .stock-actions-right{ flex-wrap:wrap; }
+    #btnStockPhoto{ flex:1 1 calc(50% - 4px); justify-content:center; }
+    #btnAddStockItem{ flex:1 1 calc(50% - 4px); justify-content:center; }
+    .stock-photo-row{
+      grid-template-columns:1fr 1fr 34px;
+      gap:7px;
+    }
+    .stock-photo-row .spr-name{ grid-column:1 / -1; }
+    .stock-photo-row .spr-sku{ grid-column:1 / -1; }
+    .stock-photo-row .spr-qty{ grid-column:1; }
+    .stock-photo-row .spr-cost{ grid-column:2; }
+    .stock-photo-row .stock-photo-remove{ grid-column:3; align-self:end; }
+  }
   .stock-table{ width:100%; border-collapse:collapse; }
   .stock-table th{ text-align:left; font-size:11.5px; text-transform:uppercase; letter-spacing:0.03em; color:#7C8290; padding:8px 10px; border-bottom:1px solid var(--border); }
   .stock-table td{ padding:11px 10px; border-bottom:1px solid var(--border); font-size:14px; }
@@ -5291,6 +5335,7 @@
       '<div class="stock-search"><span class="search-icon">⌕</span><input type="text" id="stockSearchInput" placeholder="Поиск по названию или артикулу..."></div>' +
       '<div class="stock-actions-right">' +
         '<div class="stock-markup-pill" id="stockMarkupPill">Наценка: <b>' + state.stockMarkupPct + '%</b> ✎</div>' +
+        '<button class="btn btn-ghost btn-sm" id="btnStockPhoto">📷 По фото</button>' +
         '<button class="btn btn-primary btn-sm" id="btnAddStockItem">+ Добавить запчасть</button>' +
       '</div>' +
     '</div>';
@@ -5340,6 +5385,9 @@
     document.getElementById('btnAddStockItem').addEventListener('click', function(){
       openStockItemForm(null);
     });
+    document.getElementById('btnStockPhoto').addEventListener('click', function(){
+      openStockPhotoPicker();
+    });
     document.getElementById('stockMarkupPill').addEventListener('click', function(){
       openMarkupForm();
     });
@@ -5349,6 +5397,185 @@
     wrap.querySelectorAll('[data-delete-stock]').forEach(function(btn){
       btn.addEventListener('click', function(){ confirmDeleteStockItem(btn.dataset.deleteStock); });
     });
+  }
+
+
+  function openStockPhotoPicker(){
+    var input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.capture = 'environment';
+    input.style.display = 'none';
+    document.body.appendChild(input);
+    input.onchange = function(){
+      var file = input.files && input.files[0];
+      input.remove();
+      if(file) recognizeStockPhoto(file);
+    };
+    input.oncancel = function(){ input.remove(); };
+    input.click();
+  }
+
+  function compressStockPhoto(file){
+    return new Promise(function(resolve, reject){
+      var img = new Image();
+      var url = URL.createObjectURL(file);
+      img.onload = function(){
+        try{
+          var maxSide = 1600;
+          var scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+          var w = Math.max(1, Math.round(img.width * scale));
+          var h = Math.max(1, Math.round(img.height * scale));
+          var canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          var ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          URL.revokeObjectURL(url);
+          resolve(canvas.toDataURL('image/jpeg', 0.82));
+        }catch(e){
+          URL.revokeObjectURL(url);
+          reject(e);
+        }
+      };
+      img.onerror = function(){
+        URL.revokeObjectURL(url);
+        reject(new Error('Не удалось прочитать фото'));
+      };
+      img.src = url;
+    });
+  }
+
+  async function recognizeStockPhoto(file){
+    var html =
+      '<div class="modal-overlay" id="stockPhotoOverlay">' +
+        '<div class="modal" style="max-width:780px;">' +
+          '<div class="modal-head">' +
+            '<h2>Добавление на склад по фото</h2>' +
+            '<button class="modal-close" id="stockPhotoClose">&times;</button>' +
+          '</div>' +
+          '<div class="modal-body">' +
+            '<div id="stockPhotoPreviewWrap"></div>' +
+            '<div class="stock-photo-status" id="stockPhotoStatus">Подготавливаю фото…</div>' +
+            '<div class="stock-photo-grid" id="stockPhotoGrid"></div>' +
+          '</div>' +
+          '<div class="modal-foot">' +
+            '<button class="btn btn-ghost" id="stockPhotoRetry">Другое фото</button>' +
+            '<button class="btn btn-primary" id="stockPhotoSave" disabled>Добавить на склад</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+
+    document.getElementById('modalRoot').innerHTML = html;
+    var overlay = document.getElementById('stockPhotoOverlay');
+    var status = document.getElementById('stockPhotoStatus');
+    var grid = document.getElementById('stockPhotoGrid');
+    var saveBtn = document.getElementById('stockPhotoSave');
+
+    document.getElementById('stockPhotoClose').onclick = closeModal;
+    document.getElementById('stockPhotoRetry').onclick = function(){
+      closeModal();
+      openStockPhotoPicker();
+    };
+    overlay.addEventListener('mousedown', function(e){
+      if(e.target === overlay) closeModal();
+    });
+
+    try{
+      var imageDataUrl = await compressStockPhoto(file);
+      document.getElementById('stockPhotoPreviewWrap').innerHTML =
+        '<img class="stock-photo-preview" src="' + imageDataUrl + '" alt="Фото для распознавания">';
+      status.textContent = 'Распознаю текст и позиции…';
+
+      var result = await getSB().functions.invoke('recognize-stock-photo', {
+        body: { imageDataUrl: imageDataUrl }
+      });
+
+      if(result.error){
+        var errMsg = (result.error.context && result.error.context.message) || result.error.message || 'Ошибка распознавания';
+        throw new Error(errMsg);
+      }
+
+      var data = result.data || {};
+      if(data.error) throw new Error(data.message || 'Ошибка распознавания');
+      var items = Array.isArray(data.items) ? data.items : [];
+      if(!items.length) throw new Error('На фото не найдено запчастей');
+
+      status.textContent = 'Проверьте распознанные данные перед добавлением:';
+      grid.innerHTML = '';
+
+      items.forEach(function(item, idx){
+        var row = document.createElement('div');
+        row.className = 'stock-photo-row';
+        row.dataset.photoIndex = idx;
+        row.innerHTML =
+          '<div class="spr-field spr-name"><label>Название</label><input data-pf="name" value="' + escapeHtml(item.name||'') + '"></div>' +
+          '<div class="spr-field spr-sku"><label>Артикул</label><input data-pf="sku" value="' + escapeHtml(item.sku||'') + '"></div>' +
+          '<div class="spr-field spr-qty"><label>Кол-во</label><input data-pf="quantity" type="number" min="0" step="1" value="' + (Number(item.quantity)||1) + '"></div>' +
+          '<div class="spr-field spr-cost"><label>Закупка ₽</label><input data-pf="costPrice" type="number" min="0" step="0.01" value="' + (Number(item.costPrice)||0) + '"></div>' +
+          '<button class="stock-photo-remove" type="button" title="Убрать">×</button>';
+        grid.appendChild(row);
+      });
+
+      grid.onclick = function(e){
+        var remove = e.target.closest('.stock-photo-remove');
+        if(remove){
+          remove.closest('.stock-photo-row').remove();
+          saveBtn.disabled = grid.querySelectorAll('.stock-photo-row').length === 0;
+        }
+      };
+      saveBtn.disabled = false;
+
+      saveBtn.onclick = async function(){
+        var rows = Array.from(grid.querySelectorAll('.stock-photo-row'));
+        if(!rows.length) return;
+
+        var prepared = rows.map(function(row){
+          return {
+            id: stockItemUid(),
+            name: (row.querySelector('[data-pf="name"]').value || '').trim(),
+            sku: (row.querySelector('[data-pf="sku"]').value || '').trim(),
+            quantity: Number(row.querySelector('[data-pf="quantity"]').value) || 0,
+            costPrice: Number(row.querySelector('[data-pf="costPrice"]').value) || 0,
+            minQuantity: 0,
+            createdAt: Date.now()
+          };
+        }).filter(function(x){ return x.name; });
+
+        if(!prepared.length){
+          showToast('Укажите название хотя бы одной запчасти');
+          return;
+        }
+
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Сохранение…';
+        var saved = 0;
+        for(var i=0;i<prepared.length;i++){
+          var ok = await saveStockItem(prepared[i]);
+          if(ok){
+            state.stockItems.push(prepared[i]);
+            saved++;
+          }
+        }
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Добавить на склад';
+
+        if(saved){
+          state.stockItems.sort(function(a,b){ return (a.name||'').localeCompare(b.name||'', 'ru'); });
+          closeModal();
+          renderStockTab();
+          showToast('Добавлено позиций: ' + saved);
+        }
+      };
+    }catch(e){
+      console.error(e);
+      var msg = e && e.message ? e.message : 'Не удалось распознать фото';
+      if(msg.indexOf('OPENAI_API_KEY') !== -1 || msg.indexOf('recognition_not_configured') !== -1){
+        status.innerHTML = 'Распознавание готово, но требуется один раз добавить API-ключ в Supabase: <b>OPENAI_API_KEY</b>.';
+      }else{
+        status.textContent = msg;
+      }
+      saveBtn.disabled = true;
+    }
   }
 
   function openMarkupForm(){

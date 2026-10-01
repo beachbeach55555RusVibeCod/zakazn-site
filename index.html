@@ -5491,7 +5491,14 @@
       });
 
       if(result.error){
-        var errMsg = (result.error.context && result.error.context.message) || result.error.message || 'Ошибка распознавания';
+        var errMsg = result.error.message || 'Ошибка распознавания';
+        try{
+          if(result.error.context && typeof result.error.context.clone === 'function'){
+            var errData = await result.error.context.clone().json();
+            if(errData && errData.message) errMsg = errData.message;
+            if(errData && errData.error) errMsg += ' (' + errData.error + ')';
+          }
+        }catch(_e){}
         throw new Error(errMsg);
       }
 
@@ -5571,6 +5578,8 @@
       var msg = e && e.message ? e.message : 'Не удалось распознать фото';
       if(msg.indexOf('OPENAI_API_KEY') !== -1 || msg.indexOf('recognition_not_configured') !== -1){
         status.innerHTML = 'Распознавание готово, но требуется один раз добавить API-ключ в Supabase: <b>OPENAI_API_KEY</b>.';
+      }else if(msg.indexOf('credit_balance_exhausted') !== -1 || msg.indexOf('insufficient_quota') !== -1 || msg.indexOf('no credits remaining') !== -1 || msg.indexOf('Закончился баланс OpenAI API') !== -1){
+        status.innerHTML = '<b>Закончился баланс OpenAI API.</b><br>Пополните API-баланс OpenAI и попробуйте это фото ещё раз.';
       }else{
         status.textContent = msg;
       }

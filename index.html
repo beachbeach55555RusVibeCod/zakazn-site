@@ -2902,7 +2902,7 @@
   function mobileSalaryOrders(period){
     var now = new Date();
     var today = localDateKey(now);
-    var daysBack = period === 'month' ? 29 : (period === 'week' ? 6 : 0);
+    var daysBack = period === 'year' ? 364 : (period === 'month' ? 29 : (period === 'week' ? 6 : 0));
     var fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysBack);
     var from = localDateKey(fromDate);
 
@@ -2939,7 +2939,8 @@
     var titles = {
       day: 'ЗП сегодня',
       week: 'ЗП за 7 дней',
-      month: 'ЗП за 30 дней'
+      month: 'ЗП за 30 дней',
+      year: 'ЗП за год'
     };
 
     function periodButtons(){
@@ -2952,6 +2953,9 @@
         '</button>' +
         '<button class="mds-period-btn' + (mobileSalaryPeriod === 'month' ? ' active' : '') + '" data-salary-period="month" title="Месяц">' +
           '<span class="mds-dot"></span><span class="mds-dot-label">М</span>' +
+        '</button>' +
+        '<button class="mds-period-btn' + (mobileSalaryPeriod === 'year' ? ' active' : '') + '" data-salary-period="year" title="Год">' +
+          '<span class="mds-dot"></span><span class="mds-dot-label">Г</span>' +
         '</button>' +
       '</div>';
     }
@@ -3005,7 +3009,7 @@
       var btn = e.target.closest('[data-salary-period]');
       if(!btn) return;
       var period = btn.dataset.salaryPeriod;
-      if(period !== 'day' && period !== 'week' && period !== 'month') return;
+      if(period !== 'day' && period !== 'week' && period !== 'month' && period !== 'year') return;
 
       mobileSalaryView = btn.closest('.mds-revenue-card') ? 'revenue' : mobileSalaryView;
       mobileSalaryPeriod = period;
@@ -3028,7 +3032,7 @@
 
       var titleEl = box.querySelector('.mds-title');
       if(titleEl){
-        titleEl.textContent = period === 'day' ? 'ЗП сегодня' : (period === 'week' ? 'ЗП за 7 дней' : 'ЗП за 30 дней');
+        titleEl.textContent = period === 'day' ? 'ЗП сегодня' : (period === 'week' ? 'ЗП за 7 дней' : (period === 'month' ? 'ЗП за 30 дней' : 'ЗП за год'));
       }
       var revenueAmountEl = box.querySelector('.mds-revenue-amount');
       if(revenueAmountEl) revenueAmountEl.textContent = fmtMoney(nextRevenue);

@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Golos+Text:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
   :root{
     --bg: #1C1F26;
@@ -359,6 +360,33 @@
   }
   .stock-photo-status{
     font-size:13px; color:#9CA3AF; padding:10px 0;
+  }
+  .stock-photo-raw{
+    margin:0 0 12px;
+    border:1px solid var(--border);
+    border-radius:8px;
+    background:var(--bg-panel-2);
+    overflow:hidden;
+  }
+  .stock-photo-raw summary{
+    cursor:pointer;
+    padding:9px 11px;
+    font-size:11px;
+    color:#8E95A3;
+    user-select:none;
+  }
+  .stock-photo-raw pre{
+    margin:0;
+    padding:10px 11px 12px;
+    border-top:1px solid var(--border);
+    white-space:pre-wrap;
+    word-break:break-word;
+    font-family:'JetBrains Mono',monospace;
+    font-size:10.5px;
+    line-height:1.45;
+    color:#A8AFBC;
+    max-height:180px;
+    overflow:auto;
   }
   .stock-photo-grid{
     display:flex; flex-direction:column; gap:10px;
@@ -5335,7 +5363,7 @@
       '<div class="stock-search"><span class="search-icon">⌕</span><input type="text" id="stockSearchInput" placeholder="Поиск по названию или артикулу..."></div>' +
       '<div class="stock-actions-right">' +
         '<div class="stock-markup-pill" id="stockMarkupPill">Наценка: <b>' + state.stockMarkupPct + '%</b> ✎</div>' +
-        '<button class="btn btn-ghost btn-sm" id="btnStockPhoto">📷 По фото</button>' +
+        '<button class="btn btn-ghost btn-sm" id="btnStockPhoto">📷 OCR по фото</button>' +
         '<button class="btn btn-primary btn-sm" id="btnAddStockItem">+ Добавить запчасть</button>' +
       '</div>' +
     '</div>';
@@ -5445,6 +5473,131 @@
     });
   }
 
+
+  async function runLocalStockOcr(imageDataUrl, onProgress){
+    if(!window.Tesseract || !window.Tesseract.createWorker){
+      throw new Error('OCR-модуль не загрузился. Проверьте интернет и попробуйте ещё раз.');
+    }
+
+    var worker = await window.Tesseract.createWorker('rus+eng', 1, {
+      logger: function(m){
+        if(typeof onProgress === 'function' && m && typeof m.progress === 'number'){
+          onProgress(m.status || '', m.progress);
+        }
+      }
+    });
+
+    try{
+      try{
+        await worker.setParameters({
+          preserve_interword_spaces: '1'
+        });
+      }catch(_e){}
+      var result = await worker.recognize(imageDataUrl);
+      return (result && result.data && result.data.text) ? result.data.text : '';
+    }finally{
+      try{ await worker.terminate(); }catch(_e){}
+    }
+  }
+
+  function parseStockOcrText(text){
+    var lines = String(text||'')
+      .replace(/\r/g,'')
+      .split('\n')
+      .map(function(s){ return s.replace(/\s+/g,' ').trim(); })
+      .filter(function(s){ return s.length >= 2; });
+
+    if(!lines.length){
+      return [{ name:'Запчасть по фото', sku:'', quantity:1, costPrice:0 }];
+    }
+
+    var badName = /(внимание|производител|изготовител|сертифик|товар|адрес|телефон|website|www\.|eac|штрих|barcode|страна|упаков|гарант)/i;
+    var partWords = /(подшип|фильтр|колод|ремень|свеч|амортиз|ступиц|рычаг|датчик|насос|проклад|втулк|шаров|наконеч|диск|сцеплен|ролик|сайлент|опор|радиатор|термостат|стартер|генератор|форсунк|катушк|ламп|пыльник|шрус|тормоз|масл|воздуш|топлив)/i;
+
+    var candidates = [];
+    lines.forEach(function(line, idx){
+      if(/^(OE|SKF|FAG|OEM)\b/i.test(line)) return;
+      var tokens = line.match(/[A-ZА-Я0-9][A-ZА-Я0-9._\/-]{3,}/g) || [];
+      tokens.forEach(function(token){
+        var clean = token.replace(/^[._\/-]+|[._\/-]+$/g,'');
+        if(clean.length < 4 || clean.length > 30) return;
+        var hasLetter = /[A-ZА-Я]/i.test(clean);
+        var hasDigit = /\d/.test(clean);
+        if(!hasDigit) return;
+        if(/^\d{12,14}$/.test(clean)) return;
+        var score = 0;
+        if(hasLetter && hasDigit) score += 8;
+        if(/[-._\/]/.test(clean)) score += 3;
+        if(idx <= 2) score += 5;
+        else if(idx <= 5) score += 2;
+        if(clean.length >= 5 && clean.length <= 16) score += 2;
+        candidates.push({ value:clean, lineIndex:idx, score:score });
+      });
+    });
+
+    candidates.sort(function(a,b){ return b.score - a.score || a.lineIndex - b.lineIndex; });
+    var skuInfo = candidates.length ? candidates[0] : { value:'', lineIndex:-1 };
+    var sku = skuInfo.value || '';
+
+    var name = '';
+    if(skuInfo.lineIndex >= 0){
+      for(var j=skuInfo.lineIndex+1; j<Math.min(lines.length, skuInfo.lineIndex+5); j++){
+        var near = lines[j];
+        if(badName.test(near)) continue;
+        if(/[А-Яа-яЁё]/.test(near) && near.length >= 4 && near.length <= 80){
+          name = near;
+          if(partWords.test(near)) break;
+        }
+      }
+    }
+
+    if(!name){
+      for(var k=0;k<lines.length;k++){
+        if(partWords.test(lines[k]) && !badName.test(lines[k])){
+          name = lines[k];
+          break;
+        }
+      }
+    }
+
+    if(!name){
+      for(var n=0;n<lines.length;n++){
+        var line = lines[n];
+        if(badName.test(line)) continue;
+        if(/[А-Яа-яЁё]/.test(line) && line.length >= 4 && line.length <= 70){
+          name = line;
+          break;
+        }
+      }
+    }
+
+    if(!name) name = 'Запчасть по фото';
+
+    var quantity = 1;
+    var qtyMatch = String(text||'').match(/(?:кол-?во|количество|qty)\s*[:xх]?\s*(\d{1,4})/i);
+    if(qtyMatch) quantity = Math.max(1, Number(qtyMatch[1]) || 1);
+
+    var costPrice = 0;
+    var pricePatterns = [
+      /(?:цена|стоимость)\s*[:\-]?\s*(\d[\d\s]*(?:[.,]\d{1,2})?)\s*(?:₽|руб(?:\.|лей)?)/i,
+      /(\d[\d\s]*(?:[.,]\d{2}))\s*(?:₽|руб(?:\.|лей)?)/i
+    ];
+    for(var p=0;p<pricePatterns.length;p++){
+      var pm = String(text||'').match(pricePatterns[p]);
+      if(pm){
+        costPrice = Number(pm[1].replace(/\s/g,'').replace(',','.')) || 0;
+        if(costPrice) break;
+      }
+    }
+
+    return [{
+      name: name.replace(/^[\-–—:]+|[\-–—:]+$/g,'').trim(),
+      sku: sku,
+      quantity: quantity,
+      costPrice: costPrice
+    }];
+  }
+
   async function recognizeStockPhoto(file){
     var html =
       '<div class="modal-overlay" id="stockPhotoOverlay">' +
@@ -5456,6 +5609,7 @@
           '<div class="modal-body">' +
             '<div id="stockPhotoPreviewWrap"></div>' +
             '<div class="stock-photo-status" id="stockPhotoStatus">Подготавливаю фото…</div>' +
+            '<div id="stockPhotoRawWrap"></div>' +
             '<div class="stock-photo-grid" id="stockPhotoGrid"></div>' +
           '</div>' +
           '<div class="modal-foot">' +
@@ -5484,30 +5638,25 @@
       var imageDataUrl = await compressStockPhoto(file);
       document.getElementById('stockPhotoPreviewWrap').innerHTML =
         '<img class="stock-photo-preview" src="' + imageDataUrl + '" alt="Фото для распознавания">';
-      status.textContent = 'Распознаю текст и позиции…';
+      status.textContent = 'OCR запускается… Первый запуск может занять немного времени.';
 
-      var result = await getSB().functions.invoke('recognize-stock-photo', {
-        body: { imageDataUrl: imageDataUrl }
+      var ocrText = await runLocalStockOcr(imageDataUrl, function(step, progress){
+        var pct = Math.max(0, Math.min(100, Math.round(progress * 100)));
+        status.textContent = 'Распознаю текст OCR… ' + pct + '%';
       });
 
-      if(result.error){
-        var errMsg = result.error.message || 'Ошибка распознавания';
-        try{
-          if(result.error.context && typeof result.error.context.clone === 'function'){
-            var errData = await result.error.context.clone().json();
-            if(errData && errData.message) errMsg = errData.message;
-            if(errData && errData.error) errMsg += ' (' + errData.error + ')';
-          }
-        }catch(_e){}
-        throw new Error(errMsg);
+      if(!ocrText || !ocrText.trim()){
+        throw new Error('OCR не смог прочитать текст на фото. Попробуйте снять ближе и без бликов.');
       }
 
-      var data = result.data || {};
-      if(data.error) throw new Error(data.message || 'Ошибка распознавания');
-      var items = Array.isArray(data.items) ? data.items : [];
-      if(!items.length) throw new Error('На фото не найдено запчастей');
+      var items = parseStockOcrText(ocrText);
+      document.getElementById('stockPhotoRawWrap').innerHTML =
+        '<details class="stock-photo-raw">' +
+          '<summary>Распознанный текст OCR</summary>' +
+          '<pre>' + escapeHtml(ocrText.trim()) + '</pre>' +
+        '</details>';
 
-      status.textContent = 'Проверьте распознанные данные перед добавлением:';
+      status.textContent = 'Готово. Проверьте распознанные данные перед добавлением:';
       grid.innerHTML = '';
 
       items.forEach(function(item, idx){
@@ -5576,13 +5725,7 @@
     }catch(e){
       console.error(e);
       var msg = e && e.message ? e.message : 'Не удалось распознать фото';
-      if(msg.indexOf('OPENAI_API_KEY') !== -1 || msg.indexOf('recognition_not_configured') !== -1){
-        status.innerHTML = 'Распознавание готово, но требуется один раз добавить API-ключ в Supabase: <b>OPENAI_API_KEY</b>.';
-      }else if(msg.indexOf('credit_balance_exhausted') !== -1 || msg.indexOf('insufficient_quota') !== -1 || msg.indexOf('no credits remaining') !== -1 || msg.indexOf('Закончился баланс OpenAI API') !== -1){
-        status.innerHTML = '<b>Закончился баланс OpenAI API.</b><br>Пополните API-баланс OpenAI и попробуйте это фото ещё раз.';
-      }else{
-        status.textContent = msg;
-      }
+      status.textContent = msg;
       saveBtn.disabled = true;
     }
   }

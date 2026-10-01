@@ -2890,6 +2890,7 @@
   }
 
   var mobileSalaryPeriod = 'day';
+  var mobileSalaryView = 'salary';
 
   function localDateKey(d){
     var y = d.getFullYear();
@@ -3007,14 +3008,37 @@
         revenueCard +
       '</div>';
 
+    var list = box.querySelector('.mds-list');
+    var revenueSlide = box.querySelector('.mds-revenue-card');
+
+    if(mobileSalaryView === 'revenue' && list && revenueSlide){
+      requestAnimationFrame(function(){
+        list.scrollLeft = revenueSlide.offsetLeft;
+      });
+    }
+
     box.onclick = function(e){
       var btn = e.target.closest('[data-salary-period]');
       if(!btn) return;
       var period = btn.dataset.salaryPeriod;
       if(period !== 'day' && period !== 'week' && period !== 'month') return;
+
+      mobileSalaryView = btn.closest('.mds-revenue-card') ? 'revenue' : 'salary';
       mobileSalaryPeriod = period;
       renderMobileDailySalary();
     };
+
+    if(list){
+      var scrollTimer = null;
+      list.addEventListener('scroll', function(){
+        clearTimeout(scrollTimer);
+        scrollTimer = setTimeout(function(){
+          if(!revenueSlide) return;
+          var threshold = revenueSlide.offsetLeft - (list.clientWidth * 0.35);
+          mobileSalaryView = list.scrollLeft >= threshold ? 'revenue' : 'salary';
+        }, 80);
+      });
+    }
   }
 
   function renderSalaryWidgets(){

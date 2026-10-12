@@ -4054,6 +4054,15 @@
       clientId: null,
       lines: []
     };
+    var QUICK_MANUAL_PART_MARKUP_PCT = 45;
+
+    function quickLineSellPrice(line){
+      var price = Number(line && line.price) || 0;
+      if(line && line.type === 'part' && !line.stockItemId){
+        return price * (1 + QUICK_MANUAL_PART_MARKUP_PCT / 100);
+      }
+      return price;
+    }
 
     var fi = 'width:100%;padding:10px 13px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg-panel-2);color:#E8E6E0;font-family:inherit;font-size:14px;box-sizing:border-box;outline:none;';
     var fl = 'display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#7C8290;margin-bottom:5px;';
@@ -4092,6 +4101,7 @@
             '</div>' +
             '<div class="q-section">' +
               '<label style="' + fl + '">🔩 Запчасти</label>' +
+              '<div style="font-size:10px;color:#7C8290;margin:-2px 0 6px;">Если запчасти нет на складе — вводи закупочную цену, наценка +45% добавится автоматически</div>' +
               '<div id="qPartLines" style="display:flex;flex-direction:column;gap:6px;"></div>' +
               '<button type="button" id="qAddPart" style="margin-top:8px;width:100%;padding:9px;border-radius:9px;border:1.5px dashed var(--border);background:transparent;color:#7C8290;cursor:pointer;font-size:13px;font-family:inherit;">+ Добавить запчасть</button>' +
             '</div>' +
@@ -4141,7 +4151,7 @@
           '<input class="q-name" data-key="' + line._key + '" data-f="name" value="' + escapeHtml(line.name) + '" placeholder="Наименование работы / запчасти"' + (type === 'part' ? ' list="' + quickStockListId + '"' : '') + ' autocomplete="off" style="' + fi + 'padding:8px 10px;">' +
           (type === 'part' ? '<datalist id="' + quickStockListId + '">' + quickStockOptions + '</datalist>' : '') +
           '<input class="q-qty" data-key="' + line._key + '" data-f="qty" type="number" min="1" value="' + line.qty + '" placeholder="Кол" style="' + fi + 'padding:8px 8px;text-align:center;">' +
-          '<input class="q-price" data-key="' + line._key + '" data-f="price" type="number" min="0" step="0.01" value="' + (line.price||'') + '" placeholder="Цена" title="' + (type === 'part' ? 'Цена продажи с наценкой склада ' + state.stockMarkupPct + '%' : 'Цена') + '" style="' + fi + 'padding:8px 8px;">' +
+          '<input class="q-price" data-key="' + line._key + '" data-f="price" type="number" min="0" step="0.01" value="' + (line.price||'') + '" placeholder="' + (type === 'part' ? 'Закупка' : 'Цена') + '" title="' + (type === 'part' ? (line.stockItemId ? 'Цена продажи со склада' : 'Закупочная цена; для ручной запчасти автоматически +45%') : 'Цена') + '" style="' + fi + 'padding:8px 8px;">' +
           '<button class="q-remove" data-key="' + line._key + '" data-f="remove" style="background:none;border:none;color:#7C8290;cursor:pointer;font-size:18px;padding:0 4px;line-height:1;">×</button>';
         wrap.appendChild(row);
       });
@@ -4154,12 +4164,24 @@
           if(f === 'name'){
             line.name = el.value;
             if(line.type === 'part'){
+              var previousStockItemId = line.stockItemId;
               var stockMatch = findStockItemByName(el.value);
               line.stockItemId = stockMatch ? stockMatch.id : null;
+              var priceInput = row.querySelector('.q-price');
               if(stockMatch){
                 line.price = stockSellPrice(stockMatch);
-                var priceInput = row.querySelector('.q-price');
-                if(priceInput) priceInput.value = line.price.toFixed(2);
+                if(priceInput){
+                  priceInput.value = line.price.toFixed(2);
+                  priceInput.placeholder = 'Цена';
+                  priceInput.title = 'Цена продажи со склада';
+                }
+              }else if(previousStockItemId){
+                line.price = 0;
+                if(priceInput){
+                  priceInput.value = '';
+                  priceInput.placeholder = 'Закупка';
+                  priceInput.title = 'Закупочная цена; автоматически +45%';
+                }
               }
             }
           }
@@ -4185,7 +4207,7 @@
     }
 
     function updateQTotal(){
-      var sum = qOrder.lines.reduce(function(s,l){ return s + (l.qty||1)*(l.price||0); }, 0);
+      var sum = qOrder.lines.reduce(function(s,l){ return s + (Number(l.qty)||1) * quickLineSellPrice(l); }, 0);
       var el = document.getElementById('qTotal');
       if(el) el.textContent = fmtMoney(sum);
     }
@@ -4226,7 +4248,7 @@
           return {
             name:l.name,
             qty:Number(l.qty)||1,
-            price:Number(l.price)||0,
+            price:quickLineSellPrice(l),
             type:l.type,
             assignees:[],
             stockItemId:l.type === 'part' ? (l.stockItemId || null) : null

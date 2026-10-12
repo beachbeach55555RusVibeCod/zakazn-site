@@ -4120,7 +4120,7 @@
     /* Добавление строк */
     function addLine(type){
       var key = lineId();
-      var line = { _key: key, type: type, name: '', qty: 1, price: 0 };
+      var line = { _key: key, type: type, name: '', qty: 1, price: 0, stockItemId: null };
       qOrder.lines.push(line);
       renderQLines();
     }
@@ -4133,10 +4133,15 @@
         var row = document.createElement('div');
         row.className = 'q-line-row';
         row.style.cssText = 'display:grid;grid-template-columns:1fr 56px 70px auto;gap:6px;align-items:center;';
+        var quickStockListId = 'qStockList_' + line._key;
+        var quickStockOptions = type === 'part' ? state.stockItems.map(function(s){
+          return '<option value="' + escapeHtml(s.name) + '"' + (s.sku ? ' label="арт. ' + escapeHtml(s.sku) + '"' : '') + '></option>';
+        }).join('') : '';
         row.innerHTML =
-          '<input class="q-name" data-key="' + line._key + '" data-f="name" value="' + escapeHtml(line.name) + '" placeholder="Наименование работы / запчасти" style="' + fi + 'padding:8px 10px;">' +
+          '<input class="q-name" data-key="' + line._key + '" data-f="name" value="' + escapeHtml(line.name) + '" placeholder="Наименование работы / запчасти"' + (type === 'part' ? ' list="' + quickStockListId + '"' : '') + ' autocomplete="off" style="' + fi + 'padding:8px 10px;">' +
+          (type === 'part' ? '<datalist id="' + quickStockListId + '">' + quickStockOptions + '</datalist>' : '') +
           '<input class="q-qty" data-key="' + line._key + '" data-f="qty" type="number" min="1" value="' + line.qty + '" placeholder="Кол" style="' + fi + 'padding:8px 8px;text-align:center;">' +
-          '<input class="q-price" data-key="' + line._key + '" data-f="price" type="number" min="0" value="' + (line.price||'') + '" placeholder="Цена" style="' + fi + 'padding:8px 8px;">' +
+          '<input class="q-price" data-key="' + line._key + '" data-f="price" type="number" min="0" step="0.01" value="' + (line.price||'') + '" placeholder="Цена" title="' + (type === 'part' ? 'Цена продажи с наценкой склада ' + state.stockMarkupPct + '%' : 'Цена') + '" style="' + fi + 'padding:8px 8px;">' +
           '<button class="q-remove" data-key="' + line._key + '" data-f="remove" style="background:none;border:none;color:#7C8290;cursor:pointer;font-size:18px;padding:0 4px;line-height:1;">×</button>';
         wrap.appendChild(row);
       });
@@ -4146,7 +4151,18 @@
           var k = el.dataset.key, f = el.dataset.f;
           var line = qOrder.lines.find(function(l){ return l._key === k; });
           if(!line) return;
-          if(f === 'name') line.name = el.value;
+          if(f === 'name'){
+            line.name = el.value;
+            if(line.type === 'part'){
+              var stockMatch = findStockItemByName(el.value);
+              line.stockItemId = stockMatch ? stockMatch.id : null;
+              if(stockMatch){
+                line.price = stockSellPrice(stockMatch);
+                var priceInput = row.querySelector('.q-price');
+                if(priceInput) priceInput.value = line.price.toFixed(2);
+              }
+            }
+          }
           if(f === 'qty')  line.qty  = Number(el.value)||1;
           if(f === 'price') line.price = Number(el.value)||0;
           updateQTotal();
@@ -4207,12 +4223,28 @@
         master: '',
         note: '',
         lines: qOrder.lines.filter(function(l){ return l.name.trim() || l.price > 0; }).map(function(l){
-          return { name:l.name, qty:Number(l.qty)||1, price:Number(l.price)||0, type:l.type, assignees:[] };
+          return {
+            name:l.name,
+            qty:Number(l.qty)||1,
+            price:Number(l.price)||0,
+            type:l.type,
+            assignees:[],
+            stockItemId:l.type === 'part' ? (l.stockItemId || null) : null
+          };
         }),
         signature: null,
         createdAt: Date.now(),
         issuedAt: null
       };
+
+      var stockCheck = checkStockAvailability(null, order.lines);
+      if(!stockCheck.ok){
+        var itemName = stockCheck.item ? stockCheck.item.name : 'запчасть';
+        showToast('Недостаточно на складе «' + itemName + '»: нужно ' + stockCheck.needed + ', есть ' + stockCheck.available);
+        btn.disabled = false;
+        btn.textContent = 'Сохранить';
+        return;
+      }
 
       var linkResult = await upsertClientAndVehicle(order);
       order.clientId  = linkResult.clientId;
@@ -4220,6 +4252,7 @@
 
       var ok = await saveOrder(order);
       if(ok){
+        await applyStockDiff(null, order.lines);
         state.orders.unshift(order);
         render();
         overlay.remove();

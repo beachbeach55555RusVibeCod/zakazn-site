@@ -721,10 +721,15 @@
     font-family:'JetBrains Mono', monospace; font-size:13px; color:var(--text-secondary); text-align:right; padding-right:4px;
   }
   .line-row.part-line-row{
-    grid-template-columns:minmax(120px,1fr) 54px 88px 104px 80px;
+    grid-template-columns:minmax(105px,1fr) 50px 104px 120px 72px;
+  }
+  .line-row.part-line-row .part-cost-input,
+  .line-row.part-line-row .part-sell-input{
+    font-family:'JetBrains Mono', monospace;
+    font-variant-numeric:tabular-nums;
   }
   @media (max-width:760px){
-    .line-row.part-line-row{ grid-template-columns:minmax(150px,1fr) 64px 96px 112px 90px; }
+    .line-row.part-line-row{ grid-template-columns:minmax(150px,1fr) 64px 118px 132px 90px; }
   }
   @media (max-width:560px){
     .line-row.part-line-row{ grid-template-columns:1fr 1fr; }
@@ -1246,13 +1251,18 @@
     min-width:0;
   }
   #qForm .q-line-row.q-part-line{
-    grid-template-columns:64px minmax(0,1fr) minmax(0,1fr) 34px !important;
+    grid-template-columns:58px minmax(90px,1fr) minmax(110px,1.15fr) 34px !important;
   }
   #qForm .q-line-row.q-part-line .q-name{ grid-column:1 / -1 !important; }
   #qForm .q-line-row.q-part-line .q-qty{ grid-column:1 !important; }
   #qForm .q-line-row.q-part-line .q-cost{ grid-column:2 !important; min-width:0; }
   #qForm .q-line-row.q-part-line .q-price{ grid-column:3 !important; min-width:0; }
   #qForm .q-line-row.q-part-line .q-remove{ grid-column:4 !important; }
+  #qForm .q-line-row.q-part-line .q-cost,
+  #qForm .q-line-row.q-part-line .q-price{
+    font-family:'JetBrains Mono', monospace !important;
+    font-variant-numeric:tabular-nums;
+  }
   #qForm .q-cost[readonly],
   .part-cost-input[readonly]{
     opacity:.72;
@@ -2713,15 +2723,25 @@
     return state.stockItems.find(function(s){ return (s.name||'').trim().toLowerCase() === norm; }) || null;
   }
 
+  function roundPriceToTenth(value){
+    var n = Number(value) || 0;
+    return Math.round((n + Number.EPSILON) * 10) / 10;
+  }
+
+  function priceInputValue(value){
+    var n = roundPriceToTenth(value);
+    return Number.isInteger(n) ? String(n) : n.toFixed(1);
+  }
+
   function stockSellPrice(item){
     var cost = Number(item.costPrice) || 0;
     var markup = Number(state.stockMarkupPct) || 0;
-    return cost * (1 + markup/100);
+    return roundPriceToTenth(cost * (1 + markup/100));
   }
 
   function manualPartSellPrice(costPrice){
     var cost = Number(costPrice) || 0;
-    return cost * (1 + ORDER_MANUAL_PART_MARKUP_PCT / 100);
+    return roundPriceToTenth(cost * (1 + ORDER_MANUAL_PART_MARKUP_PCT / 100));
   }
 
   // Build a map stockItemId -> total qty used, from an order's part lines.
@@ -4475,7 +4495,7 @@
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px);';
 
     overlay.innerHTML =
-      '<div id="qForm" style="background:var(--bg-panel);border-radius:18px;width:100%;max-width:560px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.5);">' +
+      '<div id="qForm" style="background:var(--bg-panel);border-radius:18px;width:100%;max-width:680px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.5);">' +
 
         /* Шапка */
         '<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 18px 14px;border-bottom:1px solid var(--border);flex-shrink:0;">' +
@@ -4600,8 +4620,8 @@
           return '<option value="' + escapeHtml(s.id) + '"' + ((line.assignees||[])[0] === s.id ? ' selected' : '') + '>' + escapeHtml(s.name) + '</option>';
         }).join('') : '';
         var quickPriceFields = type === 'part'
-          ? '<input class="q-cost" data-key="' + line._key + '" data-f="costPrice" type="number" min="0" step="0.01" value="' + (line.costPrice||'') + '" placeholder="Закупка" title="' + (line.stockItemId ? 'Закупочная цена со склада' : 'Закупочная цена; после изменения цена продажи пересчитается с +45%') + '"' + (line.stockItemId ? ' readonly' : '') + ' style="' + fi + 'padding:8px 6px;">' +
-            '<input class="q-price" data-key="' + line._key + '" data-f="price" type="number" min="0" step="0.01" value="' + (line.price||'') + '" placeholder="После наценки" title="Цена продажи после наценки — можно изменить вручную" style="' + fi + 'padding:8px 6px;">'
+          ? '<input class="q-cost" data-key="' + line._key + '" data-f="costPrice" type="number" min="0" step="0.1" value="' + (line.costPrice ? priceInputValue(line.costPrice) : '') + '" placeholder="Закупка" title="' + (line.stockItemId ? 'Закупочная цена со склада' : 'Закупочная цена; после изменения цена продажи пересчитается с +45%') + '"' + (line.stockItemId ? ' readonly' : '') + ' style="' + fi + 'padding:8px 6px;">' +
+            '<input class="q-price" data-key="' + line._key + '" data-f="price" type="number" min="0" step="0.1" value="' + (line.price ? priceInputValue(line.price) : '') + '" placeholder="После наценки" title="Цена продажи после наценки — можно изменить вручную" style="' + fi + 'padding:8px 6px;">'
           : '<input class="q-price" data-key="' + line._key + '" data-f="price" type="number" min="0" step="0.01" value="' + (line.price||'') + '" placeholder="Цена" title="Цена" style="' + fi + 'padding:8px 6px;">';
         row.innerHTML =
           '<input class="q-name" data-key="' + line._key + '" data-f="name" value="' + escapeHtml(line.name) + '" placeholder="' + (type === 'work' ? 'Работа' : 'Запчасть') + '"' + (type === 'part' ? ' list="' + quickStockListId + '"' : '') + ' autocomplete="off" style="' + fi + 'padding:8px 10px;">' +
@@ -4630,12 +4650,12 @@
                 line.costPrice = Number(stockMatch.costPrice) || 0;
                 line.price = stockSellPrice(stockMatch);
                 if(costInput){
-                  costInput.value = line.costPrice ? line.costPrice.toFixed(2) : '';
+                  costInput.value = line.costPrice ? priceInputValue(line.costPrice) : '';
                   costInput.readOnly = true;
                   costInput.title = 'Закупочная цена со склада';
                 }
                 if(priceInput){
-                  priceInput.value = line.price.toFixed(2);
+                  priceInput.value = priceInputValue(line.price);
                   priceInput.placeholder = 'После наценки';
                   priceInput.title = 'Цена продажи после складской наценки — можно изменить вручную';
                 }
@@ -4661,14 +4681,27 @@
             if(line.type === 'part' && !line.stockItemId){
               line.price = manualPartSellPrice(line.costPrice);
               var sellInput = row.querySelector('.q-price');
-              if(sellInput) sellInput.value = line.price ? line.price.toFixed(2) : '';
+              if(sellInput) sellInput.value = line.price ? priceInputValue(line.price) : '';
             }
           }
           if(f === 'price') line.price = Number(el.value)||0;
           updateQTotal();
         });
         el.addEventListener('focus', function(){ el.style.borderColor='var(--accent)'; });
-        el.addEventListener('blur',  function(){ el.style.borderColor='var(--border)'; });
+        el.addEventListener('blur', function(){
+          el.style.borderColor='var(--border)';
+          var field = el.dataset.f;
+          var line = qOrder.lines.find(function(l){ return l._key === el.dataset.key; });
+          if(!line || line.type !== 'part' || (field !== 'costPrice' && field !== 'price')) return;
+          line[field] = roundPriceToTenth(el.value);
+          if(field === 'costPrice' && !line.stockItemId){
+            line.price = manualPartSellPrice(line.costPrice);
+            var sellInput = row.querySelector('.q-price');
+            if(sellInput) sellInput.value = line.price ? priceInputValue(line.price) : '';
+          }
+          el.value = line[field] ? priceInputValue(line[field]) : '';
+          updateQTotal();
+        });
       });
       wrap.querySelectorAll('.q-assignee').forEach(function(sel){
         sel.addEventListener('change', function(){
@@ -5213,8 +5246,8 @@
             '<input type="text" placeholder="Например: Масляный фильтр" value="' + escapeHtml(line.name) + '" data-field="name" list="' + nameDatalistId + '" autocomplete="off">' +
             '<datalist id="' + nameDatalistId + '">' + nameOptions + '</datalist>' +
             '<input type="number" min="0" step="1" value="' + (line.qty||1) + '" data-field="qty" title="Количество">' +
-            '<input class="part-cost-input" type="number" min="0" step="0.01" value="' + (line.costPrice||0) + '" data-field="costPrice" placeholder="Закупка" title="' + (line.stockItemId ? 'Закупочная цена со склада' : 'Закупочная цена; после изменения цена продажи пересчитается с +45%') + '"' + (line.stockItemId ? ' readonly' : '') + '>' +
-            '<input class="part-sell-input" type="number" min="0" step="0.01" value="' + (line.price||0) + '" data-field="price" placeholder="После наценки" title="Цена продажи после наценки — можно изменить вручную">' +
+            '<input class="part-cost-input" type="number" min="0" step="0.1" value="' + priceInputValue(line.costPrice||0) + '" data-field="costPrice" placeholder="Закупка" title="' + (line.stockItemId ? 'Закупочная цена со склада' : 'Закупочная цена; после изменения цена продажи пересчитается с +45%') + '"' + (line.stockItemId ? ' readonly' : '') + '>' +
+            '<input class="part-sell-input" type="number" min="0" step="0.1" value="' + priceInputValue(line.price||0) + '" data-field="price" placeholder="После наценки" title="Цена продажи после наценки — можно изменить вручную">' +
             '<span class="line-sum">' + fmtMoney(lineTotal(line)) + '</span>' +
           '</div>' +
           '<div class="line-commission-hint" data-stock-hint></div>';
@@ -5232,11 +5265,11 @@
                 line.costPrice = Number(stockMatch.costPrice) || 0;
                 line.price = stockSellPrice(stockMatch);
                 if(costInput2){
-                  costInput2.value = line.costPrice ? line.costPrice.toFixed(2) : '0';
+                  costInput2.value = priceInputValue(line.costPrice);
                   costInput2.readOnly = true;
                   costInput2.title = 'Закупочная цена со склада';
                 }
-                if(priceInput2){ priceInput2.value = line.price.toFixed(2); }
+                if(priceInput2){ priceInput2.value = priceInputValue(line.price); }
               }else if(previousStockItemId){
                 line.costPrice = 0;
                 line.price = 0;
@@ -5253,9 +5286,22 @@
               line.costPrice = Number(inp.value)||0;
               line.price = manualPartSellPrice(line.costPrice);
               var sellInput2 = block.querySelector('.line-row input[data-field="price"]');
-              if(sellInput2) sellInput2.value = line.price ? line.price.toFixed(2) : '0';
+              if(sellInput2) sellInput2.value = priceInputValue(line.price);
             }
             if(inp.dataset.field === 'qty'){ updateStockHint(); }
+            block.querySelector('.line-sum').textContent = fmtMoney(lineTotal(line));
+            updateFormTotal(order.lines);
+          });
+          inp.addEventListener('blur', function(){
+            var field = inp.dataset.field;
+            if(field !== 'costPrice' && field !== 'price') return;
+            line[field] = roundPriceToTenth(inp.value);
+            if(field === 'costPrice' && !line.stockItemId){
+              line.price = manualPartSellPrice(line.costPrice);
+              var sellInput = block.querySelector('.line-row input[data-field="price"]');
+              if(sellInput) sellInput.value = priceInputValue(line.price);
+            }
+            inp.value = priceInputValue(line[field]);
             block.querySelector('.line-sum').textContent = fmtMoney(lineTotal(line));
             updateFormTotal(order.lines);
           });

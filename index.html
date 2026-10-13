@@ -34,6 +34,14 @@
     --status-done: #9AA0AC;
     --status-done-bg: #2A2E37;
     --danger: #E5484D;
+
+    /* Общая система контраста текста */
+    --text-main: #E8E6E0;
+    --text-secondary: #D8D5CC;
+    --text-muted: #9CA3AF;
+    --text-subtle: #7C8290;
+    --text-faint: #6B7280;
+    --text-placeholder: #5C6270;
   }
 
   *{ box-sizing: border-box; }
@@ -1030,9 +1038,34 @@
     --bg: #F3F4F6;
     --bg-panel: #FFFFFF;
     --bg-panel-2: #F9FAFB;
-    --border: #E5E7EB;
+    --border: #D1D5DB;
+
+    /* В светлой теме серые тексты должны оставаться хорошо читаемыми */
+    --text-main: #111827;
+    --text-secondary: #1F2937;
+    --text-muted: #374151;
+    --text-subtle: #4B5563;
+    --text-faint: #4B5563;
+    --text-placeholder: #4B5563;
   }
   [data-theme="light"] body{ color: #111827; }
+  [data-theme="light"] input,
+  [data-theme="light"] select,
+  [data-theme="light"] textarea{
+    color:#111827;
+  }
+  [data-theme="light"] input::placeholder,
+  [data-theme="light"] textarea::placeholder{
+    color:var(--text-placeholder) !important;
+    opacity:1;
+  }
+  [data-theme="light"] input:disabled,
+  [data-theme="light"] select:disabled,
+  [data-theme="light"] textarea:disabled{
+    color:#374151 !important;
+    -webkit-text-fill-color:#374151 !important;
+    opacity:1 !important;
+  }
   [data-theme="light"] .header .sub{ color: #6B7280; }
   [data-theme="light"] .column-title{ color: #374151; }
   [data-theme="light"] .sw-name{ color: #6B7280; }
@@ -6665,7 +6698,7 @@
       '</g>';
 
       if(state.crmChartMode === 'month' || i % 5 === 0 || i === n-1){
-        bars += '<text x="' + (groupX + barW + gap/2) + '" y="' + (chartHeight - 10) + '" font-size="10" fill="#7C8290" text-anchor="middle" font-family="JetBrains Mono, monospace">' + escapeHtml(p.label) + '</text>';
+        bars += '<text x="' + (groupX + barW + gap/2) + '" y="' + (chartHeight - 10) + '" font-size="10" fill="var(--text-subtle)" text-anchor="middle" font-family="JetBrains Mono, monospace">' + escapeHtml(p.label) + '</text>';
       }
     });
 

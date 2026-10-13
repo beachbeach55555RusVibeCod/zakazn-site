@@ -1263,6 +1263,31 @@
     font-family:'JetBrains Mono', monospace !important;
     font-variant-numeric:tabular-nums;
   }
+  #qForm .q-section-total{
+    margin-top:10px;
+    padding:9px 10px;
+    border-radius:9px;
+    background:var(--bg-panel-2);
+    border:1px solid var(--border);
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+  }
+  #qForm .q-section-total .q-section-total-label{
+    font-size:11px;
+    color:var(--text-subtle);
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    font-weight:600;
+  }
+  #qForm .q-section-total .q-section-total-value{
+    font-family:'JetBrains Mono', monospace;
+    font-size:14px;
+    font-weight:700;
+    white-space:nowrap;
+    color:var(--accent);
+  }
   #qForm .q-cost[readonly],
   .part-cost-input[readonly]{
     opacity:.72;
@@ -4457,15 +4482,15 @@
       line.stockItemId = line.type === 'part' ? (line.stockItemId || null) : null;
       line.assignees = line.type === 'work' ? (line.assignees || []).filter(Boolean) : [];
 
-      line.price = Number(line.price) || 0;
+      line.price = roundPriceToTenth(line.price);
       if(line.type === 'part'){
         var stockItem = line.stockItemId ? getStockItemById(line.stockItemId) : null;
         if(line.costPrice !== undefined && line.costPrice !== null && line.costPrice !== ''){
-          line.costPrice = Number(line.costPrice) || 0;
+          line.costPrice = roundPriceToTenth(line.costPrice);
         }else if(line.quickCostPrice !== undefined && line.quickCostPrice !== null && line.quickCostPrice !== ''){
-          line.costPrice = Number(line.quickCostPrice) || 0;
+          line.costPrice = roundPriceToTenth(line.quickCostPrice);
         }else if(stockItem){
-          line.costPrice = Number(stockItem.costPrice) || 0;
+          line.costPrice = roundPriceToTenth(stockItem.costPrice);
         }else if(line.price > 0){
           line.costPrice = line.price / (1 + ORDER_MANUAL_PART_MARKUP_PCT / 100);
         }else{
@@ -4524,12 +4549,14 @@
                 '<button type="button" id="qPresetTO" title="Добавить стандартное ТО" style="padding:9px 8px;border-radius:9px;border:1.5px solid var(--accent);background:rgba(20,184,166,.10);color:var(--accent);cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;">ТО</button>' +
                 '<button type="button" id="qAddWork" style="width:100%;padding:9px;border-radius:9px;border:1.5px dashed var(--border);background:transparent;color:var(--text-subtle);cursor:pointer;font-size:13px;font-family:inherit;">+ Добавить работу</button>' +
               '</div>' +
+              '<div class="q-section-total"><span class="q-section-total-label">Итого работы</span><span class="q-section-total-value" id="qWorkTotal">0&nbsp;₽</span></div>' +
             '</div>' +
             '<div class="q-section">' +
               '<label style="' + fl + '">🔩 Запчасти</label>' +
               '<div style="font-size:10px;color:var(--text-subtle);margin:-2px 0 6px;">Закупка → автонаценка +45%. Поле «После наценки» можно изменить вручную. Для склада подставится текущая цена продажи.</div>' +
               '<div id="qPartLines" style="display:flex;flex-direction:column;gap:6px;"></div>' +
               '<button type="button" id="qAddPart" style="margin-top:8px;width:100%;padding:9px;border-radius:9px;border:1.5px dashed var(--border);background:transparent;color:var(--text-subtle);cursor:pointer;font-size:13px;font-family:inherit;">+ Добавить запчасть</button>' +
+              '<div class="q-section-total"><span class="q-section-total-label">Итого запчасти</span><span class="q-section-total-value" id="qPartTotal">0&nbsp;₽</span></div>' +
             '</div>' +
           '</div>' +
 
@@ -4727,9 +4754,19 @@
     }
 
     function updateQTotal(){
-      var sum = qOrder.lines.reduce(function(s,l){ return s + (Number(l.qty)||1) * quickLineSellPrice(l); }, 0);
-      var el = document.getElementById('qTotal');
-      if(el) el.textContent = fmtMoney(sum);
+      var workSum = 0;
+      var partSum = 0;
+      qOrder.lines.forEach(function(l){
+        var lineSum = (Number(l.qty)||1) * quickLineSellPrice(l);
+        if(l.type === 'part') partSum += lineSum;
+        else workSum += lineSum;
+      });
+      var workEl = document.getElementById('qWorkTotal');
+      var partEl = document.getElementById('qPartTotal');
+      var totalEl = document.getElementById('qTotal');
+      if(workEl) workEl.textContent = fmtMoney(workSum);
+      if(partEl) partEl.textContent = fmtMoney(partSum);
+      if(totalEl) totalEl.textContent = fmtMoney(workSum + partSum);
     }
 
     document.getElementById('qPresetTO').addEventListener('click', applyQuickPresetTO);
@@ -4843,15 +4880,15 @@
       l._key = l._key || lineId();
       if(!l.type) l.type = 'work';
       if(!l.assignees) l.assignees = [];
-      l.price = Number(l.price) || 0;
+      l.price = roundPriceToTenth(l.price);
       if(l.type === 'part'){
         var stockItem = l.stockItemId ? getStockItemById(l.stockItemId) : null;
         if(l.costPrice !== undefined && l.costPrice !== null && l.costPrice !== ''){
-          l.costPrice = Number(l.costPrice) || 0;
+          l.costPrice = roundPriceToTenth(l.costPrice);
         }else if(l.quickCostPrice !== undefined && l.quickCostPrice !== null && l.quickCostPrice !== ''){
-          l.costPrice = Number(l.quickCostPrice) || 0;
+          l.costPrice = roundPriceToTenth(l.quickCostPrice);
         }else if(stockItem){
-          l.costPrice = Number(stockItem.costPrice) || 0;
+          l.costPrice = roundPriceToTenth(stockItem.costPrice);
         }else{
           l.costPrice = 0;
         }
@@ -4930,7 +4967,7 @@
                   '<div class="form-section-title">Работы</div>' +
                   '<div class="lines" id="workLinesWrap"></div>' +
                   '<button type="button" class="add-line-btn" id="addWorkLineBtn">+ Добавить работу</button>' +
-                  '<div class="total-row"><span class="label">Сумма работ</span><span class="value" id="workLinesTotal">0&nbsp;₽</span></div>' +
+                  '<div class="total-row"><span class="label">Итого работы</span><span class="value" id="workLinesTotal">0&nbsp;₽</span></div>' +
                 '</div>' +
 
                 '<div class="form-section lines-column">' +
@@ -4938,7 +4975,7 @@
                   '<div class="line-commission-hint" style="margin:-4px 0 9px;">Ручная запчасть: закупка → +45%. Цену после наценки можно изменить вручную. Для склада подставляется текущая цена продажи.</div>' +
                   '<div class="lines" id="partLinesWrap"></div>' +
                   '<button type="button" class="add-line-btn" id="addPartLineBtn">+ Добавить запчасть</button>' +
-                  '<div class="total-row"><span class="label">Сумма запчастей</span><span class="value" id="partLinesTotal">0&nbsp;₽</span></div>' +
+                  '<div class="total-row"><span class="label">Итого запчасти</span><span class="value" id="partLinesTotal">0&nbsp;₽</span></div>' +
                 '</div>' +
               '</div>' +
 

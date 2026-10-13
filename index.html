@@ -48,7 +48,7 @@
   html,body{ margin:0; padding:0; }
   body{
     background: var(--bg);
-    color: #E8E6E0;
+    color:var(--text-main);
     font-family: 'Golos Text', -apple-system, sans-serif;
     min-height: 100vh;
   }
@@ -70,13 +70,13 @@
     flex-shrink:0;
   }
   .header h1{ font-size:21px; font-weight:600; margin:0; letter-spacing:-0.01em; }
-  .header .sub{ font-size:13px; color:#9CA3AF; margin-top:3px; }
+  .header .sub{ font-size:13px; color:var(--text-muted); margin-top:3px; }
   .header-actions{ display:flex; gap:10px; align-items:center; flex-wrap: wrap; }
 
   .btn{
     font-family:inherit; font-size:14px; font-weight:500;
     padding: 10px 18px; border-radius: 8px; cursor:pointer;
-    border:1px solid var(--border); background: var(--bg-panel-2); color:#E8E6E0;
+    border:1px solid var(--border); background: var(--bg-panel-2); color:var(--text-main);
     transition: background .12s ease, border-color .12s ease;
     display:inline-flex; align-items:center; gap:8px;
   }
@@ -96,19 +96,19 @@
   .search-wrap{ position:relative; flex:1; min-width:220px; max-width:380px; }
   .search-wrap input{
     width:100%; padding:10px 14px 10px 38px; border-radius:8px;
-    border:1px solid var(--border); background: var(--bg-panel-2); color:#E8E6E0;
+    border:1px solid var(--border); background: var(--bg-panel-2); color:var(--text-main);
     font-family:inherit; font-size:14px;
   }
-  .search-wrap input::placeholder{ color:#7C8290; }
+  .search-wrap input::placeholder{ color:var(--text-subtle); }
   .search-wrap input:focus{ outline:none; border-color: var(--accent); }
-  .search-icon{ position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#7C8290; font-size:15px; }
+  .search-icon{ position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-subtle); font-size:15px; }
 
   .stat-pill{
-    font-family:'JetBrains Mono', monospace; font-size:12px; color:#9CA3AF;
+    font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--text-muted);
     background: var(--bg-panel-2); border:1px solid var(--border);
     padding:9px 13px; border-radius:8px; white-space:nowrap;
   }
-  .stat-pill b{ color:#E8E6E0; font-weight:600; }
+  .stat-pill b{ color:var(--text-main); font-weight:600; }
 
   /* Board */
   .board{
@@ -135,14 +135,14 @@
   .dot-progress{ background: var(--status-progress); }
   .dot-ready{ background: var(--status-ready); }
   .dot-done{ background: var(--status-done); }
-  .column-title{ font-size:13px; font-weight:600; letter-spacing:0.02em; text-transform:uppercase; color:#D8D5CC; }
+  .column-title{ font-size:13px; font-weight:600; letter-spacing:0.02em; text-transform:uppercase; color:var(--text-secondary); }
   .column-count{
-    font-family:'JetBrains Mono', monospace; font-size:11px; color:#9CA3AF;
+    font-family:'JetBrains Mono', monospace; font-size:11px; color:var(--text-muted);
     background: var(--bg-panel-2); padding:2px 8px; border-radius:20px; border:1px solid var(--border);
   }
 
   .cards{ display:flex; flex-direction:column; gap:10px; min-height: 60px; }
-  .empty-col{ font-size:12.5px; color:#6B7280; padding:18px 6px; text-align:center; border:1px dashed var(--border); border-radius:8px; }
+  .empty-col{ font-size:12.5px; color:var(--text-faint); padding:18px 6px; text-align:center; border:1px dashed var(--border); border-radius:8px; }
 
   /* Order card — styled like a work-order slip */
   .order-card{
@@ -208,12 +208,12 @@
     box-shadow:0 6px 24px rgba(0,0,0,0.4); min-width:170px;
   }
   .assign-popup-label{
-    font-size:11px; color:#7C8290; padding:4px 8px 6px;
+    font-size:11px; color:var(--text-subtle); padding:4px 8px 6px;
     text-transform:uppercase; letter-spacing:0.04em;
   }
   .assign-popup-item{
     padding:8px 10px; border-radius:6px; cursor:pointer;
-    font-size:13.5px; color:#D8D5CC;
+    font-size:13.5px; color:var(--text-secondary);
   }
   .assign-popup-item:hover{ background:var(--bg-panel-2); }
   .assign-popup-item.active{ color:var(--accent); font-weight:600; }
@@ -233,8 +233,8 @@
     padding:20px 24px; border-bottom:1px solid var(--border);
   }
   .modal-head h2{ font-size:17px; font-weight:600; margin:0; }
-  .modal-close{ background:none; border:none; color:#9CA3AF; font-size:22px; cursor:pointer; line-height:1; padding:4px; }
-  .modal-close:hover{ color:#E8E6E0; }
+  .modal-close{ background:none; border:none; color:var(--text-muted); font-size:22px; cursor:pointer; line-height:1; padding:4px; }
+  .modal-close:hover{ color:var(--text-main); }
   .modal-body{ padding:22px 24px; max-height:72vh; overflow-y:auto; }
   .modal-foot{ display:flex; justify-content:space-between; align-items:center; padding:16px 24px; border-top:1px solid var(--border); gap:10px; flex-wrap:wrap; }
 
@@ -244,16 +244,16 @@
     padding:14px 24px; border-bottom:1px solid var(--border);
   }
   .of-doc-num{ display:flex; align-items:center; gap:8px; }
-  .of-doc-num label{ font-size:11.5px; color:#7C8290; }
+  .of-doc-num label{ font-size:11.5px; color:var(--text-subtle); }
   .of-doc-num input{
     font-family:'JetBrains Mono', monospace; font-size:13.5px; font-weight:600; color: var(--accent);
     background: var(--bg-panel-2); border:1px solid var(--border); border-radius:6px; padding:5px 9px; width:110px;
   }
   .of-doc-num input:focus{ outline:none; border-color: var(--accent); }
-  .of-doc-date{ display:flex; align-items:center; gap:8px; font-size:12.5px; color:#9CA3AF; }
+  .of-doc-date{ display:flex; align-items:center; gap:8px; font-size:12.5px; color:var(--text-muted); }
   .of-doc-date input{
     background: var(--bg-panel-2); border:1px solid var(--border); border-radius:6px; padding:5px 9px;
-    color:#E8E6E0; font-size:12.5px; font-family:inherit; width:132px;
+    color:var(--text-main); font-size:12.5px; font-family:inherit; width:132px;
   }
   .of-doc-date input:focus{ outline:none; border-color: var(--accent); }
 
@@ -265,14 +265,14 @@
   }
   .of-nav-item{
     display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:8px;
-    font-size:13px; color:#7C8290; cursor:pointer;
+    font-size:13px; color:var(--text-subtle); cursor:pointer;
   }
-  .of-nav-item:hover{ color:#D8D5CC; }
+  .of-nav-item:hover{ color:var(--text-secondary); }
   .of-num{
     width:20px; height:20px; border-radius:50%; background:var(--bg-panel-2);
     display:flex; align-items:center; justify-content:center; font-size:10.5px; font-weight:700; flex-shrink:0;
   }
-  .of-nav-item.active{ background:rgba(20,184,166,0.1); color:#E8E6E0; font-weight:600; }
+  .of-nav-item.active{ background:rgba(20,184,166,0.1); color:var(--text-main); font-weight:600; }
   .of-nav-item.active .of-num{ background:var(--accent); color:#1C1110; }
   .of-scroll{ flex:1; min-width:0; overflow-y:auto; padding:22px 24px; }
 
@@ -280,7 +280,7 @@
   .form-section:last-child{ margin-bottom:0; }
   .form-section-title{
     font-size:12px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em;
-    color:#9CA3AF; margin-bottom:12px; display:flex; align-items:center; gap:8px;
+    color:var(--text-muted); margin-bottom:12px; display:flex; align-items:center; gap:8px;
   }
   .form-section-title::after{ content:''; flex:1; height:1px; background: var(--border); }
 
@@ -289,10 +289,10 @@
   @media (max-width:560px){ .grid2, .grid3{ grid-template-columns:1fr; } }
 
   .field{ margin-bottom:12px; }
-  .field label{ display:block; font-size:12.5px; color:#9CA3AF; margin-bottom:5px; }
+  .field label{ display:block; font-size:12.5px; color:var(--text-muted); margin-bottom:5px; }
   .field input, .field select, .field textarea{
     width:100%; padding:9px 12px; border-radius:7px;
-    border:1px solid var(--border); background: var(--bg-panel-2); color:#E8E6E0;
+    border:1px solid var(--border); background: var(--bg-panel-2); color:var(--text-main);
     font-family:inherit; font-size:14px;
   }
   .field input:focus, .field select:focus, .field textarea:focus{ outline:none; border-color: var(--accent); }
@@ -300,14 +300,14 @@
 
   /* Settings forms (Реквизиты организации и т.п.) */
   .form-group{ margin-bottom:0; }
-  .form-label{ display:block; font-size:12.5px; color:#9CA3AF; margin-bottom:5px; font-weight:500; }
+  .form-label{ display:block; font-size:12.5px; color:var(--text-muted); margin-bottom:5px; font-weight:500; }
   .form-control{
     width:100%; padding:10px 12px; border-radius:8px;
-    border:1px solid var(--border); background:var(--bg-panel-2); color:#E8E6E0;
+    border:1px solid var(--border); background:var(--bg-panel-2); color:var(--text-main);
     font-family:inherit; font-size:14px; box-sizing:border-box;
     transition:border-color .15s ease, background .15s ease;
   }
-  .form-control::placeholder{ color:#5C6270; }
+  .form-control::placeholder{ color:var(--text-placeholder); }
   .form-control:hover{ border-color:#4A5163; }
   .form-control:focus{ outline:none; border-color:var(--accent); background:var(--bg-panel); }
   select.form-control{ cursor:pointer; }
@@ -319,28 +319,28 @@
   /* Tabs */
   .tabs{ display:flex; gap:6px; margin-bottom:20px; border-bottom:1px solid var(--border); }
   .tab-btn{
-    font-family:inherit; font-size:14px; font-weight:500; color:#9CA3AF;
+    font-family:inherit; font-size:14px; font-weight:500; color:var(--text-muted);
     background:transparent; border:none; padding:10px 4px; margin-right:18px;
     cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px;
   }
-  .tab-btn:hover{ color:#D8D5CC; }
-  .tab-btn.active{ color:#E8E6E0; border-bottom-color: var(--accent); }
+  .tab-btn:hover{ color:var(--text-secondary); }
+  .tab-btn.active{ color:var(--text-main); border-bottom-color: var(--accent); }
 
   /* Staff */
   .staff-toolbar{ display:flex; justify-content:flex-end; margin-bottom:16px; }
   .staff-table{ width:100%; border-collapse:collapse; }
-  .staff-table th{ text-align:left; font-size:11.5px; text-transform:uppercase; letter-spacing:0.03em; color:#7C8290; padding:8px 10px; border-bottom:1px solid var(--border); }
+  .staff-table th{ text-align:left; font-size:11.5px; text-transform:uppercase; letter-spacing:0.03em; color:var(--text-subtle); padding:8px 10px; border-bottom:1px solid var(--border); }
   .staff-table td{ padding:11px 10px; border-bottom:1px solid var(--border); font-size:14px; }
   .staff-table tr:last-child td{ border-bottom:none; }
   .staff-name{ font-weight:600; }
   .staff-pct{ font-family:'JetBrains Mono', monospace; color: var(--accent); }
   .staff-actions{ display:flex; gap:8px; justify-content:flex-end; }
-  .staff-empty{ text-align:center; padding:50px 0; color:#7C8290; font-size:14px; }
+  .staff-empty{ text-align:center; padding:50px 0; color:var(--text-subtle); font-size:14px; }
   .icon-btn{
-    background:transparent; border:1px solid var(--border); color:#9CA3AF; cursor:pointer;
+    background:transparent; border:1px solid var(--border); color:var(--text-muted); cursor:pointer;
     width:30px; height:30px; border-radius:6px; display:inline-flex; align-items:center; justify-content:center; font-size:14px;
   }
-  .icon-btn:hover{ color:#E8E6E0; border-color:#4A5163; }
+  .icon-btn:hover{ color:var(--text-main); border-color:#4A5163; }
   .icon-btn.danger:hover{ color: var(--danger); border-color: rgba(229,72,77,0.4); }
 
   /* Price list */
@@ -348,33 +348,33 @@
   .pricelist-search{ position:relative; flex:1; min-width:200px; max-width:340px; }
   .pricelist-search input{
     width:100%; padding:9px 14px 9px 36px; border-radius:8px;
-    border:1px solid var(--border); background: var(--bg-panel-2); color:#E8E6E0;
+    border:1px solid var(--border); background: var(--bg-panel-2); color:var(--text-main);
     font-family:inherit; font-size:14px;
   }
   .pricelist-search input:focus{ outline:none; border-color: var(--accent); }
-  .pricelist-search .search-icon{ position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#7C8290; font-size:14px; }
+  .pricelist-search .search-icon{ position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--text-subtle); font-size:14px; }
   .pricelist-table{ width:100%; border-collapse:collapse; }
-  .pricelist-table th{ text-align:left; font-size:11.5px; text-transform:uppercase; letter-spacing:0.03em; color:#7C8290; padding:8px 10px; border-bottom:1px solid var(--border); }
+  .pricelist-table th{ text-align:left; font-size:11.5px; text-transform:uppercase; letter-spacing:0.03em; color:var(--text-subtle); padding:8px 10px; border-bottom:1px solid var(--border); }
   .pricelist-table td{ padding:11px 10px; border-bottom:1px solid var(--border); font-size:14px; }
   .pricelist-table tr:last-child td{ border-bottom:none; }
   .pricelist-name{ font-weight:600; }
   .pricelist-price{ font-family:'JetBrains Mono', monospace; color: var(--accent); text-align:right; }
   .pricelist-actions{ display:flex; gap:8px; justify-content:flex-end; }
-  .pricelist-empty{ text-align:center; padding:50px 0; color:#7C8290; font-size:14px; }
+  .pricelist-empty{ text-align:center; padding:50px 0; color:var(--text-subtle); font-size:14px; }
 
   /* Stock */
   .stock-toolbar{ display:flex; justify-content:space-between; gap:12px; margin-bottom:16px; flex-wrap:wrap; align-items:center; }
   .stock-search{ position:relative; flex:1; min-width:200px; max-width:340px; }
   .stock-search input{
     width:100%; padding:9px 14px 9px 36px; border-radius:8px;
-    border:1px solid var(--border); background: var(--bg-panel-2); color:#E8E6E0;
+    border:1px solid var(--border); background: var(--bg-panel-2); color:var(--text-main);
     font-family:inherit; font-size:14px;
   }
   .stock-search input:focus{ outline:none; border-color: var(--accent); }
-  .stock-search .search-icon{ position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#7C8290; font-size:14px; }
+  .stock-search .search-icon{ position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--text-subtle); font-size:14px; }
   .stock-actions-right{ display:flex; gap:10px; align-items:center; }
   .stock-markup-pill{
-    font-family:'JetBrains Mono', monospace; font-size:12.5px; color:#9CA3AF;
+    font-family:'JetBrains Mono', monospace; font-size:12.5px; color:var(--text-muted);
     background: var(--bg-panel-2); border:1px solid var(--border); padding:8px 12px; border-radius:8px;
     display:flex; align-items:center; gap:8px; cursor:pointer;
   }
@@ -386,7 +386,7 @@
     margin-bottom:14px;
   }
   .stock-photo-status{
-    font-size:13px; color:#9CA3AF; padding:10px 0;
+    font-size:13px; color:var(--text-muted); padding:10px 0;
   }
   .stock-photo-raw{
     margin:0 0 12px;
@@ -426,11 +426,11 @@
   }
   .stock-photo-row .spr-field label{
     display:block; font-size:9.5px; text-transform:uppercase;
-    letter-spacing:.05em; color:#7C8290; margin-bottom:4px;
+    letter-spacing:.05em; color:var(--text-subtle); margin-bottom:4px;
   }
   .stock-photo-row input{
     width:100%; box-sizing:border-box; border:1px solid var(--border);
-    background:var(--bg-panel); color:#E8E6E0; border-radius:7px;
+    background:var(--bg-panel); color:var(--text-main); border-radius:7px;
     padding:8px 9px; font-family:inherit; font-size:13px;
   }
   .stock-photo-row .spr-sku.spr-detected label{
@@ -458,7 +458,7 @@
   }
   .stock-photo-remove{
     width:34px; height:34px; border:1px solid var(--border);
-    background:transparent; color:#9CA3AF; border-radius:7px; cursor:pointer;
+    background:transparent; color:var(--text-muted); border-radius:7px; cursor:pointer;
   }
   @media (max-width:640px){
     .stock-actions-right{ flex-wrap:wrap; }
@@ -475,14 +475,14 @@
     .stock-photo-row .stock-photo-remove{ grid-column:3; align-self:end; }
   }
   .stock-table{ width:100%; border-collapse:collapse; }
-  .stock-table th{ text-align:left; font-size:11.5px; text-transform:uppercase; letter-spacing:0.03em; color:#7C8290; padding:8px 10px; border-bottom:1px solid var(--border); }
+  .stock-table th{ text-align:left; font-size:11.5px; text-transform:uppercase; letter-spacing:0.03em; color:var(--text-subtle); padding:8px 10px; border-bottom:1px solid var(--border); }
   .stock-table td{ padding:11px 10px; border-bottom:1px solid var(--border); font-size:14px; }
   .stock-table tr:last-child td{ border-bottom:none; }
   .stock-table tr.low-stock{ background: rgba(245,158,11,0.06); }
   .stock-table tr.zero-stock{ background: rgba(229,72,77,0.07); }
   .stock-mobile-qty{ display:none; }
   .stock-name{ font-weight:600; }
-  .stock-sku{ font-size:11.5px; color:#7C8290; font-family:'JetBrains Mono', monospace; margin-top:2px; }
+  .stock-sku{ font-size:11.5px; color:var(--text-subtle); font-family:'JetBrains Mono', monospace; margin-top:2px; }
   .stock-num{ font-family:'JetBrains Mono', monospace; text-align:right; }
   .stock-qty{ font-family:'JetBrains Mono', monospace; text-align:right; font-weight:600; }
   .stock-qty.zero{ color: var(--danger); }
@@ -491,14 +491,14 @@
   .stock-badge.zero{ background: rgba(229,72,77,0.15); color:#FF8A8E; }
   .stock-badge.low{ background: rgba(245,158,11,0.15); color:#FBCB7A; }
   .stock-actions{ display:flex; gap:8px; justify-content:flex-end; }
-  .stock-empty{ text-align:center; padding:50px 0; color:#7C8290; font-size:14px; }
+  .stock-empty{ text-align:center; padding:50px 0; color:var(--text-subtle); font-size:14px; }
 
   /* Payroll */
   .payroll-summary{ display:grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap:12px; margin-bottom:24px; }
   .payroll-card{ background: var(--bg-panel); border:1px solid var(--border); border-radius:12px; padding:16px 18px; }
   .payroll-card .name{ font-size:14.5px; font-weight:600; margin-bottom:8px; }
   .payroll-card .amount{ font-family:'JetBrains Mono', monospace; font-size:22px; font-weight:700; color: var(--accent); }
-  .payroll-card .meta{ font-size:12px; color:#9CA3AF; margin-top:6px; }
+  .payroll-card .meta{ font-size:12px; color:var(--text-muted); margin-top:6px; }
   /* Payroll — leaderboard */
   .pay-hero{
     background:linear-gradient(135deg, var(--bg-panel-2), var(--bg-panel));
@@ -506,9 +506,9 @@
     padding:22px 26px; margin-bottom:18px;
     display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;
   }
-  .pay-hero-label{ font-size:13px; color:#9CA3AF; margin-bottom:6px; }
+  .pay-hero-label{ font-size:13px; color:var(--text-muted); margin-bottom:6px; }
   .pay-hero-amount{ font-family:'JetBrains Mono', monospace; font-size:34px; font-weight:700; color: var(--accent); }
-  .pay-hero-meta{ font-size:12.5px; color:#7C8290; }
+  .pay-hero-meta{ font-size:12.5px; color:var(--text-subtle); }
   .pay-periods{
     display:flex;
     gap:6px;
@@ -518,7 +518,7 @@
   .pay-period-btn{
     border:1px solid var(--border);
     background:var(--bg-panel);
-    color:#9CA3AF;
+    color:var(--text-muted);
     border-radius:9px;
     padding:7px 11px;
     font-family:inherit;
@@ -526,7 +526,7 @@
     font-weight:600;
     cursor:pointer;
   }
-  .pay-period-btn:hover{ border-color:var(--accent); color:#D8D5CC; }
+  .pay-period-btn:hover{ border-color:var(--accent); color:var(--text-secondary); }
   .pay-period-btn.active{
     border-color:var(--accent);
     background:rgba(20,184,166,.10);
@@ -544,7 +544,7 @@
   .pay-rank{
     width:26px; height:26px; border-radius:50%; background: var(--bg-panel-2);
     display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700;
-    color:#9CA3AF; flex-shrink:0;
+    color:var(--text-muted); flex-shrink:0;
   }
   .pay-row.top .pay-rank{ background: var(--accent); color:#1C1110; }
   .pay-avatar{
@@ -558,20 +558,20 @@
   .pay-bar-fill{ height:100%; background: var(--accent); border-radius:3px; }
   .pay-right{ text-align:right; flex-shrink:0; }
   .pay-amount{ font-family:'JetBrains Mono', monospace; font-size:16px; font-weight:700; }
-  .pay-count{ font-size:11.5px; color:#7C8290; margin-top:2px; }
-  .pay-empty{ text-align:center; padding:50px 0; color:#7C8290; font-size:14px; background: var(--bg-panel); border:1px solid var(--border); border-radius:12px; }
+  .pay-count{ font-size:11.5px; color:var(--text-subtle); margin-top:2px; }
+  .pay-empty{ text-align:center; padding:50px 0; color:var(--text-subtle); font-size:14px; background: var(--bg-panel); border:1px solid var(--border); border-radius:12px; }
 
   /* CRM */
   .crm-period-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(230px,1fr)); gap:12px; margin-bottom:24px; }
   .crm-period-card{ background: var(--bg-panel); border:1px solid var(--border); border-radius:12px; padding:16px 18px; }
-  .crm-period-title{ font-size:12px; text-transform:uppercase; letter-spacing:0.03em; color:#9CA3AF; margin-bottom:10px; }
+  .crm-period-title{ font-size:12px; text-transform:uppercase; letter-spacing:0.03em; color:var(--text-muted); margin-bottom:10px; }
   .crm-period-row{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:6px; }
   .crm-period-row:last-child{ margin-bottom:0; }
-  .crm-period-row .lbl{ font-size:13px; color:#9CA3AF; }
+  .crm-period-row .lbl{ font-size:13px; color:var(--text-muted); }
   .crm-period-row .val{ font-family:'JetBrains Mono', monospace; font-size:17px; font-weight:700; }
   .crm-period-row.revenue .val{ color: var(--accent); }
   .crm-period-row.profit .val{ color: var(--status-ready); }
-  .crm-period-meta{ font-size:11.5px; color:#7C8290; margin-top:8px; }
+  .crm-period-meta{ font-size:11.5px; color:var(--text-subtle); margin-top:8px; }
 
   .crm-chart-section{ background: var(--bg-panel); border:1px solid var(--border); border-radius:12px; padding:18px 20px; }
   .crm-chart-head{ display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px; }
@@ -579,13 +579,13 @@
   .crm-chart-toggle{ display:flex; gap:4px; }
   .crm-chart-toggle button{
     font-size:12.5px; padding:6px 12px; border-radius:7px; border:1px solid var(--border);
-    background: var(--bg-panel-2); color:#9CA3AF; cursor:pointer; font-family:inherit;
+    background: var(--bg-panel-2); color:var(--text-muted); cursor:pointer; font-family:inherit;
   }
   .crm-chart-toggle button.active{ background: rgba(20,184,166,0.12); border-color: var(--accent); color: var(--accent); }
-  .crm-legend{ display:flex; gap:16px; font-size:12px; color:#9CA3AF; }
+  .crm-legend{ display:flex; gap:16px; font-size:12px; color:var(--text-muted); }
   .crm-legend span{ display:inline-flex; align-items:center; gap:6px; }
   .crm-legend .dot{ width:9px; height:9px; border-radius:2px; display:inline-block; }
-  .crm-chart-empty{ text-align:center; padding:50px 0; color:#7C8290; font-size:14px; }
+  .crm-chart-empty{ text-align:center; padding:50px 0; color:var(--text-subtle); font-size:14px; }
   .crm-chart-svg-wrap{ overflow-x:auto; }
   .crm-bar-tooltip{ font-family:'JetBrains Mono', monospace; }
 
@@ -594,11 +594,11 @@
   .clients-search{ position:relative; flex:1; min-width:220px; max-width:380px; }
   .clients-search input{
     width:100%; padding:9px 14px 9px 36px; border-radius:8px;
-    border:1px solid var(--border); background: var(--bg-panel-2); color:#E8E6E0;
+    border:1px solid var(--border); background: var(--bg-panel-2); color:var(--text-main);
     font-family:inherit; font-size:14px;
   }
   .clients-search input:focus{ outline:none; border-color: var(--accent); }
-  .clients-search .search-icon{ position:absolute; left:11px; top:50%; transform:translateY(-50%); color:#7C8290; font-size:14px; }
+  .clients-search .search-icon{ position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--text-subtle); font-size:14px; }
   .client-list{ display:flex; flex-direction:column; gap:8px; }
   .client-row{
     background: var(--bg-panel); border:1px solid var(--border); border-radius:10px;
@@ -608,19 +608,19 @@
   .client-row:hover{ border-color:#4A5163; background:#262B35; }
   .client-row-main{ display:flex; flex-direction:column; gap:3px; }
   .client-row-name{ font-size:14.5px; font-weight:600; }
-  .client-row-meta{ font-size:12.5px; color:#9CA3AF; }
+  .client-row-meta{ font-size:12.5px; color:var(--text-muted); }
   .client-row-stats{ display:flex; gap:18px; align-items:center; }
   .client-stat{ text-align:right; }
   .client-stat .num{ font-family:'JetBrains Mono', monospace; font-size:14px; font-weight:600; color: var(--accent); }
-  .client-stat .lbl{ font-size:10.5px; color:#7C8290; text-transform:uppercase; letter-spacing:0.03em; }
-  .clients-empty{ text-align:center; padding:60px 0; color:#7C8290; font-size:14px; }
+  .client-stat .lbl{ font-size:10.5px; color:var(--text-subtle); text-transform:uppercase; letter-spacing:0.03em; }
+  .clients-empty{ text-align:center; padding:60px 0; color:var(--text-subtle); font-size:14px; }
 
   .vehicle-card{ background: var(--bg-panel-2); border:1px solid var(--border); border-radius:10px; padding:14px 16px; margin-bottom:12px; cursor:pointer; }
   .vehicle-card:hover{ border-color:#4A5163; }
   .vehicle-card-head{ display:flex; justify-content:space-between; align-items:flex-start; gap:10px; margin-bottom:6px; }
   .vehicle-card-name{ font-size:14.5px; font-weight:600; }
   .vehicle-card-plate{ font-family:'JetBrains Mono', monospace; font-size:12.5px; color: var(--accent); background: rgba(20,184,166,0.1); padding:2px 8px; border-radius:5px; }
-  .vehicle-card-meta{ font-size:12px; color:#9CA3AF; display:flex; gap:14px; flex-wrap:wrap; }
+  .vehicle-card-meta{ font-size:12px; color:var(--text-muted); display:flex; gap:14px; flex-wrap:wrap; }
 
   .visit-timeline{ display:flex; flex-direction:column; gap:0; }
   .visit-item{ display:flex; gap:14px; padding:12px 0; border-bottom:1px solid var(--border); }
@@ -629,15 +629,15 @@
   .visit-dot{ width:9px; height:9px; border-radius:50%; background: var(--accent); flex-shrink:0; }
   .visit-line{ width:1.5px; flex:1; background: var(--border); margin-top:4px; }
   .visit-content{ flex:1; }
-  .visit-date{ font-family:'JetBrains Mono', monospace; font-size:12px; color:#9CA3AF; margin-bottom:3px; }
+  .visit-date{ font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--text-muted); margin-bottom:3px; }
   .visit-summary{ font-size:13.5px; margin-bottom:3px; }
-  .visit-meta{ font-size:12px; color:#9CA3AF; display:flex; gap:12px; flex-wrap:wrap; }
+  .visit-meta{ font-size:12px; color:var(--text-muted); display:flex; gap:12px; flex-wrap:wrap; }
   .visit-meta b{ color: var(--accent); font-weight:600; }
-  .breadcrumb{ display:flex; align-items:center; gap:6px; font-size:13px; color:#9CA3AF; margin-bottom:16px; }
-  .breadcrumb a{ color:#9CA3AF; cursor:pointer; text-decoration:none; }
+  .breadcrumb{ display:flex; align-items:center; gap:6px; font-size:13px; color:var(--text-muted); margin-bottom:16px; }
+  .breadcrumb a{ color:var(--text-muted); cursor:pointer; text-decoration:none; }
   .breadcrumb a:hover{ color: var(--accent); }
   .breadcrumb .sep{ color:#4A5163; }
-  .breadcrumb .current{ color:#E8E6E0; font-weight:500; }
+  .breadcrumb .current{ color:var(--text-main); font-weight:500; }
   .autofill-hint{ font-size:12px; color: var(--accent); margin-top:4px; display:flex; align-items:center; gap:5px; }
 
   /* Clients */
@@ -645,11 +645,11 @@
   .clients-search{ position:relative; flex:1; max-width:380px; }
   .clients-search input{
     width:100%; padding:10px 14px 10px 38px; border-radius:8px;
-    border:1px solid var(--border); background: var(--bg-panel-2); color:#E8E6E0;
+    border:1px solid var(--border); background: var(--bg-panel-2); color:var(--text-main);
     font-family:inherit; font-size:14px;
   }
   .clients-search input:focus{ outline:none; border-color: var(--accent); }
-  .clients-search .search-icon{ position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#7C8290; font-size:15px; }
+  .clients-search .search-icon{ position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--text-subtle); font-size:15px; }
   .client-list{ display:flex; flex-direction:column; gap:10px; }
   .client-row{
     background: var(--bg-panel); border:1px solid var(--border); border-radius:10px;
@@ -658,24 +658,24 @@
   .client-row:hover{ border-color:#4A5163; background:#272C37; }
   .client-row-main{ min-width:0; }
   .client-row-name{ font-size:15px; font-weight:600; margin-bottom:3px; }
-  .client-row-phone{ font-size:12.5px; color:#9CA3AF; font-family:'JetBrains Mono', monospace; }
-  .client-row-cars{ font-size:12.5px; color:#9CA3AF; margin-top:4px; }
+  .client-row-phone{ font-size:12.5px; color:var(--text-muted); font-family:'JetBrains Mono', monospace; }
+  .client-row-cars{ font-size:12.5px; color:var(--text-muted); margin-top:4px; }
   .client-row-stats{ display:flex; gap:18px; flex-shrink:0; text-align:right; }
   .client-row-stat .num{ font-family:'JetBrains Mono', monospace; font-size:16px; font-weight:700; color: var(--accent); }
-  .client-row-stat .lbl{ font-size:10.5px; color:#7C8290; text-transform:uppercase; letter-spacing:0.03em; margin-top:2px; }
-  .clients-empty{ text-align:center; padding:60px 0; color:#7C8290; font-size:14px; }
+  .client-row-stat .lbl{ font-size:10.5px; color:var(--text-subtle); text-transform:uppercase; letter-spacing:0.03em; margin-top:2px; }
+  .clients-empty{ text-align:center; padding:60px 0; color:var(--text-subtle); font-size:14px; }
 
   .client-detail-head{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; gap:12px; flex-wrap:wrap; }
   .client-detail-name{ font-size:19px; font-weight:700; margin-bottom:4px; }
-  .client-detail-phone{ font-size:13.5px; color:#9CA3AF; font-family:'JetBrains Mono', monospace; }
+  .client-detail-phone{ font-size:13.5px; color:var(--text-muted); font-family:'JetBrains Mono', monospace; }
   .car-card{ background: var(--bg-panel); border:1px solid var(--border); border-radius:12px; padding:16px 18px; margin-bottom:14px; }
   .car-card-head{ display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:12px; flex-wrap:wrap; gap:8px; }
   .car-card-title{ font-size:15px; font-weight:600; }
-  .car-card-meta{ font-size:12.5px; color:#9CA3AF; margin-top:3px; }
+  .car-card-meta{ font-size:12.5px; color:var(--text-muted); margin-top:3px; }
   .car-card-meta span{ font-family:'JetBrains Mono', monospace; }
   .car-card-badge{ font-family:'JetBrains Mono', monospace; font-size:12px; color: var(--accent); background: rgba(20,184,166,0.1); padding:4px 10px; border-radius:20px; border:1px solid rgba(20,184,166,0.3); white-space:nowrap; }
   .visit-table{ width:100%; border-collapse:collapse; font-size:13px; margin-top:6px; }
-  .visit-table th{ text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:0.03em; color:#7C8290; padding:6px 8px; border-bottom:1px solid var(--border); }
+  .visit-table th{ text-align:left; font-size:10.5px; text-transform:uppercase; letter-spacing:0.03em; color:var(--text-subtle); padding:6px 8px; border-bottom:1px solid var(--border); }
   .visit-table td{ padding:8px 8px; border-bottom:1px solid var(--border); }
   .visit-table tr:last-child td{ border-bottom:none; }
   .visit-table td.num{ font-family:'JetBrains Mono', monospace; text-align:right; }
@@ -687,17 +687,17 @@
   .line-type-toggle{ display:flex; gap:4px; }
   .line-type-btn{
     font-size:11px; padding:5px 9px; border-radius:6px; border:1px solid var(--border);
-    background: var(--bg-panel-2); color:#9CA3AF; cursor:pointer; font-family:inherit;
+    background: var(--bg-panel-2); color:var(--text-muted); cursor:pointer; font-family:inherit;
   }
   .line-type-btn.active{ background: rgba(20,184,166,0.12); border-color: var(--accent); color: var(--accent); }
   .line-assignees{ display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding:8px 0 4px 0; }
   .assignee-select{
     padding:7px 10px; border-radius:6px; border:1px solid var(--border); background: var(--bg-panel-2);
-    color:#E8E6E0; font-family:inherit; font-size:12.5px; max-width:160px;
+    color:var(--text-main); font-family:inherit; font-size:12.5px; max-width:160px;
   }
   .assignee-select:focus{ outline:none; border-color: var(--accent); }
   .line-block{ background: var(--bg-panel-2); border:1px solid var(--border); border-radius:8px; padding:10px; margin-bottom:8px; }
-  .line-commission-hint{ font-size:11.5px; color:#7C8290; padding-top:2px; }
+  .line-commission-hint{ font-size:11.5px; color:var(--text-subtle); padding-top:2px; }
   .field.required label::after{ content:' *'; color: var(--accent); }
 
 
@@ -713,21 +713,21 @@
   @media (max-width:560px){ .line-row{ grid-template-columns: 1fr; } }
   .line-row input{
     padding:8px 10px; border-radius:6px; border:1px solid var(--border);
-    background: var(--bg-panel-2); color:#E8E6E0; font-family:inherit; font-size:13.5px;
+    background: var(--bg-panel-2); color:var(--text-main); font-family:inherit; font-size:13.5px;
     min-width:0;
   }
   .line-row input:focus{ outline:none; border-color: var(--accent); }
   .line-row .line-sum{
-    font-family:'JetBrains Mono', monospace; font-size:13px; color:#D8D5CC; text-align:right; padding-right:4px;
+    font-family:'JetBrains Mono', monospace; font-size:13px; color:var(--text-secondary); text-align:right; padding-right:4px;
   }
   .line-remove{
-    background:transparent; border:none; color:#7C8290; cursor:pointer; font-size:17px;
+    background:transparent; border:none; color:var(--text-subtle); cursor:pointer; font-size:17px;
     width:28px; height:28px; display:flex; align-items:center; justify-content:center; border-radius:6px;
   }
   .line-remove:hover{ color: var(--danger); background: rgba(229,72,77,0.1); }
   .line-head{
     display:grid; grid-template-columns: 1fr 60px 90px 80px; gap:6px;
-    font-size:11px; color:#7C8290; padding:0 0 2px; text-transform:uppercase; letter-spacing:0.03em;
+    font-size:11px; color:var(--text-subtle); padding:0 0 2px; text-transform:uppercase; letter-spacing:0.03em;
   }
   @media (max-width:760px){ .line-head{ grid-template-columns: 1fr 70px 110px 90px; } }
   @media (max-width:560px){ .line-head{ display:none; } }
@@ -742,16 +742,16 @@
     display:flex; justify-content:space-between; align-items:center;
     padding:14px 16px; background: var(--bg-panel-2); border-radius:8px; margin-top:14px;
   }
-  .total-row .label{ font-size:13.5px; color:#D8D5CC; }
+  .total-row .label{ font-size:13.5px; color:var(--text-secondary); }
   .total-row .value{ font-family:'JetBrains Mono', monospace; font-size:20px; font-weight:700; color: var(--accent); }
 
   .status-select-row{ display:flex; gap:8px; flex-wrap:wrap; }
   .status-chip{
     padding:8px 14px; border-radius:20px; font-size:13px; cursor:pointer;
-    border:1px solid var(--border); background: var(--bg-panel-2); color:#9CA3AF;
+    border:1px solid var(--border); background: var(--bg-panel-2); color:var(--text-muted);
     display:flex; align-items:center; gap:7px;
   }
-  .status-chip.active{ color:#E8E6E0; border-color: currentColor; }
+  .status-chip.active{ color:var(--text-main); border-color: currentColor; }
   .status-chip[data-status="new"].active{ background: var(--status-new-bg); border-color: var(--status-new); color:#9DC2FA; }
   .status-chip[data-status="progress"].active{ background: var(--status-progress-bg); border-color: var(--status-progress); color:#FBCB7A; }
   .status-chip[data-status="ready"].active{ background: var(--status-ready-bg); border-color: var(--status-ready); color:#86E6AC; }
@@ -762,16 +762,16 @@
     cursor:crosshair; touch-action:none;
   }
   .sig-controls{ display:flex; justify-content:space-between; align-items:center; margin-top:8px; }
-  .sig-hint{ font-size:12px; color:#7C8290; }
+  .sig-hint{ font-size:12px; color:var(--text-subtle); }
 
   /* View-only order detail */
   .detail-grid{ display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:18px; }
   @media (max-width:560px){ .detail-grid{ grid-template-columns:1fr; } }
-  .detail-block-title{ font-size:11.5px; text-transform:uppercase; letter-spacing:0.04em; color:#7C8290; margin-bottom:6px; }
-  .detail-block-value{ font-size:14.5px; color:#E8E6E0; }
+  .detail-block-title{ font-size:11.5px; text-transform:uppercase; letter-spacing:0.04em; color:var(--text-subtle); margin-bottom:6px; }
+  .detail-block-value{ font-size:14.5px; color:var(--text-main); }
   .detail-table{ width:100%; border-collapse:collapse; font-size:13.5px; }
-  .detail-table th{ text-align:left; font-size:11.5px; text-transform:uppercase; color:#7C8290; padding:6px 8px; border-bottom:1px solid var(--border); }
-  .detail-table td{ padding:8px 8px; border-bottom:1px solid var(--border); color:#E8E6E0; }
+  .detail-table th{ text-align:left; font-size:11.5px; text-transform:uppercase; color:var(--text-subtle); padding:6px 8px; border-bottom:1px solid var(--border); }
+  .detail-table td{ padding:8px 8px; border-bottom:1px solid var(--border); color:var(--text-main); }
   .detail-table td.num{
     font-family:'JetBrains Mono', monospace; text-align:right;
     white-space:nowrap; word-break:keep-all;
@@ -831,13 +831,13 @@
 
   .toast{
     position:fixed; bottom:24px; right:24px; background: var(--bg-panel-2); border:1px solid var(--border);
-    color:#E8E6E0; padding:12px 18px; border-radius:8px; font-size:14px; z-index:200;
+    color:var(--text-main); padding:12px 18px; border-radius:8px; font-size:14px; z-index:200;
     box-shadow: 0 4px 16px rgba(0,0,0,0.3);
     animation: toastIn .18s ease;
   }
   @keyframes toastIn{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:translateY(0); } }
 
-  .loading-state{ text-align:center; padding:60px 0; color:#7C8290; font-size:14px; }
+  .loading-state{ text-align:center; padding:60px 0; color:var(--text-subtle); font-size:14px; }
 
   ::-webkit-scrollbar{ width:9px; height:9px; }
   ::-webkit-scrollbar-track{ background:transparent; }
@@ -998,7 +998,7 @@
   /* Auth screen */
   .auth-input{
     width:100%; padding:10px 12px; border-radius:7px;
-    border:1px solid var(--border); background:var(--bg-panel-2); color:#E8E6E0;
+    border:1px solid var(--border); background:var(--bg-panel-2); color:var(--text-main);
     font-family:inherit; font-size:14px; box-sizing:border-box;
   }
   .auth-input:focus{ outline:none; border-color:var(--accent); }
@@ -1025,7 +1025,7 @@
     transform:translateY(-1px);
   }
   .salary-widget .sw-name{
-    font-size:11.5px; color:#9CA3AF; margin-bottom:3px;
+    font-size:11.5px; color:var(--text-muted); margin-bottom:3px;
     white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:120px;
   }
   .salary-widget .sw-amount{
@@ -1066,13 +1066,13 @@
     -webkit-text-fill-color:#374151 !important;
     opacity:1 !important;
   }
-  [data-theme="light"] .header .sub{ color: #6B7280; }
+  [data-theme="light"] .header .sub{ color:var(--text-faint); }
   [data-theme="light"] .column-title{ color: #374151; }
-  [data-theme="light"] .sw-name{ color: #6B7280; }
+  [data-theme="light"] .sw-name{ color:var(--text-faint); }
   [data-theme="light"] .tab-btn{ color: #374151; }
   [data-theme="light"] .tab-btn.active{ color: var(--accent); }
   [data-theme="light"] .stat-pill{ color: #374151; }
-  [data-theme="light"] .sidebar-label{ color: #6B7280; }
+  [data-theme="light"] .sidebar-label{ color:var(--text-faint); }
 
   /* Быстрый ЗН — нормальный контраст в светлой теме */
   [data-theme="light"] #qForm{
@@ -1085,7 +1085,7 @@
     border-color:#D1D5DB !important;
   }
   [data-theme="light"] #qForm input::placeholder{
-    color:#6B7280 !important;
+    color:var(--text-faint) !important;
     opacity:1;
   }
   [data-theme="light"] #qForm select option{
@@ -1152,19 +1152,19 @@
   .sidebar-section{ margin-bottom:20px; }
   .sidebar-label{
     font-size:10.5px; font-weight:600; letter-spacing:.06em;
-    text-transform:uppercase; color:#9CA3AF;
+    text-transform:uppercase; color:var(--text-muted);
     margin-bottom:8px; display:block;
   }
   .dash-stat{
     background:var(--bg-panel); border:1px solid var(--border);
     border-radius:10px; padding:10px 12px; margin-bottom:8px;
   }
-  .dash-stat .ds-label{ font-size:12px; color:#9CA3AF; margin-bottom:3px; }
+  .dash-stat .ds-label{ font-size:12px; color:var(--text-muted); margin-bottom:3px; }
   .dash-stat .ds-value{
     font-family:'JetBrains Mono',monospace;
     font-size:18px; font-weight:700; color:var(--accent);
   }
-  .dash-stat .ds-sub{ font-size:11px; color:#6B7280; margin-top:2px; }
+  .dash-stat .ds-sub{ font-size:11px; color:var(--text-faint); margin-top:2px; }
 
   .status-pill-row{ display:flex; flex-direction:column; gap:5px; }
   .status-pill-item{
@@ -1178,7 +1178,7 @@
   .export-btn{
     width:100%; padding:9px; border-radius:8px;
     background:var(--bg-panel-2); border:1px solid var(--border);
-    color:#E8E6E0; font-family:inherit; font-size:13px; font-weight:500;
+    color:var(--text-main); font-family:inherit; font-size:13px; font-weight:500;
     cursor:pointer; text-align:left; display:flex; align-items:center; gap:7px;
     transition: border-color .15s, background .15s;
     margin-bottom:6px;
@@ -1395,7 +1395,7 @@
       font-family:'JetBrains Mono',monospace;
       font-size:15px;
       font-weight:700;
-      color:#E8E6E0;
+      color:var(--text-main);
       white-space:nowrap;
     }
     .mds-periods{
@@ -1441,7 +1441,7 @@
       transform:scale(1.18);
     }
     .mds-period-btn.active .mds-dot-label{ color:var(--accent); }
-    [data-theme="light"] .mds-name{ color:#6B7280; }
+    [data-theme="light"] .mds-name{ color:var(--text-faint); }
     [data-theme="light"] .mds-amount{ color:#111827; }
 
     .header-actions{ justify-content:flex-end; }
@@ -1468,7 +1468,7 @@
       box-shadow:0 -6px 18px rgba(0,0,0,.18);
     }
     .mobile-nav-btn{
-      appearance:none; border:0; background:transparent; color:#9CA3AF;
+      appearance:none; border:0; background:transparent; color:var(--text-muted);
       font-family:inherit; font-size:10.5px; padding:6px 2px;
       display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer;
     }
@@ -1536,12 +1536,12 @@
     .mobile-status-head-left{ display:flex; align-items:center; gap:7px; }
     .mobile-status-title{
       font-size:12px; font-weight:700; text-transform:uppercase;
-      letter-spacing:.035em; color:#D8D5CC;
+      letter-spacing:.035em; color:var(--text-secondary);
     }
     [data-theme="light"] .mobile-status-title{ color:#374151; }
     .mobile-status-count{
       font-family:'JetBrains Mono',monospace; font-size:10.5px;
-      color:#9CA3AF; background:var(--bg-panel-2);
+      color:var(--text-muted); background:var(--bg-panel-2);
       border:1px solid var(--border); border-radius:20px;
       padding:2px 7px;
     }
@@ -1612,7 +1612,7 @@
     .moc-action:hover{ background:var(--paper-line); }
 
     .mobile-empty-state{
-      font-size:11px; color:#6B7280; padding:7px 9px;
+      font-size:11px; color:var(--text-faint); padding:7px 9px;
       border:1px dashed var(--border); border-radius:8px;
     }
   }
@@ -1633,20 +1633,20 @@
       </div>
       <div>
         <div style="font-size:18px;font-weight:700;">Заказ-наряды</div>
-        <div style="font-size:13px;color:#9CA3AF;margin-top:2px;">Автосервис — вход в систему</div>
+        <div style="font-size:13px;color:var(--text-muted);margin-top:2px;">Автосервис — вход в систему</div>
       </div>
     </div>
     <div style="margin-bottom:14px;">
-      <label style="display:block;font-size:12.5px;color:#9CA3AF;margin-bottom:5px;">Email</label>
+      <label style="display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;">Email</label>
       <input type="email" id="authEmail" class="auth-input" placeholder="admin@example.com" autocomplete="email">
     </div>
     <div style="margin-bottom:20px;">
-      <label style="display:block;font-size:12.5px;color:#9CA3AF;margin-bottom:5px;">Пароль</label>
+      <label style="display:block;font-size:12.5px;color:var(--text-muted);margin-bottom:5px;">Пароль</label>
       <input type="password" id="authPassword" class="auth-input" placeholder="••••••••" autocomplete="current-password">
     </div>
     <div id="authError" style="display:none;color:var(--danger);font-size:13px;margin-bottom:14px;padding:8px 12px;background:rgba(229,72,77,0.1);border-radius:6px;"></div>
     <button id="authSubmit" style="width:100%;padding:12px;background:var(--accent);border:none;border-radius:8px;color:#1C1110;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;">Войти</button>
-    <div id="authLoading" style="display:none;text-align:center;padding:12px;color:#9CA3AF;font-size:13px;">Выполняется вход…</div>
+    <div id="authLoading" style="display:none;text-align:center;padding:12px;color:var(--text-muted);font-size:13px;">Выполняется вход…</div>
   </div>
 </div>
 
@@ -3454,7 +3454,7 @@
         return '<div style="display:flex;justify-content:space-between;gap:12px;padding:9px 0 9px 12px;border-top:1px solid rgba(127,127,127,.14);">' +
           '<div style="min-width:0;">' +
             '<div style="font-size:13px;font-weight:600;overflow-wrap:anywhere;">' + escapeHtml(workName) + '</div>' +
-            '<div style="font-size:11px;color:#7C8290;margin-top:3px;">' + escapeHtml(basis) + '</div>' +
+            '<div style="font-size:11px;color:var(--text-subtle);margin-top:3px;">' + escapeHtml(basis) + '</div>' +
           '</div>' +
           '<div style="font-family:\'JetBrains Mono\',monospace;font-size:13px;font-weight:700;color:var(--accent);white-space:nowrap;">+' + fmtMoney(d.amount) + '</div>' +
         '</div>';
@@ -3464,7 +3464,7 @@
         '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">' +
           '<div style="min-width:0;">' +
             '<div style="font-size:14px;font-weight:700;">ЗН № ' + escapeHtml(o.orderNumber||'—') + '</div>' +
-            '<div style="font-size:11.5px;color:#9CA3AF;margin-top:3px;">' + escapeHtml(issuedLabel) + ' · ' + escapeHtml(o.clientName||'—') + ' · ' + escapeHtml(carLabel) + '</div>' +
+            '<div style="font-size:11.5px;color:var(--text-muted);margin-top:3px;">' + escapeHtml(issuedLabel) + ' · ' + escapeHtml(o.clientName||'—') + ' · ' + escapeHtml(carLabel) + '</div>' +
           '</div>' +
           '<div style="font-family:\'JetBrains Mono\',monospace;font-size:14px;font-weight:700;color:var(--accent);white-space:nowrap;">' + fmtMoney(g.amount) + '</div>' +
         '</div>' +
@@ -3472,7 +3472,7 @@
       '</div>';
     }).join('');
 
-    if(!rows) rows = '<div style="color:#9CA3AF;text-align:center;padding:24px;">Нет выданных нарядов с начислениями</div>';
+    if(!rows) rows = '<div style="color:var(--text-muted);text-align:center;padding:24px;">Нет выданных нарядов с начислениями</div>';
 
     document.getElementById('modalRoot').innerHTML =
       '<div class="modal-overlay" id="salaryDetailOverlay">' +
@@ -3484,8 +3484,8 @@
           '<div class="modal-body">' +
             '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;' +
               'padding:10px 0 16px;border-bottom:1px solid var(--border);margin-bottom:14px;">' +
-              '<div><div style="color:#9CA3AF;font-size:13px;">Итого по выданным ЗН</div>' +
-              '<div style="color:#7C8290;font-size:11px;margin-top:3px;">Ниже — откуда пришла каждая сумма</div></div>' +
+              '<div><div style="color:var(--text-muted);font-size:13px;">Итого по выданным ЗН</div>' +
+              '<div style="color:var(--text-subtle);font-size:11px;margin-top:3px;">Ниже — откуда пришла каждая сумма</div></div>' +
               '<div style="font-family:\'JetBrains Mono\',monospace;font-size:22px;font-weight:700;color:var(--accent);">' +
                 fmtMoney(rec.amount) +
               '</div>' +
@@ -3646,10 +3646,10 @@
       var isWork = l.type === 'work';
       var commissions = calcLineCommissions(l);
       var execText = isWork
-        ? (commissions.length ? commissions.map(function(c){ return escapeHtml(c.name) + ' (' + fmtMoney(c.amount) + ')'; }).join(', ') : '<span style="color:#7C8290;">не назначен</span>')
-        : '<span style="color:#7C8290;">—</span>';
+        ? (commissions.length ? commissions.map(function(c){ return escapeHtml(c.name) + ' (' + fmtMoney(c.amount) + ')'; }).join(', ') : '<span style="color:var(--text-subtle);">не назначен</span>')
+        : '<span style="color:var(--text-subtle);">—</span>';
       return '<tr><td>' + escapeHtml(l.name||'') +
-        '<div style="font-size:11px; color:#7C8290; margin-top:2px;">' + (isWork ? 'Работа' : 'Запчасть') + '</div></td>' +
+        '<div style="font-size:11px; color:var(--text-subtle); margin-top:2px;">' + (isWork ? 'Работа' : 'Запчасть') + '</div></td>' +
         '<td class="num">' + (l.qty||0) + '</td>' +
         '<td class="num">' + fmtMoney(l.price) + '</td>' +
         '<td class="num">' + fmtMoney(lt) + '</td>' +
@@ -3678,12 +3678,12 @@
               '<div>' +
                 '<div class="detail-block-title">Клиент</div>' +
                 '<div class="detail-block-value">' + escapeHtml(o.clientName||'—') + '</div>' +
-                '<div class="detail-block-value" style="color:#9CA3AF; font-size:13px; margin-top:2px;">' + escapeHtml(o.clientPhone||'') + '</div>' +
+                '<div class="detail-block-value" style="color:var(--text-muted); font-size:13px; margin-top:2px;">' + escapeHtml(o.clientPhone||'') + '</div>' +
               '</div>' +
               '<div>' +
                 '<div class="detail-block-title">Автомобиль</div>' +
                 '<div class="detail-block-value">' + escapeHtml([o.carMake,o.carModel].filter(Boolean).join(' ')||'—') + '</div>' +
-                '<div class="detail-block-value" style="color:#9CA3AF; font-size:13px; margin-top:2px;">Гос.номер: ' + escapeHtml(o.plate||'—') + '</div>' +
+                '<div class="detail-block-value" style="color:var(--text-muted); font-size:13px; margin-top:2px;">Гос.номер: ' + escapeHtml(o.plate||'—') + '</div>' +
               '</div>' +
               '<div>' +
                 '<div class="detail-block-title">VIN</div>' +
@@ -3712,13 +3712,13 @@
             '<div class="form-section">' +
               '<div class="form-section-title">Работы и запчасти</div>' +
               '<table class="detail-table"><thead><tr><th>Наименование</th><th style="text-align:right;">Кол-во</th><th style="text-align:right;">Цена</th><th style="text-align:right;">Сумма</th><th>Исполнитель (ЗП)</th></tr></thead>' +
-              '<tbody>' + (linesHtml || '<tr><td colspan="5" style="color:#7C8290;">Позиции не указаны</td></tr>') + '</tbody></table>' +
+              '<tbody>' + (linesHtml || '<tr><td colspan="5" style="color:var(--text-subtle);">Позиции не указаны</td></tr>') + '</tbody></table>' +
               '<div class="total-row"><span class="label">Итого к оплате</span><span class="value">' + fmtMoney(total) + '</span></div>' +
             '</div>' +
 
             '<div class="form-section">' +
               '<div class="form-section-title">Зарплата по наряду</div>' +
-              '<div class="detail-block-value" style="font-size:13px; color:#9CA3AF; margin-bottom:8px;">Сумма работ (без запчастей): ' + fmtMoney(worksTotal) + '</div>' +
+              '<div class="detail-block-value" style="font-size:13px; color:var(--text-muted); margin-bottom:8px;">Сумма работ (без запчастей): ' + fmtMoney(worksTotal) + '</div>' +
               '<div class="total-row"><span class="label">К выплате исполнителям</span><span class="value">' + fmtMoney(commissionTotal) + '</span></div>' +
             '</div>' +
 
@@ -3802,7 +3802,7 @@
     box.innerHTML =
       '<div style="background:var(--bg-panel); border:1px solid var(--border); border-radius:12px; padding:22px; max-width:360px;">' +
         '<div style="font-size:15px; font-weight:600; margin-bottom:8px;">Удалить наряд?</div>' +
-        '<div style="font-size:13.5px; color:#9CA3AF; margin-bottom:18px;">Это действие нельзя отменить. Данные наряда будут удалены навсегда.</div>' +
+        '<div style="font-size:13.5px; color:var(--text-muted); margin-bottom:18px;">Это действие нельзя отменить. Данные наряда будут удалены навсегда.</div>' +
         '<div style="display:flex; justify-content:flex-end; gap:10px;">' +
           '<button class="btn btn-ghost btn-sm" id="cancelDel">Отмена</button>' +
           '<button class="btn btn-danger btn-sm" id="okDel">Удалить</button>' +
@@ -4263,21 +4263,21 @@
     var overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:300;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px);';
 
-    var fi = 'width:100%;padding:11px 14px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg-panel-2);color:#E8E6E0;font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;';
+    var fi = 'width:100%;padding:11px 14px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg-panel-2);color:var(--text-main);font-size:14px;font-family:inherit;outline:none;box-sizing:border-box;';
 
     function renderList(q){
       var list = state.clients.slice().sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
       if(q) list = list.filter(function(c){
         return [c.name||'', c.phone||'', c.orgName||''].join(' ').toLowerCase().indexOf(q.toLowerCase()) !== -1;
       });
-      if(!list.length) return '<div style="padding:28px;text-align:center;color:#7C8290;">Ничего не найдено</div>';
+      if(!list.length) return '<div style="padding:28px;text-align:center;color:var(--text-subtle);">Ничего не найдено</div>';
       return list.map(function(c){
         var cars = carsOfClient(c.id);
         var carText = cars.slice(0,2).map(function(v){ return [v.carMake, v.carModel].filter(Boolean).join(' ')||v.plate||''; }).filter(Boolean).join(', ');
         return '<div data-client-id="' + c.id + '" style="padding:12px 18px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s;"' +
           ' onmouseover="this.style.background=\'var(--bg-panel-2)\'" onmouseout="this.style.background=\'\'">' +
-          '<div style="font-weight:600;font-size:14px;color:#E8E6E0;">' + escapeHtml(c.name||'Без имени') + (c.orgName ? ' <span style="font-size:12px;color:#7C8290;font-weight:400;">· ' + escapeHtml(c.orgName) + '</span>' : '') + '</div>' +
-          '<div style="font-size:12.5px;color:#7C8290;margin-top:2px;">' + escapeHtml(c.phone||'телефон не указан') + (carText ? ' · ' + escapeHtml(carText) : '') + '</div>' +
+          '<div style="font-weight:600;font-size:14px;color:var(--text-main);">' + escapeHtml(c.name||'Без имени') + (c.orgName ? ' <span style="font-size:12px;color:var(--text-subtle);font-weight:400;">· ' + escapeHtml(c.orgName) + '</span>' : '') + '</div>' +
+          '<div style="font-size:12.5px;color:var(--text-subtle);margin-top:2px;">' + escapeHtml(c.phone||'телефон не указан') + (carText ? ' · ' + escapeHtml(carText) : '') + '</div>' +
         '</div>';
       }).join('');
     }
@@ -4287,7 +4287,7 @@
         '<div style="padding:16px 18px 14px;border-bottom:1px solid var(--border);flex-shrink:0;">' +
           '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
             '<span style="font-size:15px;font-weight:700;">Выбрать клиента</span>' +
-            '<button id="cpClose" style="background:var(--bg-panel-2);border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:15px;color:#7C8290;">✕</button>' +
+            '<button id="cpClose" style="background:var(--bg-panel-2);border:none;border-radius:50%;width:30px;height:30px;cursor:pointer;font-size:15px;color:var(--text-subtle);">✕</button>' +
           '</div>' +
           '<input id="cpSearch" style="' + fi + '" placeholder="Поиск по имени, телефону...">' +
         '</div>' +
@@ -4325,17 +4325,17 @@
       '<div style="background:var(--bg-panel);border-radius:18px;width:100%;max-width:420px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,0.5);">' +
         '<div style="padding:16px 18px 14px;border-bottom:1px solid var(--border);">' +
           '<div style="font-size:15px;font-weight:700;">Выбрать автомобиль</div>' +
-          '<div style="font-size:12.5px;color:#7C8290;margin-top:3px;">Найдено несколько авто — выберите нужный</div>' +
+          '<div style="font-size:12.5px;color:var(--text-subtle);margin-top:3px;">Найдено несколько авто — выберите нужный</div>' +
         '</div>' +
         '<div>' + cars.map(function(c){
           var label = [c.carMake, c.carModel].filter(Boolean).join(' ') || 'Автомобиль';
           return '<div data-car-id="' + c.id + '" style="padding:13px 18px;cursor:pointer;border-bottom:1px solid var(--border);"' +
             ' onmouseover="this.style.background=\'var(--bg-panel-2)\'" onmouseout="this.style.background=\'\'">' +
             '<div style="font-weight:600;font-size:14px;">' + escapeHtml(label) + '</div>' +
-            '<div style="font-size:12.5px;color:#7C8290;margin-top:2px;">' + escapeHtml(c.plate||'') + (c.vin ? ' · ' + escapeHtml(c.vin) : '') + '</div>' +
+            '<div style="font-size:12.5px;color:var(--text-subtle);margin-top:2px;">' + escapeHtml(c.plate||'') + (c.vin ? ' · ' + escapeHtml(c.vin) : '') + '</div>' +
           '</div>';
         }).join('') + '</div>' +
-        '<div style="padding:14px 18px;"><button id="vpSkip" style="width:100%;padding:10px;border-radius:9px;border:1px solid var(--border);background:transparent;color:#7C8290;cursor:pointer;font-family:inherit;font-size:14px;">Пропустить</button></div>' +
+        '<div style="padding:14px 18px;"><button id="vpSkip" style="width:100%;padding:10px;border-radius:9px;border:1px solid var(--border);background:transparent;color:var(--text-subtle);cursor:pointer;font-family:inherit;font-size:14px;">Пропустить</button></div>' +
       '</div>';
     document.body.appendChild(overlay);
     overlay.querySelectorAll('[data-car-id]').forEach(function(el){
@@ -4364,8 +4364,8 @@
       return price;
     }
 
-    var fi = 'width:100%;padding:10px 13px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg-panel-2);color:#E8E6E0;font-family:inherit;font-size:14px;box-sizing:border-box;outline:none;';
-    var fl = 'display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#7C8290;margin-bottom:5px;';
+    var fi = 'width:100%;padding:10px 13px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg-panel-2);color:var(--text-main);font-family:inherit;font-size:14px;box-sizing:border-box;outline:none;';
+    var fl = 'display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-subtle);margin-bottom:5px;';
 
     var overlay = document.createElement('div');
     overlay.className = 'quick-order-overlay';
@@ -4378,9 +4378,9 @@
         '<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 18px 14px;border-bottom:1px solid var(--border);flex-shrink:0;">' +
           '<div>' +
             '<div style="font-size:16px;font-weight:700;">⚡ Быстрый наряд</div>' +
-            '<div id="qOrderNum" style="font-size:12px;color:#7C8290;margin-top:1px;"></div>' +
+            '<div id="qOrderNum" style="font-size:12px;color:var(--text-subtle);margin-top:1px;"></div>' +
           '</div>' +
-          '<button id="qClose" style="background:var(--bg-panel-2);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:16px;color:#7C8290;flex-shrink:0;">✕</button>' +
+          '<button id="qClose" style="background:var(--bg-panel-2);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:16px;color:var(--text-subtle);flex-shrink:0;">✕</button>' +
         '</div>' +
 
         /* Тело */
@@ -4397,13 +4397,13 @@
             '<div class="q-section">' +
               '<label style="' + fl + '">🔧 Работы</label>' +
               '<div id="qWorkLines" style="display:flex;flex-direction:column;gap:6px;"></div>' +
-              '<button type="button" id="qAddWork" style="margin-top:8px;width:100%;padding:9px;border-radius:9px;border:1.5px dashed var(--border);background:transparent;color:#7C8290;cursor:pointer;font-size:13px;font-family:inherit;">+ Добавить работу</button>' +
+              '<button type="button" id="qAddWork" style="margin-top:8px;width:100%;padding:9px;border-radius:9px;border:1.5px dashed var(--border);background:transparent;color:var(--text-subtle);cursor:pointer;font-size:13px;font-family:inherit;">+ Добавить работу</button>' +
             '</div>' +
             '<div class="q-section">' +
               '<label style="' + fl + '">🔩 Запчасти</label>' +
-              '<div style="font-size:10px;color:#7C8290;margin:-2px 0 6px;">Если запчасти нет на складе — вводи закупочную цену, наценка +45% добавится автоматически</div>' +
+              '<div style="font-size:10px;color:var(--text-subtle);margin:-2px 0 6px;">Если запчасти нет на складе — вводи закупочную цену, наценка +45% добавится автоматически</div>' +
               '<div id="qPartLines" style="display:flex;flex-direction:column;gap:6px;"></div>' +
-              '<button type="button" id="qAddPart" style="margin-top:8px;width:100%;padding:9px;border-radius:9px;border:1.5px dashed var(--border);background:transparent;color:#7C8290;cursor:pointer;font-size:13px;font-family:inherit;">+ Добавить запчасть</button>' +
+              '<button type="button" id="qAddPart" style="margin-top:8px;width:100%;padding:9px;border-radius:9px;border:1.5px dashed var(--border);background:transparent;color:var(--text-subtle);cursor:pointer;font-size:13px;font-family:inherit;">+ Добавить запчасть</button>' +
             '</div>' +
           '</div>' +
 
@@ -4412,10 +4412,10 @@
         /* Подвал */
         '<div class="q-footer" style="padding:12px 18px 24px;border-top:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;gap:10px;">' +
           '<div style="flex:1;">' +
-            '<div style="font-size:11px;color:#7C8290;text-transform:uppercase;letter-spacing:0.05em;">Итого</div>' +
+            '<div style="font-size:11px;color:var(--text-subtle);text-transform:uppercase;letter-spacing:0.05em;">Итого</div>' +
             '<div id="qTotal" style="font-size:20px;font-weight:700;font-family:\'JetBrains Mono\',monospace;">0&nbsp;₽</div>' +
           '</div>' +
-          '<button id="qFullForm" style="padding:10px 16px;border-radius:10px;border:1.5px solid var(--border);background:transparent;color:#D8D5CC;cursor:pointer;font-family:inherit;font-size:13px;">Полная форма</button>' +
+          '<button id="qFullForm" style="padding:10px 16px;border-radius:10px;border:1.5px solid var(--border);background:transparent;color:var(--text-secondary);cursor:pointer;font-family:inherit;font-size:13px;">Полная форма</button>' +
           '<button id="qSave" style="padding:11px 24px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">Сохранить</button>' +
         '</div>' +
 
@@ -4455,7 +4455,7 @@
           (type === 'part' ? '<datalist id="' + quickStockListId + '">' + quickStockOptions + '</datalist>' : '') +
           '<input class="q-qty" data-key="' + line._key + '" data-f="qty" type="number" min="1" value="' + line.qty + '" placeholder="Кол" style="' + fi + 'padding:8px 6px;text-align:center;">' +
           '<input class="q-price" data-key="' + line._key + '" data-f="price" type="number" min="0" step="0.01" value="' + (line.price||'') + '" placeholder="' + (type === 'part' ? 'Закупка' : 'Цена') + '" title="' + (type === 'part' ? (line.stockItemId ? 'Цена продажи со склада' : 'Закупочная цена; для ручной запчасти автоматически +45%') : 'Цена') + '" style="' + fi + 'padding:8px 6px;">' +
-          '<button class="q-remove" data-key="' + line._key + '" data-f="remove" style="background:none;border:none;color:#7C8290;cursor:pointer;font-size:18px;padding:0 4px;line-height:1;">×</button>' +
+          '<button class="q-remove" data-key="' + line._key + '" data-f="remove" style="background:none;border:none;color:var(--text-subtle);cursor:pointer;font-size:18px;padding:0 4px;line-height:1;">×</button>' +
           (type === 'work' ? '<select class="q-assignee" data-key="' + line._key + '" style="' + fi + 'padding:8px 8px;"><option value="">Исполнитель</option>' + quickStaffOptions + '</select>' : '');
         wrap.appendChild(row);
       });
@@ -4833,9 +4833,9 @@
         var badge = document.getElementById('selectedClientBadge');
         badge.style.display = '';
         badge.innerHTML = '<div style="display:inline-flex;align-items:center;gap:8px;background:var(--bg-panel-2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;margin-bottom:10px;font-size:13px;">' +
-          '<span style="color:#7C8290;">Выбран:</span> <b>' + escapeHtml(client.name||'Без имени') + '</b>' +
-          (client.phone ? '<span style="color:#7C8290;">· ' + escapeHtml(client.phone) + '</span>' : '') +
-          '<button type="button" id="clearPickedClient" style="background:none;border:none;color:#7C8290;cursor:pointer;padding:0 0 0 4px;font-size:14px;">✕</button>' +
+          '<span style="color:var(--text-subtle);">Выбран:</span> <b>' + escapeHtml(client.name||'Без имени') + '</b>' +
+          (client.phone ? '<span style="color:var(--text-subtle);">· ' + escapeHtml(client.phone) + '</span>' : '') +
+          '<button type="button" id="clearPickedClient" style="background:none;border:none;color:var(--text-subtle);cursor:pointer;padding:0 0 0 4px;font-size:14px;">✕</button>' +
         '</div>';
         document.getElementById('clearPickedClient').onclick = function(){
           order.clientId = null;
@@ -5333,12 +5333,12 @@
     var formDiv = document.createElement('div');
     formDiv.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px);';
 
-    var fi = 'width:100%;padding:11px 14px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg-panel-2);color:#E8E6E0;font-family:inherit;font-size:14px;box-sizing:border-box;outline:none;transition:border-color .15s;';
-    var fl = 'display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#7C8290;margin-bottom:6px;';
+    var fi = 'width:100%;padding:11px 14px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg-panel-2);color:var(--text-main);font-family:inherit;font-size:14px;box-sizing:border-box;outline:none;transition:border-color .15s;';
+    var fl = 'display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-subtle);margin-bottom:6px;';
     var fg = 'display:flex;flex-direction:column;';
     var divider = '<div style="display:flex;align-items:center;gap:10px;margin:4px 0;">' +
       '<div style="flex:1;height:1px;background:var(--border);"></div>' +
-      '<span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:#7C8290;">Реквизиты организации</span>' +
+      '<span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-subtle);">Реквизиты организации</span>' +
       '<div style="flex:1;height:1px;background:var(--border);"></div>' +
     '</div>';
 
@@ -5348,18 +5348,18 @@
         /* Шапка */
         '<div style="display:flex;justify-content:space-between;align-items:center;padding:20px 22px 0;">' +
           '<div>' +
-            '<div style="font-size:17px;font-weight:700;color:#E8E6E0;">Новый клиент</div>' +
-            '<div style="font-size:12px;color:#7C8290;margin-top:2px;">Заполните основные данные</div>' +
+            '<div style="font-size:17px;font-weight:700;color:var(--text-main);">Новый клиент</div>' +
+            '<div style="font-size:12px;color:var(--text-subtle);margin-top:2px;">Заполните основные данные</div>' +
           '</div>' +
-          '<button id="fNewClientCancel" style="background:var(--bg-panel-2);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:16px;color:#7C8290;display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>' +
+          '<button id="fNewClientCancel" style="background:var(--bg-panel-2);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:16px;color:var(--text-subtle);display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>' +
         '</div>' +
 
         /* Тип клиента — переключатель */
         '<div style="padding:16px 22px 0;">' +
           '<div style="display:grid;grid-template-columns:1fr 1fr;border-radius:10px;overflow:hidden;border:1.5px solid var(--border);">' +
-            '<label style="display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;font-size:13.5px;color:#D8D5CC;">' +
+            '<label style="display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;font-size:13.5px;color:var(--text-secondary);">' +
               '<input type="radio" name="fNewClientTypeR" id="fNewClientTypePerson" value="person" checked style="accent-color:var(--accent);">Физ. лицо</label>' +
-            '<label style="display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;font-size:13.5px;color:#D8D5CC;border-left:1.5px solid var(--border);">' +
+            '<label style="display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;font-size:13.5px;color:var(--text-secondary);border-left:1.5px solid var(--border);">' +
               '<input type="radio" name="fNewClientTypeR" id="fNewClientTypeOrg" value="org" style="accent-color:var(--accent);">Юр. лицо / ИП</label>' +
           '</div>' +
         '</div>' +
@@ -5478,10 +5478,10 @@
       html += '<div class="form-section" style="background:var(--bg-panel-2);border-radius:10px;padding:14px 16px;margin-bottom:16px;">' +
         '<div class="form-section-title" style="margin-bottom:10px;">Реквизиты организации</div>' +
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;font-size:13px;">' +
-          '<div><span style="color:#7C8290;">Организация</span><div style="margin-top:2px;">' + escapeHtml(client.orgName||'—') + '</div></div>' +
-          '<div><span style="color:#7C8290;">ИНН</span><div style="margin-top:2px;font-family:monospace;">' + escapeHtml(client.inn||'—') + '</div></div>' +
-          '<div><span style="color:#7C8290;">КПП</span><div style="margin-top:2px;font-family:monospace;">' + escapeHtml(client.kpp||'—') + '</div></div>' +
-          '<div><span style="color:#7C8290;">Юр. адрес</span><div style="margin-top:2px;">' + escapeHtml(client.legalAddress||'—') + '</div></div>' +
+          '<div><span style="color:var(--text-subtle);">Организация</span><div style="margin-top:2px;">' + escapeHtml(client.orgName||'—') + '</div></div>' +
+          '<div><span style="color:var(--text-subtle);">ИНН</span><div style="margin-top:2px;font-family:monospace;">' + escapeHtml(client.inn||'—') + '</div></div>' +
+          '<div><span style="color:var(--text-subtle);">КПП</span><div style="margin-top:2px;font-family:monospace;">' + escapeHtml(client.kpp||'—') + '</div></div>' +
+          '<div><span style="color:var(--text-subtle);">Юр. адрес</span><div style="margin-top:2px;">' + escapeHtml(client.legalAddress||'—') + '</div></div>' +
         '</div>' +
       '</div>';
     }
@@ -5764,7 +5764,7 @@
     box.innerHTML =
       '<div style="background:var(--bg-panel); border:1px solid var(--border); border-radius:12px; padding:22px; max-width:380px;">' +
         '<div style="font-size:15px; font-weight:600; margin-bottom:8px;">Удалить «' + escapeHtml(item.name) + '» из прайс-листа?</div>' +
-        '<div style="font-size:13.5px; color:#9CA3AF; margin-bottom:18px;">Уже созданные наряды с этой работой не изменятся. Удаляется только сама позиция справочника.</div>' +
+        '<div style="font-size:13.5px; color:var(--text-muted); margin-bottom:18px;">Уже созданные наряды с этой работой не изменятся. Удаляется только сама позиция справочника.</div>' +
         '<div style="display:flex; justify-content:flex-end; gap:10px;">' +
           '<button class="btn btn-ghost btn-sm" id="cancelDelPrice">Отмена</button>' +
           '<button class="btn btn-danger btn-sm" id="okDelPrice">Удалить</button>' +
@@ -6181,7 +6181,7 @@
           '</div>' +
           '<div class="modal-body">' +
             '<div class="field required"><label>Наценка, % от закупочной цены</label><input id="mf_pct" type="number" min="0" step="1" value="' + state.stockMarkupPct + '"></div>' +
-            '<div style="font-size:12.5px; color:#7C8290;">Применяется ко всем запчастям на складе сразу. Цена продажи = закупочная цена × (1 + наценка / 100).</div>' +
+            '<div style="font-size:12.5px; color:var(--text-subtle);">Применяется ко всем запчастям на складе сразу. Цена продажи = закупочная цена × (1 + наценка / 100).</div>' +
           '</div>' +
           '<div class="modal-foot">' +
             '<span></span>' +
@@ -6291,7 +6291,7 @@
     box.innerHTML =
       '<div style="background:var(--bg-panel); border:1px solid var(--border); border-radius:12px; padding:22px; max-width:380px;">' +
         '<div style="font-size:15px; font-weight:600; margin-bottom:8px;">Удалить «' + escapeHtml(item.name) + '» со склада?</div>' +
-        '<div style="font-size:13.5px; color:#9CA3AF; margin-bottom:18px;">Уже созданные наряды с этой запчастью не изменятся, но больше выбрать её для новых нарядов будет нельзя.</div>' +
+        '<div style="font-size:13.5px; color:var(--text-muted); margin-bottom:18px;">Уже созданные наряды с этой запчастью не изменятся, но больше выбрать её для новых нарядов будет нельзя.</div>' +
         '<div style="display:flex; justify-content:flex-end; gap:10px;">' +
           '<button class="btn btn-ghost btn-sm" id="cancelDelStock">Отмена</button>' +
           '<button class="btn btn-danger btn-sm" id="okDelStock">Удалить</button>' +
@@ -6415,7 +6415,7 @@
     box.innerHTML =
       '<div style="background:var(--bg-panel); border:1px solid var(--border); border-radius:12px; padding:22px; max-width:380px;">' +
         '<div style="font-size:15px; font-weight:600; margin-bottom:8px;">Удалить сотрудника «' + escapeHtml(person.name) + '»?</div>' +
-        '<div style="font-size:13.5px; color:#9CA3AF; margin-bottom:18px;">Уже сохранённые наряды сохранят историю начислений, но выбрать этого сотрудника заново будет нельзя.</div>' +
+        '<div style="font-size:13.5px; color:var(--text-muted); margin-bottom:18px;">Уже сохранённые наряды сохранят историю начислений, но выбрать этого сотрудника заново будет нельзя.</div>' +
         '<div style="display:flex; justify-content:flex-end; gap:10px;">' +
           '<button class="btn btn-ghost btn-sm" id="cancelDelStaff">Отмена</button>' +
           '<button class="btn btn-danger btn-sm" id="okDelStaff">Удалить</button>' +
@@ -6759,7 +6759,7 @@
       box.innerHTML =
         '<div style="background:var(--bg-panel); border:1px solid var(--border); border-radius:12px; padding:22px; max-width:420px;">' +
           '<div style="font-size:15px; font-weight:600; margin-bottom:8px;">Восстановить данные из файла?</div>' +
-          '<div style="font-size:13.5px; color:#9CA3AF; margin-bottom:18px;">Будут загружены ' + (data.orders||[]).length + ' наряд(ов), ' + (data.staff||[]).length + ' сотрудник(ов), ' + (data.clients||[]).length + ' клиент(ов), ' + (data.cars||[]).length + ' автомобиль(ей), ' + (data.priceList||[]).length + ' позиция(й) прайс-листа и ' + (data.stockItems||[]).length + ' позиция(й) склада. Текущие данные в этом браузере будут заменены. Это действие нельзя отменить.</div>' +
+          '<div style="font-size:13.5px; color:var(--text-muted); margin-bottom:18px;">Будут загружены ' + (data.orders||[]).length + ' наряд(ов), ' + (data.staff||[]).length + ' сотрудник(ов), ' + (data.clients||[]).length + ' клиент(ов), ' + (data.cars||[]).length + ' автомобиль(ей), ' + (data.priceList||[]).length + ' позиция(й) прайс-листа и ' + (data.stockItems||[]).length + ' позиция(й) склада. Текущие данные в этом браузере будут заменены. Это действие нельзя отменить.</div>' +
           '<div style="display:flex; justify-content:flex-end; gap:10px;">' +
             '<button class="btn btn-ghost btn-sm" id="cancelImport">Отмена</button>' +
             '<button class="btn btn-primary btn-sm" id="okImport">Восстановить</button>' +
@@ -6957,7 +6957,7 @@
     w.innerHTML =
       '<div class="section-head" style="margin-bottom:24px;">' +
         '<h2 style="margin:0 0 4px;font-size:18px;">Реквизиты организации</h2>' +
-        '<div style="font-size:13px;color:#7C8290;">Отображаются в шапке печатного заказ-наряда</div>' +
+        '<div style="font-size:13px;color:var(--text-subtle);">Отображаются в шапке печатного заказ-наряда</div>' +
       '</div>' +
       '<div class="settings-card" style="max-width:460px;display:flex;flex-direction:column;gap:16px;">' +
         '<div class="form-group"><label class="form-label">Название организации</label>' +
@@ -6986,7 +6986,7 @@
 
       '<div style="margin-top:28px;max-width:460px;">' +
         '<h2 style="margin:0 0 4px;font-size:18px;">Данные и резервные копии</h2>' +
-        '<div style="font-size:13px;color:#7C8290;margin-bottom:18px;">Экспорт и импорт всех данных приложения</div>' +
+        '<div style="font-size:13px;color:var(--text-subtle);margin-bottom:18px;">Экспорт и импорт всех данных приложения</div>' +
         '<div class="settings-card" style="display:flex;flex-direction:column;gap:10px;">' +
           '<button class="btn btn-ghost" id="btnRefresh" style="justify-content:flex-start;gap:10px;">↻&nbsp; Обновить данные</button>' +
           '<button class="btn btn-ghost" id="btnExport" style="justify-content:flex-start;gap:10px;">⬇&nbsp; Скачать резервную копию</button>' +

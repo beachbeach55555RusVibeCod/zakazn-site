@@ -71,6 +71,22 @@
   }
   .header h1{ font-size:21px; font-weight:600; margin:0; letter-spacing:-0.01em; }
   .header .sub{ font-size:13px; color:var(--text-muted); margin-top:3px; }
+  .header-actions-stack{
+    display:flex;
+    flex-direction:column;
+    align-items:flex-end;
+    gap:7px;
+  }
+  .header-clock{
+    font-family:'JetBrains Mono', monospace;
+    font-size:24px;
+    font-weight:700;
+    letter-spacing:.04em;
+    line-height:1;
+    color:var(--text-main);
+    font-variant-numeric:tabular-nums;
+    padding-right:2px;
+  }
   .header-actions{ display:flex; gap:10px; align-items:center; flex-wrap: wrap; }
 
   .btn{
@@ -930,6 +946,8 @@
     .header{ flex-direction:column; align-items:stretch; gap:10px; padding-bottom:12px; margin-bottom:16px; }
     .header h1{ font-size:17px; }
     .header .sub{ font-size:12px; }
+    .header-actions-stack{ align-items:stretch; }
+    .header-clock{ text-align:right; font-size:20px; }
     .header-actions{ flex-wrap:wrap; gap:8px; }
     .header-actions .btn{ flex:1; justify-content:center; min-width:calc(50% - 4px); }
     .header-actions .btn-primary{ flex:100%; }
@@ -1809,11 +1827,14 @@
     </div>
     <div id="mobileDailySalary" class="mobile-daily-salary"></div>
     <div id="salaryWidgetsRow" class="salary-widgets-row"></div>
-    <div class="header-actions">
-      <span class="stat-pill" id="statTotal">Всего: <b>0</b></span>
-      <span class="stat-pill" id="statSum">Сумма в работе: <b>0&nbsp;₽</b></span>
-      <button class="theme-toggle" id="btnTheme" title="Сменить тему">🌙</button>
-      <button class="btn btn-ghost btn-sm" id="btnLogout">Выйти</button>
+    <div class="header-actions-stack">
+      <div class="header-clock" id="headerClock" aria-label="Текущее время">--:--:--</div>
+      <div class="header-actions">
+        <span class="stat-pill" id="statTotal">Всего: <b>0</b></span>
+        <span class="stat-pill" id="statSum">Сумма в работе: <b>0&nbsp;₽</b></span>
+        <button class="theme-toggle" id="btnTheme" title="Сменить тему">🌙</button>
+        <button class="btn btn-ghost btn-sm" id="btnLogout">Выйти</button>
+      </div>
     </div>
   </div>
 
@@ -3387,6 +3408,16 @@
     });
 
     return card;
+  }
+
+  function updateHeaderClock(){
+    var el = document.getElementById('headerClock');
+    if(!el) return;
+    var now = new Date();
+    var hh = String(now.getHours()).padStart(2,'0');
+    var mm = String(now.getMinutes()).padStart(2,'0');
+    var ss = String(now.getSeconds()).padStart(2,'0');
+    el.textContent = hh + ':' + mm + ':' + ss;
   }
 
   function updateStats(){
@@ -7621,6 +7652,8 @@
     document.getElementById('btnExportCSV').addEventListener('click', exportOrdersCSV);
     document.getElementById('btnExportPayroll').addEventListener('click', exportPayrollCSV);
     initTheme();
+    updateHeaderClock();
+    setInterval(updateHeaderClock, 1000);
     document.getElementById('btnLogout').addEventListener('click', async function(){
     stopRealtimeSync();
     await getSB().auth.signOut();

@@ -4644,7 +4644,8 @@
     document.getElementById('qAddWork').addEventListener('click', function(){ addLine('work'); });
     document.getElementById('qAddPart').addEventListener('click', function(){ addLine('part'); });
     document.getElementById('qClose').addEventListener('click', function(){ overlay.remove(); });
-    overlay.addEventListener('click', function(e){ if(e.target === overlay) overlay.remove(); });
+    // Клик по затемнённой области не закрывает быстрый ЗН:
+    // пользователь не потеряет введённые данные случайным нажатием вне формы.
 
     /* Открыть полную форму */
     document.getElementById('qFullForm').addEventListener('click', function(){

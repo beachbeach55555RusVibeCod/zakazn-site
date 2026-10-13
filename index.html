@@ -3634,6 +3634,24 @@
 
   // ---------- Detail view ----------
 
+  function isQuickOrder(order){
+    if(!order) return false;
+    if(order.editorMode === 'quick') return true;
+    if(order.editorMode === 'full') return false;
+
+    // Legacy quick orders were saved without client/plate/full-form fields.
+    // Full editor requires client name and plate, so this is a safe fallback.
+    return !String(order.clientName||'').trim() &&
+      !String(order.clientPhone||'').trim() &&
+      !String(order.plate||'').trim() &&
+      !String(order.vin||'').trim() &&
+      !String(order.carModel||'').trim() &&
+      !String(order.mileage||'').trim() &&
+      !String(order.master||'').trim() &&
+      !String(order.note||'').trim() &&
+      !order.signature;
+  }
+
   function openDetail(id){
     var o = state.orders.find(function(x){ return x.id === id; });
     if(!o) return;
@@ -3746,7 +3764,8 @@
     });
     document.getElementById('detailEdit').onclick = function(){
       closeModal();
-      openOrderForm(o.id);
+      if(isQuickOrder(o)) openQuickOrderForm(o.id);
+      else openOrderForm(o.id);
     };
     document.getElementById('detailPrint').onclick = function(e){
       var existing = document.querySelector('.assign-popup');
@@ -4349,12 +4368,40 @@
     overlay.addEventListener('click', function(e){ if(e.target === overlay) overlay.remove(); });
   }
 
-  function openQuickOrderForm(){
-    var qOrder = {
-      clientId: null,
-      lines: []
-    };
+  function openQuickOrderForm(editId){
     var QUICK_MANUAL_PART_MARKUP_PCT = 45;
+    var existingOrder = editId ? state.orders.find(function(o){ return o.id === editId; }) : null;
+    if(editId && !existingOrder){
+      showToast('Наряд не найден');
+      return;
+    }
+
+    function editableQuickLine(source){
+      var line = JSON.parse(JSON.stringify(source || {}));
+      line._key = line._key || lineId();
+      line.type = line.type === 'part' ? 'part' : 'work';
+      line.qty = Number(line.qty) || 1;
+      line.stockItemId = line.type === 'part' ? (line.stockItemId || null) : null;
+      line.assignees = line.type === 'work' ? (line.assignees || []).filter(Boolean) : [];
+
+      // В сохранённом быстром ЗН ручная запчасть хранится уже с +45%.
+      // Для повторного редактирования показываем исходную закупочную цену.
+      if(line.type === 'part' && !line.stockItemId){
+        if(line.quickCostPrice !== undefined && line.quickCostPrice !== null && line.quickCostPrice !== ''){
+          line.price = Number(line.quickCostPrice) || 0;
+        }else{
+          line.price = (Number(line.price) || 0) / (1 + QUICK_MANUAL_PART_MARKUP_PCT / 100);
+        }
+      }else{
+        line.price = Number(line.price) || 0;
+      }
+      return line;
+    }
+
+    var qOrder = {
+      clientId: existingOrder ? (existingOrder.clientId || null) : null,
+      lines: existingOrder ? (existingOrder.lines || []).map(editableQuickLine) : []
+    };
 
     function quickLineSellPrice(line){
       var price = Number(line && line.price) || 0;
@@ -4377,7 +4424,7 @@
         /* Шапка */
         '<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 18px 14px;border-bottom:1px solid var(--border);flex-shrink:0;">' +
           '<div>' +
-            '<div style="font-size:16px;font-weight:700;">⚡ Быстрый наряд</div>' +
+            '<div style="font-size:16px;font-weight:700;">' + (existingOrder ? '✎ Редактирование быстрого ЗН' : '⚡ Быстрый наряд') + '</div>' +
             '<div id="qOrderNum" style="font-size:12px;color:var(--text-subtle);margin-top:1px;"></div>' +
           '</div>' +
           '<button id="qClose" style="background:var(--bg-panel-2);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:16px;color:var(--text-subtle);flex-shrink:0;">✕</button>' +
@@ -4416,7 +4463,7 @@
             '<div id="qTotal" style="font-size:20px;font-weight:700;font-family:\'JetBrains Mono\',monospace;">0&nbsp;₽</div>' +
           '</div>' +
           '<button id="qFullForm" style="padding:10px 16px;border-radius:10px;border:1.5px solid var(--border);background:transparent;color:var(--text-secondary);cursor:pointer;font-family:inherit;font-size:13px;">Полная форма</button>' +
-          '<button id="qSave" style="padding:11px 24px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">Сохранить</button>' +
+          '<button id="qSave" style="padding:11px 24px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">' + (existingOrder ? 'Сохранить изменения' : 'Сохранить') + '</button>' +
         '</div>' +
 
       '</div>';
@@ -4424,8 +4471,12 @@
     document.body.appendChild(overlay);
 
     /* Номер наряда */
-    var orderNum = nextOrderNumber();
-    document.getElementById('qOrderNum').textContent = '№ ' + orderNum + ' · ' + new Date().toLocaleDateString('ru-RU');
+    var orderNum = existingOrder ? existingOrder.orderNumber : nextOrderNumber();
+    var orderDateLabel = existingOrder && existingOrder.dateIn
+      ? fmtDate(existingOrder.dateIn)
+      : new Date().toLocaleDateString('ru-RU');
+    document.getElementById('qOrderNum').textContent = '№ ' + orderNum + ' · ' + orderDateLabel;
+    document.getElementById('qCarMake').value = existingOrder ? (existingOrder.carMake || '') : '';
 
     /* Добавление строк */
     function addLine(type){
@@ -4531,7 +4582,7 @@
     /* Открыть полную форму */
     document.getElementById('qFullForm').addEventListener('click', function(){
       overlay.remove();
-      openOrderForm(null);
+      openOrderForm(existingOrder ? existingOrder.id : null);
     });
 
     /* Сохранить */
@@ -4539,43 +4590,55 @@
       var btn = document.getElementById('qSave');
       btn.disabled = true; btn.textContent = 'Сохранение…';
 
-      var order = {
-        id: uid(),
-        orderNumber: orderNum,
-        status: 'new',
-        dateIn: new Date().toISOString().slice(0,10),
-        dateOut: '',
-        clientId: qOrder.clientId,
-        clientName: '',
-        clientPhone: '',
-        carMake: (document.getElementById('qCarMake').value || '').trim(),
-        carModel: '',
-        plate: '',
-        vin: '',
-        mileage: '',
-        master: '',
-        note: '',
-        lines: qOrder.lines.filter(function(l){ return l.name.trim() || l.price > 0; }).map(function(l){
-          return {
-            name:l.name,
-            qty:Number(l.qty)||1,
-            price:quickLineSellPrice(l),
-            type:l.type,
-            assignees:l.type === 'work' ? (l.assignees||[]).filter(Boolean) : [],
-            stockItemId:l.type === 'part' ? (l.stockItemId || null) : null
+      var order = existingOrder
+        ? JSON.parse(JSON.stringify(existingOrder))
+        : {
+            id: uid(),
+            orderNumber: orderNum,
+            status: 'new',
+            dateIn: new Date().toISOString().slice(0,10),
+            dateOut: '',
+            clientId: qOrder.clientId,
+            clientName: '',
+            clientPhone: '',
+            carMake: '',
+            carModel: '',
+            plate: '',
+            vin: '',
+            mileage: '',
+            master: '',
+            note: '',
+            lines: [],
+            signature: null,
+            createdAt: Date.now(),
+            issuedAt: null
           };
-        }),
-        signature: null,
-        createdAt: Date.now(),
-        issuedAt: null
-      };
 
-      var stockCheck = checkStockAvailability(null, order.lines);
+      order.editorMode = 'quick';
+      order.orderNumber = orderNum;
+      order.clientId = qOrder.clientId;
+      order.carMake = (document.getElementById('qCarMake').value || '').trim();
+      order.lines = qOrder.lines.filter(function(l){
+        return (l.name && l.name.trim()) || Number(l.price) > 0;
+      }).map(function(l){
+        var manualQuickPart = l.type === 'part' && !l.stockItemId;
+        return {
+          name:l.name || '',
+          qty:Number(l.qty)||1,
+          price:quickLineSellPrice(l),
+          type:l.type,
+          assignees:l.type === 'work' ? (l.assignees||[]).filter(Boolean) : [],
+          stockItemId:l.type === 'part' ? (l.stockItemId || null) : null,
+          quickCostPrice:manualQuickPart ? (Number(l.price)||0) : null
+        };
+      });
+
+      var stockCheck = checkStockAvailability(existingOrder, order.lines);
       if(!stockCheck.ok){
         var itemName = stockCheck.item ? stockCheck.item.name : 'запчасть';
         showToast('Недостаточно на складе «' + itemName + '»: нужно ' + stockCheck.needed + ', есть ' + stockCheck.available);
         btn.disabled = false;
-        btn.textContent = 'Сохранить';
+        btn.textContent = existingOrder ? 'Сохранить изменения' : 'Сохранить';
         return;
       }
 
@@ -4585,18 +4648,26 @@
 
       var ok = await saveOrder(order);
       if(ok){
-        await applyStockDiff(null, order.lines);
-        state.orders.unshift(order);
+        await applyStockDiff(existingOrder, order.lines);
+        var existingIdx = state.orders.findIndex(function(o){ return o.id === order.id; });
+        if(existingIdx === -1) state.orders.unshift(order);
+        else state.orders[existingIdx] = order;
         render();
         overlay.remove();
-        showToast('Наряд № ' + orderNum + ' создан');
+        showToast(existingOrder ? ('Наряд № ' + orderNum + ' обновлён') : ('Наряд № ' + orderNum + ' создан'));
       } else {
-        btn.disabled = false; btn.textContent = 'Сохранить';
+        btn.disabled = false;
+        btn.textContent = existingOrder ? 'Сохранить изменения' : 'Сохранить';
       }
     });
 
-    /* Одна пустая строка по умолчанию */
-    addLine('work');
+    /* Для нового наряда — одна пустая работа. При редактировании показываем сохранённые строки. */
+    if(qOrder.lines.length){
+      renderQLines();
+      updateQTotal();
+    }else{
+      addLine('work');
+    }
   }
 
   function openOrderForm(editId){
@@ -5141,6 +5212,7 @@
   }
 
   async function submitOrderForm(order){
+    order.editorMode = 'full';
     order.orderNumber = document.getElementById('f_orderNumber').value.trim();
     order.dateIn = document.getElementById('f_dateIn').value;
     order.dateOut = document.getElementById('f_dateOut').value;

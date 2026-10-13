@@ -1041,6 +1041,57 @@
   [data-theme="light"] .stat-pill{ color: #374151; }
   [data-theme="light"] .sidebar-label{ color: #6B7280; }
 
+  /* Быстрый ЗН — нормальный контраст в светлой теме */
+  [data-theme="light"] #qForm{
+    color:#111827 !important;
+  }
+  [data-theme="light"] #qForm input,
+  [data-theme="light"] #qForm select{
+    color:#111827 !important;
+    background:#FFFFFF !important;
+    border-color:#D1D5DB !important;
+  }
+  [data-theme="light"] #qForm input::placeholder{
+    color:#6B7280 !important;
+    opacity:1;
+  }
+  [data-theme="light"] #qForm select option{
+    color:#111827;
+    background:#FFFFFF;
+  }
+  [data-theme="light"] #qForm label{
+    color:#374151 !important;
+  }
+  [data-theme="light"] #qForm #qOrderNum,
+  [data-theme="light"] #qForm .q-section > div[style*="font-size:10px"]{
+    color:#4B5563 !important;
+  }
+  [data-theme="light"] #qForm #qAddWork,
+  [data-theme="light"] #qForm #qAddPart,
+  [data-theme="light"] #qForm #qFullForm{
+    color:#374151 !important;
+    border-color:#C7CDD6 !important;
+    background:#F9FAFB !important;
+    font-weight:600;
+  }
+  [data-theme="light"] #qForm #qAddWork:hover,
+  [data-theme="light"] #qForm #qAddPart:hover,
+  [data-theme="light"] #qForm #qFullForm:hover{
+    color:#111827 !important;
+    border-color:var(--accent) !important;
+    background:#F3F4F6 !important;
+  }
+  [data-theme="light"] #qForm #qClose{
+    color:#374151 !important;
+    background:#F3F4F6 !important;
+  }
+  [data-theme="light"] #qForm #qTotal{
+    color:#111827 !important;
+  }
+  [data-theme="light"] #qForm .q-footer div[style*="text-transform:uppercase"]{
+    color:#4B5563 !important;
+  }
+
   /* ===== Theme toggle button ===== */
   .theme-toggle{
     background:var(--bg-panel-2); border:1px solid var(--border);

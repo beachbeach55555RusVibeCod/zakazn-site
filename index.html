@@ -731,7 +731,7 @@
   @media (max-width:760px){
     .line-row.part-line-row{ grid-template-columns:minmax(150px,1fr) 64px 118px 132px 90px; }
   }
-  @media (max-width:560px){
+  @media (max-width:640px){
     .line-row.part-line-row{ grid-template-columns:1fr 1fr; }
     .line-row.part-line-row input[data-field="name"]{ grid-column:1 / -1; }
     .line-row.part-line-row .line-sum{ grid-column:1 / -1; text-align:right; }
@@ -1355,6 +1355,9 @@
       grid-template-columns:72px minmax(0,1fr) 34px !important;
       gap:7px !important;
       align-items:center !important;
+    }
+    #qForm .q-line-row.q-part-line{
+      grid-template-columns:52px minmax(0,1fr) minmax(0,1fr) 30px !important;
     }
     .q-line-row .q-name{
       grid-column:1 / -1;

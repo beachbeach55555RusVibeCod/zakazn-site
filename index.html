@@ -4637,15 +4637,16 @@
         el.addEventListener('input', function(){
           var k = el.dataset.key, f = el.dataset.f;
           var line = qOrder.lines.find(function(l){ return l._key === k; });
-          if(!line) return;
+          var currentRow = el.closest('.q-line-row');
+          if(!line || !currentRow) return;
           if(f === 'name'){
             line.name = el.value;
             if(line.type === 'part'){
               var previousStockItemId = line.stockItemId;
               var stockMatch = findStockItemByName(el.value);
               line.stockItemId = stockMatch ? stockMatch.id : null;
-              var costInput = row.querySelector('.q-cost');
-              var priceInput = row.querySelector('.q-price');
+              var costInput = currentRow.querySelector('.q-cost');
+              var priceInput = currentRow.querySelector('.q-price');
               if(stockMatch){
                 line.costPrice = Number(stockMatch.costPrice) || 0;
                 line.price = stockSellPrice(stockMatch);
@@ -4680,7 +4681,7 @@
             line.costPrice = Number(el.value)||0;
             if(line.type === 'part' && !line.stockItemId){
               line.price = manualPartSellPrice(line.costPrice);
-              var sellInput = row.querySelector('.q-price');
+              var sellInput = currentRow.querySelector('.q-price');
               if(sellInput) sellInput.value = line.price ? priceInputValue(line.price) : '';
             }
           }
@@ -4692,11 +4693,12 @@
           el.style.borderColor='var(--border)';
           var field = el.dataset.f;
           var line = qOrder.lines.find(function(l){ return l._key === el.dataset.key; });
-          if(!line || line.type !== 'part' || (field !== 'costPrice' && field !== 'price')) return;
+          var currentRow = el.closest('.q-line-row');
+          if(!line || !currentRow || line.type !== 'part' || (field !== 'costPrice' && field !== 'price')) return;
           line[field] = roundPriceToTenth(el.value);
           if(field === 'costPrice' && !line.stockItemId){
             line.price = manualPartSellPrice(line.costPrice);
-            var sellInput = row.querySelector('.q-price');
+            var sellInput = currentRow.querySelector('.q-price');
             if(sellInput) sellInput.value = line.price ? priceInputValue(line.price) : '';
           }
           el.value = line[field] ? priceInputValue(line[field]) : '';

@@ -160,9 +160,25 @@
   .oc-client{ font-size:14.5px; font-weight:600; margin-bottom:2px; line-height:1.25; }
   .oc-car{ font-size:12.5px; color: var(--ink-soft); margin-bottom:8px; }
   .oc-car span{ font-family:'JetBrains Mono', monospace; }
-  .oc-bottom{ display:flex; justify-content:space-between; align-items:center; border-top:1px dashed var(--paper-line); padding-top:8px; margin-top:2px; }
-  .oc-master{ font-size:12px; color: var(--ink-soft); }
-  .oc-sum{ font-family:'JetBrains Mono', monospace; font-weight:700; font-size:14px; }
+  .oc-bottom{
+    display:flex; justify-content:space-between; align-items:center; gap:6px;
+    border-top:1px dashed var(--paper-line); padding-top:8px; margin-top:2px;
+    min-width:0;
+  }
+  .oc-master{
+    font-size:12px; color:var(--ink-soft);
+    flex:1 1 auto; min-width:0;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .oc-actions{
+    display:flex; align-items:center; justify-content:flex-end;
+    gap:5px; flex:0 1 auto; min-width:0;
+  }
+  .oc-sum{
+    font-family:'JetBrains Mono', monospace; font-weight:700;
+    font-size:13px; letter-spacing:-0.035em;
+    white-space:nowrap; flex-shrink:1;
+  }
   .oc-assign-btn{
     font-size:11px; padding:3px 7px; border-radius:5px;
     border:1px solid var(--paper-line); background:transparent;
@@ -725,8 +741,58 @@
   .detail-table{ width:100%; border-collapse:collapse; font-size:13.5px; }
   .detail-table th{ text-align:left; font-size:11.5px; text-transform:uppercase; color:#7C8290; padding:6px 8px; border-bottom:1px solid var(--border); }
   .detail-table td{ padding:8px 8px; border-bottom:1px solid var(--border); color:#E8E6E0; }
-  .detail-table td.num{ font-family:'JetBrains Mono', monospace; text-align:right; }
+  .detail-table td.num{
+    font-family:'JetBrains Mono', monospace; text-align:right;
+    white-space:nowrap; word-break:keep-all;
+  }
+  .detail-table th:nth-child(2),
+  .detail-table th:nth-child(3),
+  .detail-table th:nth-child(4){ white-space:nowrap; }
+  .detail-table td:first-child{ overflow-wrap:anywhere; }
   .detail-sig{ background:#fff; border-radius:8px; padding:8px; margin-top:6px; }
+
+  /* Денежные значения по всему интерфейсу: без переноса числа и ₽ */
+  .oc-sum,
+  .moc-sum,
+  .detail-table td.num,
+  .line-sum,
+  .total-row .value,
+  .stock-num,
+  .pricelist-price,
+  .pay-amount,
+  .pay-hero-amount,
+  .sw-amount,
+  .mds-amount,
+  .mds-revenue-amount,
+  .crm-period-row .val,
+  .client-stat .num,
+  .payroll-card .amount,
+  .stat-pill b{
+    white-space:nowrap;
+    word-break:keep-all;
+    font-variant-numeric:tabular-nums;
+  }
+  .total-row{ min-width:0; gap:12px; }
+  .total-row .label{ min-width:0; }
+  .total-row .value{
+    flex:0 1 auto;
+    min-width:0;
+    font-size:clamp(14px, 3.8vw, 20px);
+    letter-spacing:-0.025em;
+  }
+  .pay-hero{ min-width:0; }
+  .pay-hero-amount{
+    max-width:100%;
+    font-size:clamp(20px, 5vw, 34px);
+    letter-spacing:-0.03em;
+  }
+  .crm-period-row{ gap:10px; min-width:0; }
+  .crm-period-row .lbl{ min-width:0; }
+  .crm-period-row .val{
+    flex-shrink:1;
+    font-size:clamp(13px, 3.5vw, 17px);
+    letter-spacing:-0.025em;
+  }
 
   .toast{
     position:fixed; bottom:24px; right:24px; background: var(--bg-panel-2); border:1px solid var(--border);
@@ -781,7 +847,9 @@
     /* Карточка наряда */
     .order-card{ padding:11px 12px 10px; }
     .oc-client{ font-size:13.5px; }
-    .oc-sum{ font-size:13px; }
+    .oc-actions{ gap:4px; }
+    .oc-sum{ font-size:12px; }
+    .oc-assign-btn{ padding-left:5px; padding-right:5px; }
 
     /* Модальные окна: нижняя шторка */
     .modal-overlay{ padding:0; align-items:flex-end; }
@@ -818,6 +886,10 @@
     }
     .staff-table td, .pricelist-table td, .stock-table td,
     .detail-table td{ white-space:normal; }
+    .detail-table td.num{
+      white-space:nowrap !important;
+      font-size:12px;
+    }
     .stock-name, .pricelist-name, .staff-name{ white-space:normal; min-width:120px; }
     .stock-table{
       display:table;
@@ -1737,7 +1809,11 @@
 
   function fmtMoney(n){
     n = Number(n) || 0;
-    return n.toLocaleString('ru-RU', { maximumFractionDigits: 2 }) + ' ₽';
+    var value = n.toLocaleString('ru-RU', { maximumFractionDigits: 2 });
+    // Любые пробелы внутри суммы и перед ₽ делаем неразрывными:
+    // число и знак валюты никогда не должны расходиться на разные строки.
+    value = value.replace(/\s/g, '\u00A0');
+    return value + '\u00A0₽';
   }
 
   function fmtDate(d){
@@ -2970,7 +3046,7 @@
       '<div class="oc-car">' + escapeHtml(o.clientName || 'Без имени') + '</div>' +
       '<div class="oc-bottom">' +
         '<span class="oc-master">' + escapeHtml(masterLine) + '</span>' +
-        '<div style="display:flex;align-items:center;gap:6px;">' +
+        '<div class="oc-actions">' +
           '<button class="oc-status-btn" title="Изменить статус">' +
             '<span class="dot ' + (STATUSES.find(function(s){ return s.key === o.status; }) || STATUSES[0]).dot + '"></span>' +
           '</button>' +
@@ -3782,7 +3858,7 @@
       'table.p-table th{text-align:left;border-bottom:1.5px solid #111;padding:5px 6px;font-size:10.5px;text-transform:uppercase;letter-spacing:0.03em;background:#fafafa;}' +
       'table.p-table td{border-bottom:1px solid #e0e0e0;padding:6px 6px;vertical-align:top;}' +
       'table.p-table tfoot td{border-bottom:none;border-top:1.5px solid #111;background:#fafafa;}' +
-      'table.p-table .num{text-align:right;}' +
+      'table.p-table .num{text-align:right;white-space:nowrap;word-break:keep-all;}' +
       '.subtotal{font-family:"Courier New",monospace;font-weight:700;font-size:13px;}' +
       /* Note */
       '.p-note{font-size:12px;margin:10px 0;padding:8px 12px;background:#fffbe6;border-left:3px solid #f0c040;border-radius:2px;}' +
@@ -3791,7 +3867,7 @@
       '.p-total-row{display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;}' +
       '.p-total-row.sub{font-size:12px;color:#555;border-bottom:1px dashed #ccc;}' +
       '.p-total-row.grand{font-size:16px;font-weight:700;padding-top:8px;}' +
-      '.p-total-row.grand span:last-child{font-family:"Courier New",monospace;font-size:20px;}' +
+      '.p-total-row.grand span:last-child{font-family:"Courier New",monospace;font-size:20px;white-space:nowrap;}' +
       /* Signatures */
       '.p-signatures{display:flex;justify-content:space-between;margin-top:32px;gap:20px;}' +
       '.p-sig-block{flex:1;text-align:center;}' +
@@ -3864,11 +3940,11 @@
       'table th{text-align:left;border-bottom:1.5px solid #111;padding:5px 6px;font-size:11px;text-transform:uppercase;background:#fafafa;}' +
       'table td{border-bottom:1px solid #e0e0e0;padding:6px 6px;vertical-align:top;}' +
       'table tfoot td{border-top:1.5px solid #111;border-bottom:none;background:#fafafa;font-weight:600;}' +
-      '.num{text-align:right;}' +
+      '.num{text-align:right;white-space:nowrap;word-break:keep-all;}' +
       '.total-block{margin-top:10px;padding:10px 14px;border:2px solid #111;border-radius:4px;}' +
       '.total-row{display:flex;justify-content:space-between;padding:3px 0;font-size:13px;}' +
       '.total-row.grand{font-size:16px;font-weight:700;border-top:1px solid #ccc;margin-top:4px;padding-top:6px;}' +
-      '.total-row.grand span:last-child{font-family:"Courier New",monospace;font-size:19px;}' +
+      '.total-row.grand span:last-child{font-family:"Courier New",monospace;font-size:19px;white-space:nowrap;}' +
       '.bank-block{margin-top:10px;font-size:12px;padding:8px 12px;background:#f5f5f5;border-radius:4px;line-height:1.8;}' +
       '.sigs{display:flex;justify-content:space-between;margin-top:32px;gap:24px;}' +
       '.sig{flex:1;text-align:center;}' +

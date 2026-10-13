@@ -501,6 +501,29 @@
   .pay-hero-label{ font-size:13px; color:#9CA3AF; margin-bottom:6px; }
   .pay-hero-amount{ font-family:'JetBrains Mono', monospace; font-size:34px; font-weight:700; color: var(--accent); }
   .pay-hero-meta{ font-size:12.5px; color:#7C8290; }
+  .pay-periods{
+    display:flex;
+    gap:6px;
+    flex-wrap:wrap;
+    margin:0 0 16px;
+  }
+  .pay-period-btn{
+    border:1px solid var(--border);
+    background:var(--bg-panel);
+    color:#9CA3AF;
+    border-radius:9px;
+    padding:7px 11px;
+    font-family:inherit;
+    font-size:12px;
+    font-weight:600;
+    cursor:pointer;
+  }
+  .pay-period-btn:hover{ border-color:var(--accent); color:#D8D5CC; }
+  .pay-period-btn.active{
+    border-color:var(--accent);
+    background:rgba(20,184,166,.10);
+    color:var(--accent);
+  }
   .pay-board{ display:flex; flex-direction:column; gap:10px; }
   .pay-row{
     background: var(--bg-panel); border:1px solid var(--border); border-radius:12px;
@@ -1547,12 +1570,12 @@
       <div class="sidebar-section">
         <span class="sidebar-label">Сегодня</span>
         <div class="dash-stat"><div class="ds-label">Выручка</div><div class="ds-value" id="dTodayRev">—</div></div>
-        <div class="dash-stat"><div class="ds-label">Закрыто нарядов</div><div class="ds-value" id="dTodayDone">—</div></div>
+        <div class="dash-stat"><div class="ds-label">Выдано ЗН</div><div class="ds-value" id="dTodayDone">—</div></div>
       </div>
       <div class="sidebar-section">
         <span class="sidebar-label">Этот месяц</span>
         <div class="dash-stat"><div class="ds-label">Выручка</div><div class="ds-value" id="dMonthRev">—</div></div>
-        <div class="dash-stat"><div class="ds-label">Нарядов закрыто</div><div class="ds-value" id="dMonthDone">—</div></div>
+        <div class="dash-stat"><div class="ds-label">Выдано ЗН</div><div class="ds-value" id="dMonthDone">—</div></div>
       </div>
       <div class="sidebar-section">
         <span class="sidebar-label">Открытые наряды</span>
@@ -1958,6 +1981,7 @@
       state.staff.sort(function(a,b){ return (a.name||'').localeCompare(b.name||'', 'ru'); });
       state.priceList.sort(function(a,b){ return (a.name||'').localeCompare(b.name||'', 'ru'); });
       state.stockItems.sort(function(a,b){ return (a.name||'').localeCompare(b.name||'', 'ru'); });
+      renderDashboard();
       renderCurrentView();
     }, 250);
   }
@@ -3095,6 +3119,7 @@
     });
     document.getElementById('statSum').innerHTML = 'Сумма в работе: <b>' + fmtMoney(sum) + '</b>';
     renderSalaryWidgets();
+    renderDashboard();
   }
 
   var mobileSalaryPeriod = 'day';
@@ -3447,8 +3472,9 @@
   }
 
   function exportPayrollCSV(){
-    var map = aggregateCommissionsByStaff(state.orders);
-    var cols = ['Сотрудник','ЗН','Дата выдачи','Работа','Кол-во','Цена работы','Сумма работы','Исполнителей','Ставка %','Начислено'];
+    var periodOrders = payrollOrdersForPeriod(payrollPeriod);
+    var map = aggregateCommissionsByStaff(periodOrders);
+    var cols = ['Сотрудник','Период','ЗН','Дата выдачи','Работа','Кол-во','Цена работы','Сумма работы','Исполнителей','Ставка %','Начислено'];
     var rows = [cols.join(';')];
 
     function csvCell(v){
@@ -3457,9 +3483,10 @@
 
     Object.keys(map).forEach(function(k){
       var r = map[k];
-      salaryBreakdownForStaff(r.staffId, state.orders).forEach(function(d){
+      salaryBreakdownForStaff(r.staffId, periodOrders).forEach(function(d){
         rows.push([
           csvCell(r.name),
+          csvCell(payrollPeriodLabel(payrollPeriod)),
           csvCell(d.order.orderNumber||''),
           csvCell(d.order.dateOut||''),
           csvCell(d.line.name||''),
@@ -3472,7 +3499,7 @@
         ].join(';'));
       });
     });
-    downloadCSV(rows.join('\n'), 'zarplata_podrobno_' + new Date().toISOString().slice(0,10) + '.csv');
+    downloadCSV(rows.join('\n'), 'zarplata_' + payrollPeriod + '_' + new Date().toISOString().slice(0,10) + '.csv');
   }
 
     async function changeStatus(id, newStatus){
@@ -6298,6 +6325,45 @@
 
   // ---------- Payroll tab ----------
 
+  var payrollPeriod = 'all';
+
+  function payrollOrdersForPeriod(period){
+    var done = state.orders.filter(function(o){
+      return o.status === 'done' && o.dateOut;
+    });
+    if(period === 'all') return done;
+
+    var now = new Date();
+    var today = localDateKey(now);
+    var daysBack = period === 'year' ? 364 : (period === 'month' ? 29 : (period === 'week' ? 6 : 0));
+    var fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysBack);
+    var from = localDateKey(fromDate);
+
+    return done.filter(function(o){
+      return o.dateOut >= from && o.dateOut <= today;
+    });
+  }
+
+  function payrollPeriodLabel(period){
+    return period === 'day' ? 'сегодня' :
+      (period === 'week' ? 'за 7 дней' :
+      (period === 'month' ? 'за 30 дней' :
+      (period === 'year' ? 'за год' : 'за всё время')));
+  }
+
+  function payrollPeriodButtons(){
+    var periods = [
+      ['day','Сегодня'],
+      ['week','7 дней'],
+      ['month','30 дней'],
+      ['year','Год'],
+      ['all','Всё время']
+    ];
+    return '<div class="pay-periods">' + periods.map(function(p){
+      return '<button class="pay-period-btn' + (payrollPeriod === p[0] ? ' active' : '') + '" data-pay-period="' + p[0] + '">' + p[1] + '</button>';
+    }).join('') + '</div>';
+  }
+
   function payrollInitials(name){
     var parts = String(name||'').trim().split(/\s+/).filter(Boolean);
     if(parts.length === 0) return '?';
@@ -6307,7 +6373,8 @@
 
   function renderPayrollTab(){
     var wrap = document.getElementById('payrollWrap');
-    var map = aggregateCommissionsByStaff(state.orders);
+    var periodOrders = payrollOrdersForPeriod(payrollPeriod);
+    var map = aggregateCommissionsByStaff(periodOrders);
     var rows = Object.keys(map).map(function(k){ return map[k]; });
     rows.sort(function(a,b){ return b.amount - a.amount; });
 
@@ -6315,12 +6382,13 @@
     var maxAmount = rows.length ? rows[0].amount : 0;
 
     var html = '<div class="pay-hero">' +
-      '<div><div class="pay-hero-label">Всего к выплате</div><div class="pay-hero-amount">' + fmtMoney(totalPayroll) + '</div></div>' +
+      '<div><div class="pay-hero-label">Всего к выплате ' + payrollPeriodLabel(payrollPeriod) + '</div><div class="pay-hero-amount">' + fmtMoney(totalPayroll) + '</div></div>' +
       '<div class="pay-hero-meta">Только по выданным ЗН' + (rows.length ? ' · ' + rows.length + ' сотрудник(ов)' : '') + '</div>' +
-    '</div>';
+    '</div>' +
+    payrollPeriodButtons();
 
     if(rows.length === 0){
-      html += '<div class="pay-empty">Нет начислений. Назначьте исполнителей на работы в нарядах, чтобы увидеть зарплату здесь.</div>';
+      html += '<div class="pay-empty">За выбранный период начислений нет. Зарплата появляется по выданным ЗН, где на работе назначен исполнитель.</div>';
     } else {
       html += '<div class="pay-board">';
       rows.forEach(function(r, i){
@@ -6343,9 +6411,17 @@
     }
 
     wrap.innerHTML = html;
+
+    wrap.querySelectorAll('[data-pay-period]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        payrollPeriod = btn.dataset.payPeriod || 'all';
+        renderPayrollTab();
+      });
+    });
+
     wrap.querySelectorAll('[data-pay-staffid]').forEach(function(row){
       row.addEventListener('click', function(){
-        openSalaryDetail(row.dataset.payStaffid);
+        openSalaryDetail(row.dataset.payStaffid, periodOrders);
       });
     });
   }

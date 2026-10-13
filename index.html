@@ -1194,6 +1194,7 @@
   [data-theme="light"] #qForm #qAddWork,
   [data-theme="light"] #qForm #qPresetTO,
   [data-theme="light"] #qForm #qAddPart,
+  [data-theme="light"] #qForm #qPastePart,
   [data-theme="light"] #qForm #qFullForm{
     color:#374151 !important;
     border-color:#C7CDD6 !important;
@@ -1203,6 +1204,7 @@
   [data-theme="light"] #qForm #qAddWork:hover,
   [data-theme="light"] #qForm #qPresetTO:hover,
   [data-theme="light"] #qForm #qAddPart:hover,
+  [data-theme="light"] #qForm #qPastePart:hover,
   [data-theme="light"] #qForm #qFullForm:hover{
     color:#111827 !important;
     border-color:var(--accent) !important;
@@ -2831,6 +2833,17 @@
   function manualPartSellPrice(costPrice){
     var cost = Number(costPrice) || 0;
     return roundPriceToTenth(cost * (1 + ORDER_MANUAL_PART_MARKUP_PCT / 100));
+  }
+
+  function normalizeClipboardPartName(text){
+    return String(text || '').replace(/\s+/g, ' ').trim();
+  }
+
+  async function readClipboardPartName(){
+    if(!navigator.clipboard || !navigator.clipboard.readText){
+      throw new Error('clipboard-unavailable');
+    }
+    return normalizeClipboardPartName(await navigator.clipboard.readText());
   }
 
   // Build a map stockItemId -> total qty used, from an order's part lines.
@@ -4643,7 +4656,10 @@
               '<label style="' + fl + '">🔩 Запчасти</label>' +
               '<div style="font-size:10px;color:var(--text-subtle);margin:-2px 0 6px;">Закупка → автонаценка +45%. Поле «После наценки» можно изменить вручную. Для склада подставится текущая цена продажи.</div>' +
               '<div id="qPartLines" style="display:flex;flex-direction:column;gap:6px;"></div>' +
-              '<button type="button" id="qAddPart" style="margin-top:8px;width:100%;padding:9px;border-radius:9px;border:1.5px dashed var(--border);background:transparent;color:var(--text-subtle);cursor:pointer;font-size:13px;font-family:inherit;">+ Добавить запчасть</button>' +
+              '<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px;margin-top:8px;">' +
+                '<button type="button" id="qPastePart" style="width:100%;padding:9px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg-panel-2);color:var(--text-subtle);cursor:pointer;font-size:12px;font-family:inherit;">📋 Из буфера</button>' +
+                '<button type="button" id="qAddPart" style="width:100%;padding:9px;border-radius:9px;border:1.5px dashed var(--border);background:transparent;color:var(--text-subtle);cursor:pointer;font-size:13px;font-family:inherit;">+ Добавить запчасть</button>' +
+              '</div>' +
               '<div class="q-section-total"><span class="q-section-total-label">Итого запчасти</span><span class="q-section-total-value" id="qPartTotal">0&nbsp;₽</span></div>' +
             '</div>' +
           '</div>' +
@@ -4678,6 +4694,41 @@
       var line = { _key: key, type: type, name: '', qty: 1, price: 0, costPrice: 0, stockItemId: null, assignees: [] };
       qOrder.lines.push(line);
       renderQLines();
+    }
+
+    function insertQuickPartName(text){
+      var name = normalizeClipboardPartName(text);
+      if(!name){ showToast('Буфер обмена пуст'); return; }
+
+      var line = qOrder.lines.find(function(l){
+        return l.type === 'part' && !String(l.name||'').trim();
+      });
+      if(!line){
+        line = { _key: lineId(), type:'part', name:'', qty:1, price:0, costPrice:0, stockItemId:null, assignees:[] };
+        qOrder.lines.push(line);
+      }
+
+      line.name = name;
+      var stockMatch = findStockItemByName(name);
+      line.stockItemId = stockMatch ? stockMatch.id : null;
+      if(stockMatch){
+        line.costPrice = roundPriceToTenth(stockMatch.costPrice);
+        line.price = stockSellPrice(stockMatch);
+      }
+
+      renderQLines();
+      updateQTotal();
+
+      var inputs = document.querySelectorAll('#qPartLines .q-name');
+      Array.prototype.some.call(inputs, function(inp){
+        if(inp.dataset.key === line._key){
+          inp.focus();
+          inp.setSelectionRange(inp.value.length, inp.value.length);
+          return true;
+        }
+        return false;
+      });
+      showToast(stockMatch ? 'Запчасть вставлена и найдена на складе' : 'Название запчасти вставлено');
     }
 
     function applyQuickPresetTO(){
@@ -4860,6 +4911,23 @@
     document.getElementById('qPresetTO').addEventListener('click', applyQuickPresetTO);
     document.getElementById('qAddWork').addEventListener('click', function(){ addLine('work'); });
     document.getElementById('qAddPart').addEventListener('click', function(){ addLine('part'); });
+    document.getElementById('qPastePart').addEventListener('click', async function(){
+      try{
+        var text = await readClipboardPartName();
+        insertQuickPartName(text);
+      }catch(e){
+        showToast('Не удалось прочитать буфер. Разрешите вставку или используйте обычное «Вставить»');
+      }
+    });
+    overlay.addEventListener('paste', function(e){
+      var target = e.target;
+      var editable = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable);
+      if(editable) return;
+      var text = e.clipboardData ? e.clipboardData.getData('text') : '';
+      if(!text) return;
+      e.preventDefault();
+      insertQuickPartName(text);
+    });
     document.getElementById('qClose').addEventListener('click', function(){ overlay.remove(); });
     // Клик по затемнённой области не закрывает быстрый ЗН:
     // пользователь не потеряет введённые данные случайным нажатием вне формы.
@@ -5062,7 +5130,10 @@
                   '<div class="form-section-title">Запчасти</div>' +
                   '<div class="line-commission-hint" style="margin:-4px 0 9px;">Ручная запчасть: закупка → +45%. Цену после наценки можно изменить вручную. Для склада подставляется текущая цена продажи.</div>' +
                   '<div class="lines" id="partLinesWrap"></div>' +
-                  '<button type="button" class="add-line-btn" id="addPartLineBtn">+ Добавить запчасть</button>' +
+                  '<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;">' +
+                    '<button type="button" class="add-line-btn" id="pastePartLineBtn" style="border-style:solid;">📋 Вставить из буфера</button>' +
+                    '<button type="button" class="add-line-btn" id="addPartLineBtn">+ Добавить запчасть</button>' +
+                  '</div>' +
                   '<div class="total-row"><span class="label">Итого запчасти</span><span class="value" id="partLinesTotal">0&nbsp;₽</span></div>' +
                 '</div>' +
               '</div>' +
@@ -5241,6 +5312,57 @@
       order.lines.push({ name:'', qty:1, price:0, costPrice:0, type:'part', stockItemId:null, _key:lineId() });
       renderAllLines();
     };
+
+    function insertFullPartName(text){
+      var name = normalizeClipboardPartName(text);
+      if(!name){ showToast('Буфер обмена пуст'); return; }
+
+      var line = order.lines.find(function(l){
+        return l.type === 'part' && !String(l.name||'').trim();
+      });
+      if(!line){
+        line = { name:'', qty:1, price:0, costPrice:0, type:'part', stockItemId:null, _key:lineId() };
+        order.lines.push(line);
+      }
+
+      line.name = name;
+      var stockMatch = findStockItemByName(name);
+      line.stockItemId = stockMatch ? stockMatch.id : null;
+      if(stockMatch){
+        line.costPrice = roundPriceToTenth(stockMatch.costPrice);
+        line.price = stockSellPrice(stockMatch);
+      }
+
+      renderAllLines();
+
+      var partLines = order.lines.filter(function(l){ return l.type === 'part'; });
+      var index = partLines.indexOf(line);
+      var inputs = document.querySelectorAll('#partLinesWrap input[data-field="name"]');
+      if(index >= 0 && inputs[index]){
+        inputs[index].focus();
+        inputs[index].setSelectionRange(inputs[index].value.length, inputs[index].value.length);
+      }
+      showToast(stockMatch ? 'Запчасть вставлена и найдена на складе' : 'Название запчасти вставлено');
+    }
+
+    document.getElementById('pastePartLineBtn').onclick = async function(){
+      try{
+        var text = await readClipboardPartName();
+        insertFullPartName(text);
+      }catch(e){
+        showToast('Не удалось прочитать буфер. Разрешите вставку или используйте обычное «Вставить»');
+      }
+    };
+
+    document.getElementById('formOverlay').addEventListener('paste', function(e){
+      var target = e.target;
+      var editable = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.tagName === 'SELECT' || target.isContentEditable);
+      if(editable) return;
+      var text = e.clipboardData ? e.clipboardData.getData('text') : '';
+      if(!text) return;
+      e.preventDefault();
+      insertFullPartName(text);
+    });
 
     document.getElementById('formClose').onclick = function(){ closeModal(); };
     document.getElementById('formCancel').onclick = function(){ closeModal(); };

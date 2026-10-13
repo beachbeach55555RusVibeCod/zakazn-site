@@ -796,12 +796,73 @@
   .detail-table th:nth-child(3),
   .detail-table th:nth-child(4){ white-space:nowrap; }
   .detail-table td:first-child{ overflow-wrap:anywhere; }
+  .detail-lines-group{
+    margin-top:12px;
+    padding:12px;
+    border:1px solid var(--border);
+    border-radius:10px;
+    background:var(--bg-panel-2);
+  }
+  .detail-lines-group + .detail-lines-group{ margin-top:10px; }
+  .detail-lines-title{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    margin-bottom:8px;
+    font-size:13px;
+    font-weight:700;
+    color:var(--text-main);
+  }
+  .detail-count{
+    min-width:22px;
+    height:22px;
+    padding:0 6px;
+    border-radius:999px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    background:var(--bg-panel);
+    border:1px solid var(--border);
+    color:var(--text-subtle);
+    font-family:'JetBrains Mono', monospace;
+    font-size:11px;
+    font-weight:600;
+  }
+  .detail-table-wrap{
+    width:100%;
+    overflow-x:auto;
+    -webkit-overflow-scrolling:touch;
+  }
+  .detail-work-table{ min-width:620px; }
+  .detail-parts-table{ min-width:460px; }
+  .detail-subtotal{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:12px;
+    margin-top:8px;
+    padding-top:9px;
+    border-top:1px solid var(--border);
+  }
+  .detail-subtotal .label{
+    font-size:12.5px;
+    color:var(--text-secondary);
+    font-weight:600;
+  }
+  .detail-subtotal .value{
+    font-family:'JetBrains Mono', monospace;
+    font-size:14px;
+    font-weight:700;
+    color:var(--accent);
+    white-space:nowrap;
+  }
   .detail-sig{ background:#fff; border-radius:8px; padding:8px; margin-top:6px; }
 
   /* Денежные значения по всему интерфейсу: без переноса числа и ₽ */
   .oc-sum,
   .moc-sum,
   .detail-table td.num,
+  .detail-subtotal .value,
   .line-sum,
   .total-row .value,
   .stock-num,
@@ -3758,22 +3819,29 @@
     var o = state.orders.find(function(x){ return x.id === id; });
     if(!o) return;
     var total = calcOrderTotal(o);
-    var worksTotal = calcWorksTotal(o);
+    var workLines = (o.lines||[]).filter(function(l){ return l.type === 'work'; });
+    var partLines = (o.lines||[]).filter(function(l){ return l.type !== 'work'; });
+    var worksTotal = workLines.reduce(function(sum, l){ return sum + lineTotal(l); }, 0);
+    var partsTotal = partLines.reduce(function(sum, l){ return sum + lineTotal(l); }, 0);
     var commissionTotal = calcOrderCommissionTotal(o);
 
-    var linesHtml = (o.lines||[]).map(function(l){
-      var lt = lineTotal(l);
-      var isWork = l.type === 'work';
+    var workRowsHtml = workLines.map(function(l){
       var commissions = calcLineCommissions(l);
-      var execText = isWork
-        ? (commissions.length ? commissions.map(function(c){ return escapeHtml(c.name) + ' (' + fmtMoney(c.amount) + ')'; }).join(', ') : '<span style="color:var(--text-subtle);">не назначен</span>')
-        : '<span style="color:var(--text-subtle);">—</span>';
-      return '<tr><td>' + escapeHtml(l.name||'') +
-        '<div style="font-size:11px; color:var(--text-subtle); margin-top:2px;">' + (isWork ? 'Работа' : 'Запчасть') + '</div></td>' +
+      var execText = commissions.length
+        ? commissions.map(function(c){ return escapeHtml(c.name) + ' (' + fmtMoney(c.amount) + ')'; }).join(', ')
+        : '<span style="color:var(--text-subtle);">не назначен</span>';
+      return '<tr><td>' + escapeHtml(l.name||'') + '</td>' +
         '<td class="num">' + (l.qty||0) + '</td>' +
         '<td class="num">' + fmtMoney(l.price) + '</td>' +
-        '<td class="num">' + fmtMoney(lt) + '</td>' +
+        '<td class="num">' + fmtMoney(lineTotal(l)) + '</td>' +
         '<td style="font-size:12.5px;">' + execText + '</td></tr>';
+    }).join('');
+
+    var partRowsHtml = partLines.map(function(l){
+      return '<tr><td>' + escapeHtml(l.name||'') + '</td>' +
+        '<td class="num">' + (l.qty||0) + '</td>' +
+        '<td class="num">' + fmtMoney(l.price) + '</td>' +
+        '<td class="num">' + fmtMoney(lineTotal(l)) + '</td></tr>';
     }).join('');
 
     var statusChips = STATUSES.map(function(s){
@@ -3831,9 +3899,26 @@
 
             '<div class="form-section">' +
               '<div class="form-section-title">Работы и запчасти</div>' +
-              '<table class="detail-table"><thead><tr><th>Наименование</th><th style="text-align:right;">Кол-во</th><th style="text-align:right;">Цена</th><th style="text-align:right;">Сумма</th><th>Исполнитель (ЗП)</th></tr></thead>' +
-              '<tbody>' + (linesHtml || '<tr><td colspan="5" style="color:var(--text-subtle);">Позиции не указаны</td></tr>') + '</tbody></table>' +
-              '<div class="total-row"><span class="label">Итого к оплате</span><span class="value">' + fmtMoney(total) + '</span></div>' +
+
+              '<div class="detail-lines-group">' +
+                '<div class="detail-lines-title">Работы <span class="detail-count">' + workLines.length + '</span></div>' +
+                '<div class="detail-table-wrap">' +
+                  '<table class="detail-table detail-work-table"><thead><tr><th>Наименование</th><th style="text-align:right;">Кол-во</th><th style="text-align:right;">Цена</th><th style="text-align:right;">Сумма</th><th>Исполнитель (ЗП)</th></tr></thead>' +
+                  '<tbody>' + (workRowsHtml || '<tr><td colspan="5" style="color:var(--text-subtle);">Работы не указаны</td></tr>') + '</tbody></table>' +
+                '</div>' +
+                '<div class="detail-subtotal"><span class="label">Итого работы</span><span class="value">' + fmtMoney(worksTotal) + '</span></div>' +
+              '</div>' +
+
+              '<div class="detail-lines-group">' +
+                '<div class="detail-lines-title">Запчасти <span class="detail-count">' + partLines.length + '</span></div>' +
+                '<div class="detail-table-wrap">' +
+                  '<table class="detail-table detail-parts-table"><thead><tr><th>Наименование</th><th style="text-align:right;">Кол-во</th><th style="text-align:right;">Цена</th><th style="text-align:right;">Сумма</th></tr></thead>' +
+                  '<tbody>' + (partRowsHtml || '<tr><td colspan="4" style="color:var(--text-subtle);">Запчасти не указаны</td></tr>') + '</tbody></table>' +
+                '</div>' +
+                '<div class="detail-subtotal"><span class="label">Итого запчасти</span><span class="value">' + fmtMoney(partsTotal) + '</span></div>' +
+              '</div>' +
+
+              '<div class="total-row" style="margin-top:12px;"><span class="label">Итого к оплате</span><span class="value">' + fmtMoney(total) + '</span></div>' +
             '</div>' +
 
             '<div class="form-section">' +

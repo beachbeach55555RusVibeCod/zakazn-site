@@ -172,12 +172,12 @@
   }
   .oc-actions{
     display:flex; align-items:center; justify-content:flex-end;
-    gap:5px; flex:0 1 auto; min-width:0;
+    gap:5px; flex:0 0 auto; min-width:0;
   }
   .oc-sum{
     font-family:'JetBrains Mono', monospace; font-weight:700;
     font-size:13px; letter-spacing:-0.035em;
-    white-space:nowrap; flex-shrink:1;
+    white-space:nowrap; flex-shrink:0;
   }
   .oc-assign-btn{
     font-size:11px; padding:3px 7px; border-radius:5px;
@@ -767,7 +767,11 @@
   .crm-period-row .val,
   .client-stat .num,
   .payroll-card .amount,
-  .stat-pill b{
+  .stat-pill b,
+  #qTotal,
+  #workLinesTotal,
+  #partLinesTotal,
+  #formTotal{
     white-space:nowrap;
     word-break:keep-all;
     font-variant-numeric:tabular-nums;
@@ -1531,7 +1535,7 @@
     <div id="salaryWidgetsRow" class="salary-widgets-row"></div>
     <div class="header-actions">
       <span class="stat-pill" id="statTotal">Всего: <b>0</b></span>
-      <span class="stat-pill" id="statSum">Сумма в работе: <b>0 ₽</b></span>
+      <span class="stat-pill" id="statSum">Сумма в работе: <b>0&nbsp;₽</b></span>
       <button class="theme-toggle" id="btnTheme" title="Сменить тему">🌙</button>
       <button class="btn btn-ghost btn-sm" id="btnLogout">Выйти</button>
     </div>
@@ -4271,7 +4275,7 @@
         '<div class="q-footer" style="padding:12px 18px 24px;border-top:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;gap:10px;">' +
           '<div style="flex:1;">' +
             '<div style="font-size:11px;color:#7C8290;text-transform:uppercase;letter-spacing:0.05em;">Итого</div>' +
-            '<div id="qTotal" style="font-size:20px;font-weight:700;font-family:\'JetBrains Mono\',monospace;">0 ₽</div>' +
+            '<div id="qTotal" style="font-size:20px;font-weight:700;font-family:\'JetBrains Mono\',monospace;">0&nbsp;₽</div>' +
           '</div>' +
           '<button id="qFullForm" style="padding:10px 16px;border-radius:10px;border:1.5px solid var(--border);background:transparent;color:#D8D5CC;cursor:pointer;font-family:inherit;font-size:13px;">Полная форма</button>' +
           '<button id="qSave" style="padding:11px 24px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;">Сохранить</button>' +
@@ -4540,18 +4544,18 @@
                   '<div class="form-section-title">Работы</div>' +
                   '<div class="lines" id="workLinesWrap"></div>' +
                   '<button type="button" class="add-line-btn" id="addWorkLineBtn">+ Добавить работу</button>' +
-                  '<div class="total-row"><span class="label">Сумма работ</span><span class="value" id="workLinesTotal">0 ₽</span></div>' +
+                  '<div class="total-row"><span class="label">Сумма работ</span><span class="value" id="workLinesTotal">0&nbsp;₽</span></div>' +
                 '</div>' +
 
                 '<div class="form-section lines-column">' +
                   '<div class="form-section-title">Запчасти</div>' +
                   '<div class="lines" id="partLinesWrap"></div>' +
                   '<button type="button" class="add-line-btn" id="addPartLineBtn">+ Добавить запчасть</button>' +
-                  '<div class="total-row"><span class="label">Сумма запчастей</span><span class="value" id="partLinesTotal">0 ₽</span></div>' +
+                  '<div class="total-row"><span class="label">Сумма запчастей</span><span class="value" id="partLinesTotal">0&nbsp;₽</span></div>' +
                 '</div>' +
               '</div>' +
 
-              '<div class="total-row" style="background:var(--bg-panel); border:1px solid var(--border);"><span class="label" style="font-weight:600;">Итого к оплате</span><span class="value" id="formTotal">0 ₽</span></div>' +
+              '<div class="total-row" style="background:var(--bg-panel); border:1px solid var(--border);"><span class="label" style="font-weight:600;">Итого к оплате</span><span class="value" id="formTotal">0&nbsp;₽</span></div>' +
             '</div>' +
 
             '<div class="form-section of-sec" id="of-sec-sig">' +

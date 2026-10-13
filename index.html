@@ -1115,6 +1115,7 @@
     color:#4B5563 !important;
   }
   [data-theme="light"] #qForm #qAddWork,
+  [data-theme="light"] #qForm #qPresetTO,
   [data-theme="light"] #qForm #qAddPart,
   [data-theme="light"] #qForm #qFullForm{
     color:#374151 !important;
@@ -1123,6 +1124,7 @@
     font-weight:600;
   }
   [data-theme="light"] #qForm #qAddWork:hover,
+  [data-theme="light"] #qForm #qPresetTO:hover,
   [data-theme="light"] #qForm #qAddPart:hover,
   [data-theme="light"] #qForm #qFullForm:hover{
     color:#111827 !important;
@@ -4466,7 +4468,10 @@
             '<div class="q-section">' +
               '<label style="' + fl + '">🔧 Работы</label>' +
               '<div id="qWorkLines" style="display:flex;flex-direction:column;gap:6px;"></div>' +
-              '<button type="button" id="qAddWork" style="margin-top:8px;width:100%;padding:9px;border-radius:9px;border:1.5px dashed var(--border);background:transparent;color:var(--text-subtle);cursor:pointer;font-size:13px;font-family:inherit;">+ Добавить работу</button>' +
+              '<div style="display:grid;grid-template-columns:72px minmax(0,1fr);gap:7px;margin-top:8px;">' +
+                '<button type="button" id="qPresetTO" title="Добавить стандартное ТО" style="padding:9px 8px;border-radius:9px;border:1.5px solid var(--accent);background:rgba(20,184,166,.10);color:var(--accent);cursor:pointer;font-size:13px;font-weight:700;font-family:inherit;">ТО</button>' +
+                '<button type="button" id="qAddWork" style="width:100%;padding:9px;border-radius:9px;border:1.5px dashed var(--border);background:transparent;color:var(--text-subtle);cursor:pointer;font-size:13px;font-family:inherit;">+ Добавить работу</button>' +
+              '</div>' +
             '</div>' +
             '<div class="q-section">' +
               '<label style="' + fl + '">🔩 Запчасти</label>' +
@@ -4506,6 +4511,45 @@
       var line = { _key: key, type: type, name: '', qty: 1, price: 0, stockItemId: null, assignees: [] };
       qOrder.lines.push(line);
       renderQLines();
+    }
+
+    function applyQuickPresetTO(){
+      var preset = [
+        { name:'Замена масла в ДВС', price:1000 },
+        { name:'Замена воздушного фильтра', price:550 },
+        { name:'Замена салонного фильтра', price:550 }
+      ];
+
+      // Убираем только полностью пустые строки работ, чтобы пресет не оставлял лишний пустой пункт.
+      qOrder.lines = qOrder.lines.filter(function(l){
+        if(l.type !== 'work') return true;
+        return String(l.name||'').trim() || Number(l.price) > 0;
+      });
+
+      var existingNames = {};
+      qOrder.lines.forEach(function(l){
+        if(l.type === 'work' && l.name){
+          existingNames[String(l.name).trim().toLowerCase()] = true;
+        }
+      });
+
+      preset.forEach(function(p){
+        var key = p.name.toLowerCase();
+        if(existingNames[key]) return;
+        qOrder.lines.push({
+          _key: lineId(),
+          type:'work',
+          name:p.name,
+          qty:1,
+          price:p.price,
+          stockItemId:null,
+          assignees:[]
+        });
+        existingNames[key] = true;
+      });
+
+      renderQLines();
+      updateQTotal();
     }
 
     function renderLineGroup(wrapId, type){
@@ -4596,6 +4640,7 @@
       if(el) el.textContent = fmtMoney(sum);
     }
 
+    document.getElementById('qPresetTO').addEventListener('click', applyQuickPresetTO);
     document.getElementById('qAddWork').addEventListener('click', function(){ addLine('work'); });
     document.getElementById('qAddPart').addEventListener('click', function(){ addLine('part'); });
     document.getElementById('qClose').addEventListener('click', function(){ overlay.remove(); });

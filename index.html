@@ -274,24 +274,25 @@
   .order-card.dragging{ opacity:0.4; }
 
   .oc-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:6px; }
-  .oc-num{ font-family:'JetBrains Mono', monospace; font-weight:700; font-size:13px; color: var(--accent-dark); }
+  .oc-num{ font-family:'JetBrains Mono', monospace; font-weight:700; font-size:11.5px; color: var(--accent-dark); }
   .oc-date{ font-family:'JetBrains Mono', monospace; font-size:11px; color: var(--ink-soft); white-space:nowrap; }
   .oc-client{ font-size:14.5px; font-weight:600; margin-bottom:2px; line-height:1.25; }
   .oc-car{ font-size:12.5px; color: var(--ink-soft); margin-bottom:8px; }
   .oc-car span{ font-family:'JetBrains Mono', monospace; }
   .oc-bottom{
-    display:flex; justify-content:space-between; align-items:center; gap:6px;
+    display:flex; flex-wrap:wrap; justify-content:space-between; align-items:flex-start; gap:6px;
     border-top:1px dashed var(--paper-line); padding-top:8px; margin-top:2px;
     min-width:0;
   }
   .oc-master{
     font-size:12px; color:var(--ink-soft);
-    flex:1 1 auto; min-width:0;
-    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    flex:1 1 100%; min-width:0;
+    overflow:visible; text-overflow:clip; white-space:normal;
+    overflow-wrap:anywhere; line-height:1.25;
   }
   .oc-actions{
     display:flex; align-items:center; justify-content:flex-end;
-    gap:5px; flex:0 0 auto; min-width:0;
+    gap:5px; flex:0 0 100%; width:100%; min-width:0;
   }
   .oc-sum{
     font-family:'JetBrains Mono', monospace; font-weight:700;
@@ -1841,7 +1842,7 @@
       align-items:center; gap:7px; margin-bottom:3px;
     }
     .moc-num{
-      font-family:'JetBrains Mono',monospace; font-size:11.5px;
+      font-family:'JetBrains Mono',monospace; font-size:10.5px;
       font-weight:700; color:var(--accent-dark);
     }
     .moc-status{
@@ -1867,12 +1868,16 @@
       color:var(--ink-soft); white-space:nowrap;
     }
     .moc-row3{
-      display:grid; grid-template-columns:minmax(0,1fr) auto auto;
-      align-items:center; gap:7px;
+      display:block; min-width:0; margin-top:3px;
     }
     .moc-meta{
-      min-width:0; font-size:10.5px; color:var(--ink-soft);
-      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+      display:block; min-width:0; font-size:10.5px; color:var(--ink-soft);
+      overflow:visible; text-overflow:clip; white-space:normal;
+      overflow-wrap:anywhere; line-height:1.3;
+    }
+    .moc-row4{
+      display:flex; align-items:center; justify-content:flex-end;
+      gap:7px; min-width:0; margin-top:4px;
     }
     .moc-date{
       font-family:'JetBrains Mono',monospace; font-size:9.5px;
@@ -3305,6 +3310,8 @@
       '</div>' +
       '<div class="moc-row3">' +
         '<span class="moc-meta">' + escapeHtml(metaLine) + '</span>' +
+      '</div>' +
+      '<div class="moc-row4">' +
         '<span class="moc-date">' + fmtOrderDateTime(o.dateIn, o.createdAt) + '</span>' +
         '<span class="moc-actions">' +
           '<button class="moc-action moc-status-btn" title="Статус">●</button>' +

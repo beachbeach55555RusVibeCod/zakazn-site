@@ -4429,6 +4429,8 @@
     var total     = calcOrderTotal(o);
     var carLine   = [o.carMake, o.carModel].filter(Boolean).join(' ') || '—';
     var comp      = state.company || {};
+    var client    = getClientById(o.clientId) || {};
+    var contractTitle = client.contractNumber ? ' <span class="p-contract-title">по договору № ' + escapeHtml(client.contractNumber) + '</span>' : '';
 
     var workLines  = (o.lines||[]).filter(function(l){ return l.type === 'work'; });
     var partLines  = (o.lines||[]).filter(function(l){ return l.type !== 'work'; });
@@ -4483,7 +4485,7 @@
         /* ── Шапка ── */
         '<div class="p-header">' +
           '<div>' +
-            '<div class="p-title">Заказ-наряд</div>' +
+            '<div class="p-title">Заказ-наряд' + contractTitle + '</div>' +
             '<div class="p-docnum">№ <b>' + escapeHtml(o.orderNumber||'—') + '</b></div>' +
           '</div>' +
           '<div class="p-company">' + compRight + '</div>' +
@@ -4573,6 +4575,7 @@
       /* Header */
       '.p-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2.5px solid #111;padding-bottom:12px;margin-bottom:14px;}' +
       '.p-title{font-size:22px;font-weight:700;margin:0 0 2px;}' +
+      '.p-contract-title{font-size:13px;font-weight:600;white-space:nowrap;}' +
       '.p-docnum{font-family:"Courier New",monospace;font-size:15px;margin-top:4px;}' +
       '.p-docnum b{font-size:19px;}' +
       '.p-company{text-align:right;}' +
@@ -4662,6 +4665,7 @@
       'h2{margin:0;}' +
       '.doc-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2.5px solid #111;padding-bottom:12px;margin-bottom:14px;}' +
       '.doc-title{font-size:20px;font-weight:700;}' +
+      '.contract-title{font-size:13px;font-weight:600;white-space:nowrap;}' +
       '.doc-num{font-size:13px;margin-top:4px;color:#333;}' +
       '.co-block{text-align:right;}' +
       '.co-name{font-size:14px;font-weight:700;}' +
@@ -4706,6 +4710,7 @@
     var total  = calcOrderTotal(o);
     var num    = o.orderNumber || '—';
     var date   = fmtDate(o.dateIn);
+    var contractTitle = client.contractNumber ? ' <span class="contract-title">по договору № ' + escapeHtml(client.contractNumber) + '</span>' : '';
 
     var sellerLines = '';
     if(comp.name)        sellerLines += '<div class="p-row"><span class="p-lbl">Поставщик</span><span class="p-val">' + escapeHtml(comp.name) + '</span></div>';
@@ -4760,14 +4765,14 @@
 
     var body =
       '<div class="doc-header">' +
-        '<div><div class="doc-title">Счёт на оплату</div><div class="doc-num">№ ' + escapeHtml(num) + ' от ' + date + '</div></div>' +
+        '<div><div class="doc-title">Счёт на оплату' + contractTitle + '</div><div class="doc-num">№ ' + escapeHtml(num) + ' от ' + date + '</div></div>' +
         '<div class="co-block">' + (comp.name ? '<div class="co-name">' + escapeHtml(comp.name) + '</div>' : '') + (comp.phone ? '<div class="co-detail">' + escapeHtml(comp.phone) + '</div>' : '') + '</div>' +
       '</div>' +
+      bankBlock +
       '<div class="parties">' +
         '<div><div class="party-title">Поставщик</div>' + sellerLines + '</div>' +
         '<div><div class="party-title">Покупатель</div>' + buyerLines + '</div>' +
       '</div>' +
-      bankBlock +
       '<table>' +
         '<thead><tr><th class="num" style="width:28px;">№</th><th>Наименование</th><th>Ед.</th><th class="num">Кол-во</th><th class="num">Цена</th><th class="num">Сумма</th></tr></thead>' +
         '<tbody>' + rows + '</tbody>' +
@@ -4790,6 +4795,7 @@
       '.print-doc{}' +
       '.p-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2.5px solid #111;padding-bottom:12px;margin-bottom:14px;}' +
       '.p-title{font-size:22px;font-weight:700;margin:0 0 2px;}' +
+      '.p-contract-title{font-size:13px;font-weight:600;white-space:nowrap;}' +
       '.p-docnum{font-family:"Courier New",monospace;font-size:15px;margin-top:4px;}' +
       '.p-docnum b{font-size:19px;}' +
       '.p-company{text-align:right;}' +
@@ -4835,6 +4841,7 @@
     var num   = o.orderNumber || '—';
     var date  = fmtDate(o.dateOut || o.dateIn || Date.now());
     var carLine = [o.carMake, o.carModel].filter(Boolean).join(' ') || '—';
+    var contractTitle = client.contractNumber ? ' <span class="p-contract-title">по договору № ' + escapeHtml(client.contractNumber) + '</span>' : '';
 
     var customerName = (client.type === 'org' && client.orgName) ? client.orgName : (o.clientName || '—');
     var customerPhone = client.phone || o.clientPhone || '—';
@@ -4865,7 +4872,7 @@
     var body =
       '<div class="print-doc">' +
         '<div class="p-header">' +
-          '<div><div class="p-title">Акт выполненных работ</div><div class="p-docnum">№ <b>' + escapeHtml(num) + '</b> от ' + date + '</div></div>' +
+          '<div><div class="p-title">Акт выполненных работ' + contractTitle + '</div><div class="p-docnum">№ <b>' + escapeHtml(num) + '</b> от ' + date + '</div></div>' +
           '<div class="p-company">' + compRight + '</div>' +
         '</div>' +
 
@@ -6619,6 +6626,17 @@
           '<div><span style="color:var(--text-subtle);">Расчётный счёт</span><div style="margin-top:2px;font-family:monospace;overflow-wrap:anywhere;">' + escapeHtml(client.account||'—') + '</div></div>' +
           '<div><span style="color:var(--text-subtle);">Корреспондентский счёт</span><div style="margin-top:2px;font-family:monospace;overflow-wrap:anywhere;">' + escapeHtml(client.corraccount||'—') + '</div></div>' +
         '</div>' +
+      '</div>' +
+      '<div class="form-section" style="background:var(--bg-panel-2);border-radius:10px;padding:14px 16px;margin:-6px 0 16px;">' +
+        '<div class="form-section-title" style="margin-bottom:10px;">Договор</div>' +
+        '<div style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;">' +
+          '<div style="flex:1;min-width:220px;">' +
+            '<label class="form-label" for="orgContractNumber">Номер договора</label>' +
+            '<input class="form-control" id="orgContractNumber" value="' + escapeHtml(client.contractNumber||'') + '" placeholder="Например: 15/2026 или Д-001">' +
+          '</div>' +
+          '<button class="btn btn-primary btn-sm" id="btnSaveContractNumber">Сохранить номер</button>' +
+        '</div>' +
+        '<div style="font-size:11px;color:var(--text-subtle);margin-top:7px;">Номер автоматически добавляется в заголовки заказ-наряда, акта и счёта.</div>' +
       '</div>';
     }
 
@@ -6658,6 +6676,20 @@
     document.getElementById('btnEditClientReqs').addEventListener('click', function(){
       openClientReqsForm(wrap, client);
     });
+    var saveContractBtn = document.getElementById('btnSaveContractNumber');
+    if(saveContractBtn){
+      saveContractBtn.addEventListener('click', async function(){
+        var input = document.getElementById('orgContractNumber');
+        var updatedClient = Object.assign({}, client, { contractNumber: input ? input.value.trim() : '', updatedAt: Date.now() });
+        saveContractBtn.disabled = true;
+        var ok = await saveClient(updatedClient);
+        if(!ok){ saveContractBtn.disabled = false; showToast('Не удалось сохранить номер договора'); return; }
+        var idx = state.clients.findIndex(function(item){ return item.id === updatedClient.id; });
+        if(idx >= 0) state.clients[idx] = updatedClient;
+        renderClientDetail(wrap, updatedClient.id);
+        showToast('Номер договора сохранён');
+      });
+    }
     document.getElementById('btnDeleteClient').addEventListener('click', async function(){
       var linkedCars = carsOfClient(client.id);
       var linkedOrders = state.orders.filter(function(order){ return order.clientId === client.id; });
@@ -6765,6 +6797,8 @@
           '</div>' +
           '<div style="' + fg + '"><label style="' + fl + '">Корреспондентский счёт</label>' +
             '<input id="fOrgCorraccount" style="' + fi + '" value="' + escapeHtml(client.corraccount||'') + '" inputmode="numeric" maxlength="20" placeholder="30101810400000000225"></div>' +
+          '<div style="' + fg + '"><label style="' + fl + '">Номер договора</label>' +
+            '<input id="fOrgContractNumber" style="' + fi + '" value="' + escapeHtml(client.contractNumber||'') + '" placeholder="Например: 15/2026 или Д-001"></div>' +
         '</div>' +
         '<div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:22px;">' +
           '<button class="btn btn-ghost" id="fClientCancel">Отмена</button>' +
@@ -6811,6 +6845,7 @@
         updatedClient.bik = formDiv.querySelector('#fOrgBik').value.trim();
         updatedClient.account = formDiv.querySelector('#fOrgAccount').value.trim();
         updatedClient.corraccount = formDiv.querySelector('#fOrgCorraccount').value.trim();
+        updatedClient.contractNumber = formDiv.querySelector('#fOrgContractNumber').value.trim();
       } else {
         updatedClient.orgName = '';
         updatedClient.inn = '';
@@ -6820,6 +6855,7 @@
         updatedClient.bik = '';
         updatedClient.account = '';
         updatedClient.corraccount = '';
+        updatedClient.contractNumber = '';
       }
       var saveBtn = formDiv.querySelector('#fClientSave');
       saveBtn.disabled = true;

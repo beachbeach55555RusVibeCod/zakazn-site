@@ -4682,6 +4682,14 @@
       '.total-row.grand span:last-child{font-family:"Courier New",monospace;font-size:19px;white-space:nowrap;}' +
       '.amount-words{margin-top:8px;padding-top:7px;border-top:1px dashed #bbb;font-size:12px;line-height:1.45;}' +
       '.bank-block{margin:0 0 12px;font-size:12px;padding:8px 12px;background:#f5f5f5;border-radius:4px;line-height:1.8;}' +
+      'table.bank-table{width:100%;border-collapse:collapse;margin:0 0 14px;font-size:11.5px;border:1.4px solid #555;}' +
+      'table.bank-table td{border:1px solid #888;padding:5px 7px;vertical-align:top;background:#fff;}' +
+      'table.bank-table .bank-main{width:62%;}' +
+      'table.bank-table .bank-code-label{width:9%;white-space:nowrap;color:#555;}' +
+      'table.bank-table .bank-code-value{font-family:"Courier New",monospace;font-size:12px;}' +
+      '.bank-label{font-size:10px;color:#777;margin-bottom:2px;}' +
+      '.bank-value{font-weight:600;line-height:1.35;}' +
+      '.bank-rec-row{display:flex;gap:22px;margin-top:6px;font-family:"Courier New",monospace;font-size:11px;}' +
       '.sigs{display:flex;justify-content:space-between;margin-top:32px;gap:24px;}' +
       '.sig{flex:1;text-align:center;}' +
       '.sig-line{border-top:1px solid #111;padding-top:4px;font-size:11px;color:#555;margin-top:44px;}' +
@@ -4724,13 +4732,30 @@
     }).join('') || '<tr><td colspan="6" style="text-align:center;color:#888;">Позиции не указаны</td></tr>';
 
     var bankBlock = '';
-    if(comp.bank || comp.account){
-      bankBlock = '<div class="bank-block">' +
-        (comp.bank    ? '<b>Банк:</b> ' + escapeHtml(comp.bank) + '&nbsp;&nbsp;' : '') +
-        (comp.bik     ? '<b>БИК:</b> ' + escapeHtml(comp.bik) + '&nbsp;&nbsp;' : '') +
-        (comp.account ? '<b>Р/С:</b> ' + escapeHtml(comp.account) + '&nbsp;&nbsp;' : '') +
-        (comp.corraccount ? '<b>К/С:</b> ' + escapeHtml(comp.corraccount) : '') +
-      '</div>';
+    if(comp.bank || comp.account || comp.bik || comp.corraccount){
+      bankBlock = '<table class="bank-table">' +
+        '<tr>' +
+          '<td class="bank-main" rowspan="2">' +
+            '<div class="bank-label">Банк получателя</div>' +
+            '<div class="bank-value">' + escapeHtml(comp.bank || '—') + '</div>' +
+          '</td>' +
+          '<td class="bank-code-label">БИК</td>' +
+          '<td class="bank-code-value">' + escapeHtml(comp.bik || '—') + '</td>' +
+        '</tr>' +
+        '<tr>' +
+          '<td class="bank-code-label">Сч. №</td>' +
+          '<td class="bank-code-value">' + escapeHtml(comp.corraccount || '—') + '</td>' +
+        '</tr>' +
+        '<tr>' +
+          '<td class="bank-main">' +
+            '<div class="bank-label">Получатель</div>' +
+            '<div class="bank-value">' + escapeHtml(comp.name || '—') + '</div>' +
+            '<div class="bank-rec-row"><span>ИНН&nbsp; ' + escapeHtml(comp.inn || '—') + '</span><span>КПП&nbsp; ' + escapeHtml(comp.kpp || '—') + '</span></div>' +
+          '</td>' +
+          '<td class="bank-code-label">Сч. №</td>' +
+          '<td class="bank-code-value">' + escapeHtml(comp.account || '—') + '</td>' +
+        '</tr>' +
+      '</table>';
     }
 
     var body =
@@ -4746,8 +4771,8 @@
       '<table>' +
         '<thead><tr><th class="num" style="width:28px;">№</th><th>Наименование</th><th>Ед.</th><th class="num">Кол-во</th><th class="num">Цена</th><th class="num">Сумма</th></tr></thead>' +
         '<tbody>' + rows + '</tbody>' +
-        '<tfoot><tr><td colspan="5" style="text-align:right;">Итого без НДС:</td><td class="num">' + fmtMoney(total) + '</td></tr>' +
-        '<tr><td colspan="5" style="text-align:right;">НДС:</td><td class="num">Без НДС</td></tr></tfoot>' +
+        '<tfoot><tr><td colspan="5" style="text-align:right;">Итого:</td><td class="num">' + fmtMoney(total) + '</td></tr>' +
+        '<tr><td colspan="5" style="text-align:right;">В том числе НДС:</td><td class="num">0</td></tr></tfoot>' +
       '</table>' +
       '<div class="total-block"><div class="total-row grand"><span>ИТОГО К ОПЛАТЕ</span><span>' + fmtMoney(total) + '</span></div>' +
         '<div class="amount-words"><b>Сумма прописью:</b> ' + escapeHtml(moneyToWordsRu(total)) + '</div></div>' +

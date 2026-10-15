@@ -753,6 +753,16 @@
   .client-stat .num{ font-family:'JetBrains Mono', monospace; font-size:14px; font-weight:600; color: var(--accent); }
   .client-stat .lbl{ font-size:10.5px; color:var(--text-subtle); text-transform:uppercase; letter-spacing:0.03em; }
   .clients-empty{ text-align:center; padding:60px 0; color:var(--text-subtle); font-size:14px; }
+  .client-type-tabs{ display:flex; gap:6px; padding:4px; border:1px solid var(--border); border-radius:10px; background:var(--bg-panel); margin-bottom:14px; width:fit-content; max-width:100%; }
+  .client-type-tab{ display:flex; align-items:center; justify-content:center; gap:8px; border:1px solid transparent; border-radius:7px; padding:9px 13px; background:transparent; color:var(--text-muted); font-family:inherit; font-size:13px; cursor:pointer; }
+  .client-type-tab.active{ background:var(--bg-panel-2); border-color:var(--border); color:var(--text-main); }
+  .client-type-count{ display:inline-flex; align-items:center; justify-content:center; min-width:20px; padding:1px 6px; border-radius:12px; background:rgba(128,128,128,.14); font-size:11px; font-family:'JetBrains Mono',monospace; }
+  .cars-db-count{ font-size:12.5px; color:var(--text-muted); white-space:nowrap; }
+  @media (max-width:640px){
+    .client-type-tabs{ width:100%; box-sizing:border-box; }
+    .client-type-tab{ flex:1; padding:9px 6px; font-size:12px; }
+    .cars-db-count{ white-space:normal; }
+  }
 
   .vehicle-card{ background: var(--bg-panel-2); border:1px solid var(--border); border-radius:10px; padding:14px 16px; margin-bottom:12px; cursor:pointer; }
   .vehicle-card:hover{ border-color:#4A5163; }
@@ -2015,6 +2025,7 @@
   <div class="tabs" id="mainTabs">
     <button class="tab-btn active" data-tab="board">Доска заказов</button>
     <button class="tab-btn" data-tab="clients">Клиенты</button>
+    <button class="tab-btn" data-tab="cars">База авто</button>
     <button class="tab-btn" data-tab="pricelist">Прайс-лист</button>
     <button class="tab-btn" data-tab="stock">Склад</button>
     <button class="tab-btn" data-tab="staff">Сотрудники</button>
@@ -2038,6 +2049,7 @@
   </div>
 
   <div id="clientsWrap" style="display:none;"></div>
+  <div id="carsWrap" style="display:none;"></div>
   <div id="pricelistWrap" style="display:none;"></div>
   <div id="stockWrap" style="display:none;"></div>
   <div id="staffWrap" style="display:none;"></div>
@@ -2230,6 +2242,9 @@
     openClientId: null,
     openVehicleId: null,
     clientsSearchQuery: '',
+    clientTypeFilter: 'person',
+    carsSearchQuery: '',
+    vehicleReturnTab: 'clients',
     priceListSearchQuery: '',
     stockSearchQuery: '',
     crmChartMode: 'day'
@@ -2391,6 +2406,7 @@
     if(!state || !state.activeTab) return;
     if(state.activeTab === 'board'){ render(); return; }
     if(state.activeTab === 'clients'){ renderClientsTab(); return; }
+    if(state.activeTab === 'cars'){ renderCarsTab(); return; }
     if(state.activeTab === 'pricelist'){ renderPriceListTab(); return; }
     if(state.activeTab === 'stock'){ renderStockTab(); return; }
     if(state.activeTab === 'staff'){ renderStaffTab(); return; }
@@ -2721,6 +2737,12 @@
 
   function getClientById(id){
     return state.clients.find(function(c){ return c.id === id; }) || null;
+  }
+
+  function displayClientName(client){
+    if(!client) return '—';
+    if(client.type === 'org') return client.orgName || client.name || 'Организация';
+    return client.name || 'Без имени';
   }
 
   function getCarById(id){
@@ -6074,7 +6096,7 @@
 
   // ---------- Tabs ----------
 
-  function switchTab(tab){
+  function switchTab(tab, preserveDetails){
     syncMobileNav(tab);
     state.activeTab = tab;
     document.querySelectorAll('#mainTabs .tab-btn').forEach(function(btn){
@@ -6083,6 +6105,7 @@
     document.getElementById('boardToolbar').style.display = tab === 'board' ? '' : 'none';
     document.getElementById('boardWrap').style.display = tab === 'board' ? '' : 'none';
     document.getElementById('clientsWrap').style.display = tab === 'clients' ? '' : 'none';
+    document.getElementById('carsWrap').style.display = tab === 'cars' ? '' : 'none';
     document.getElementById('pricelistWrap').style.display = tab === 'pricelist' ? '' : 'none';
     document.getElementById('stockWrap').style.display = tab === 'stock' ? '' : 'none';
     document.getElementById('staffWrap').style.display = tab === 'staff' ? '' : 'none';
@@ -6091,7 +6114,8 @@
     document.getElementById('settingsWrap').style.display = tab === 'settings' ? '' : 'none';
 
     if(tab === 'board'){ render(); }
-    if(tab === 'clients'){ state.openClientId = null; state.openVehicleId = null; renderClientsTab(); }
+    if(tab === 'clients'){ if(!preserveDetails){ state.openClientId = null; state.openVehicleId = null; } renderClientsTab(); }
+    if(tab === 'cars'){ if(!preserveDetails){ state.openClientId = null; state.openVehicleId = null; } renderCarsTab(); }
     if(tab === 'pricelist'){ renderPriceListTab(); }
     if(tab === 'stock'){ renderStockTab(); }
     if(tab === 'staff'){ renderStaffTab(); }
@@ -6113,39 +6137,49 @@
 
   function renderClientsTab(){
     var wrap = document.getElementById('clientsWrap');
-
-    if(state.openVehicleId){
-      renderVehicleDetail(wrap, state.openVehicleId);
-      return;
-    }
-    if(state.openClientId){
-      renderClientDetail(wrap, state.openClientId);
-      return;
-    }
-
-    var html = '<div class="clients-toolbar"><div class="clients-search"><span class="search-icon">⌕</span><input type="text" id="clientsSearchInput" placeholder="Поиск: имя, телефон, гос.номер..."></div><button class="btn btn-primary btn-sm" id="btnAddClient">+ Клиент</button></div>';
+    if(state.openVehicleId){ renderVehicleDetail(wrap, state.openVehicleId, 'clients'); return; }
+    if(state.openClientId){ renderClientDetail(wrap, state.openClientId); return; }
 
     var q = (state.clientsSearchQuery||'').trim().toLowerCase();
-    var clients = state.clients.slice().sort(function(a,b){ return (b.createdAt||0) - (a.createdAt||0); });
+    var allClients = state.clients.slice().sort(function(a,b){ return (b.createdAt||0) - (a.createdAt||0); });
+    var personCount = allClients.filter(function(c){ return c.type !== 'org'; }).length;
+    var orgCount = allClients.filter(function(c){ return c.type === 'org'; }).length;
+    var filterType = state.clientTypeFilter === 'org' ? 'org' : 'person';
+    var clients = allClients.filter(function(c){ return filterType === 'org' ? c.type === 'org' : c.type !== 'org'; });
 
     if(q){
       clients = clients.filter(function(c){
         var cars = carsOfClient(c.id);
-        var hay = [c.name, c.phone].concat(cars.map(function(v){ return v.plate + ' ' + v.vin + ' ' + v.carMake + ' ' + v.carModel; })).join(' ').toLowerCase();
+        var hay = [c.name, c.orgName, c.phone, c.email, c.inn, c.kpp, c.legalAddress]
+          .concat(cars.map(function(v){ return v.plate + ' ' + v.vin + ' ' + v.carMake + ' ' + v.carModel; }))
+          .join(' ').toLowerCase();
         return hay.indexOf(q) !== -1;
       });
     }
 
+    var html = '<div class="clients-toolbar">' +
+      '<div class="clients-search"><span class="search-icon">⌕</span><input type="text" id="clientsSearchInput" placeholder="Поиск: имя, телефон, ИНН, авто..."></div>' +
+      '<button class="btn btn-primary btn-sm" id="btnAddClient">+ Клиент</button>' +
+    '</div>' +
+    '<div class="client-type-tabs" role="tablist" aria-label="Тип клиента">' +
+      '<button type="button" class="client-type-tab' + (filterType === 'person' ? ' active' : '') + '" data-client-type="person" role="tab" aria-selected="' + (filterType === 'person' ? 'true' : 'false') + '">Физические лица <span class="client-type-count">' + personCount + '</span></button>' +
+      '<button type="button" class="client-type-tab' + (filterType === 'org' ? ' active' : '') + '" data-client-type="org" role="tab" aria-selected="' + (filterType === 'org' ? 'true' : 'false') + '">Юр. лица и ИП <span class="client-type-count">' + orgCount + '</span></button>' +
+    '</div>';
+
     if(clients.length === 0){
-      html += '<div class="clients-empty">' + (q ? 'Ничего не найдено' : 'Пока нет ни одного клиента. Клиенты появятся здесь автоматически после сохранения заказ-наряда.') + '</div>';
+      var emptyText = q ? 'По запросу ничего не найдено' : (filterType === 'org' ? 'Юридических лиц и ИП пока нет. Добавьте клиента и выберите тип «Юр. лицо / ИП».' : 'Физических лиц пока нет. Клиенты также добавляются автоматически при сохранении заказ-наряда.');
+      html += '<div class="clients-empty">' + emptyText + '</div>';
     } else {
       html += '<div class="client-list">';
       clients.forEach(function(c){
         var stats = clientStats(c.id);
+        var meta = c.type === 'org'
+          ? 'Юр. лицо / ИП' + (c.inn ? ' · ИНН ' + c.inn : '') + (c.phone ? ' · ' + c.phone : '')
+          : (c.phone || 'телефон не указан');
         html += '<div class="client-row" data-client-id="' + c.id + '">' +
           '<div class="client-row-main">' +
-            '<div class="client-row-name">' + escapeHtml(c.name||'Без имени') + '</div>' +
-            '<div class="client-row-meta">' + escapeHtml(c.phone||'телефон не указан') + '</div>' +
+            '<div class="client-row-name">' + escapeHtml(displayClientName(c)) + '</div>' +
+            '<div class="client-row-meta">' + escapeHtml(meta) + '</div>' +
           '</div>' +
           '<div class="client-row-stats">' +
             '<div class="client-stat"><div class="num">' + stats.carsCount + '</div><div class="lbl">авто</div></div>' +
@@ -6156,7 +6190,6 @@
       });
       html += '</div>';
     }
-
     wrap.innerHTML = html;
 
     var searchInput = document.getElementById('clientsSearchInput');
@@ -6164,19 +6197,79 @@
     searchInput.addEventListener('input', function(){
       state.clientsSearchQuery = searchInput.value;
       renderClientsTab();
-      document.getElementById('clientsSearchInput').focus();
-      var v = document.getElementById('clientsSearchInput').value;
-      document.getElementById('clientsSearchInput').setSelectionRange(v.length, v.length);
+      var nextInput = document.getElementById('clientsSearchInput');
+      nextInput.focus();
+      var v = nextInput.value;
+      nextInput.setSelectionRange(v.length, v.length);
     });
-
-    document.getElementById('btnAddClient').addEventListener('click', function(){
-      openNewClientForm();
+    document.getElementById('btnAddClient').addEventListener('click', function(){ openNewClientForm(); });
+    wrap.querySelectorAll('[data-client-type]').forEach(function(btn){
+      btn.addEventListener('click', function(){ state.clientTypeFilter = btn.dataset.clientType; renderClientsTab(); });
     });
-
     wrap.querySelectorAll('.client-row').forEach(function(row){
-      row.addEventListener('click', function(){
-        state.openClientId = row.dataset.clientId;
-        renderClientsTab();
+      row.addEventListener('click', function(){ state.openClientId = row.dataset.clientId; renderClientsTab(); });
+    });
+  }
+
+  function renderCarsTab(){
+    var wrap = document.getElementById('carsWrap');
+    if(state.openVehicleId){ renderVehicleDetail(wrap, state.openVehicleId, 'cars'); return; }
+
+    var q = (state.carsSearchQuery||'').trim().toLowerCase();
+    var allCars = state.cars.slice().sort(function(a,b){ return (b.createdAt||0) - (a.createdAt||0); });
+    var cars = allCars;
+    if(q){
+      cars = allCars.filter(function(car){
+        var owner = car.clientId ? getClientById(car.clientId) : null;
+        var hay = [car.carMake, car.carModel, car.plate, car.vin,
+          owner ? displayClientName(owner) : '', owner ? owner.name : '',
+          owner ? owner.phone : '', owner ? owner.inn : ''].join(' ').toLowerCase();
+        return hay.indexOf(q) !== -1;
+      });
+    }
+
+    var html = '<div class="clients-toolbar">' +
+      '<div class="clients-search"><span class="search-icon">⌕</span><input type="text" id="carsSearchInput" placeholder="Поиск: марка, модель, госномер, VIN, владелец..."></div>' +
+      '<div class="cars-db-count">' + (q ? 'Найдено ' + cars.length + ' из ' + allCars.length : 'Всего в базе: ' + allCars.length) + ' авто</div>' +
+    '</div>';
+    if(cars.length === 0){
+      html += '<div class="clients-empty">' + (q ? 'По запросу ничего не найдено' : 'В базе пока нет автомобилей. Они появятся здесь автоматически после сохранения заказ-наряда с данными автомобиля.') + '</div>';
+    } else {
+      html += '<div class="client-list">';
+      cars.forEach(function(car){
+        var owner = car.clientId ? getClientById(car.clientId) : null;
+        var visits = vehicleVisitHistory(car.id);
+        var lastVisit = visits.length ? visits[visits.length-1] : null;
+        var lastMileage = lastVisit ? lastVisit.mileage : null;
+        var carName = [car.carMake, car.carModel].filter(Boolean).join(' ') || 'Автомобиль';
+        html += '<div class="vehicle-card" data-vehicle-id="' + car.id + '">' +
+          '<div class="vehicle-card-head"><div class="vehicle-card-name">' + escapeHtml(carName) + '</div>' +
+          '<div class="vehicle-card-plate">' + escapeHtml(car.plate||'Госномер не указан') + '</div></div>' +
+          '<div class="vehicle-card-meta"><span>VIN: ' + escapeHtml(car.vin||'—') + '</span>' +
+          '<span>Владелец: ' + escapeHtml(owner ? displayClientName(owner) : 'не указан') + '</span>' +
+          '<span>Визитов: ' + visits.length + '</span>' +
+          (lastMileage ? '<span>Последний пробег: ' + escapeHtml(lastMileage) + ' км</span>' : '') +
+          '</div></div>';
+      });
+      html += '</div>';
+    }
+    wrap.innerHTML = html;
+    var searchInput = document.getElementById('carsSearchInput');
+    searchInput.value = state.carsSearchQuery || '';
+    searchInput.addEventListener('input', function(){
+      state.carsSearchQuery = searchInput.value;
+      renderCarsTab();
+      var nextInput = document.getElementById('carsSearchInput');
+      nextInput.focus();
+      var v = nextInput.value;
+      nextInput.setSelectionRange(v.length, v.length);
+    });
+    wrap.querySelectorAll('.vehicle-card').forEach(function(card){
+      card.addEventListener('click', function(){
+        state.openClientId = null;
+        state.openVehicleId = card.dataset.vehicleId;
+        state.vehicleReturnTab = 'cars';
+        renderCarsTab();
       });
     });
   }
@@ -6312,6 +6405,7 @@
       await saveClient(client);
       state.clients.push(client);
       formDiv.remove();
+      state.clientTypeFilter = type === 'org' ? 'org' : 'person';
       state.openClientId = client.id;
       renderClientsTab();
     });
@@ -6325,7 +6419,7 @@
     var stats = clientStats(clientId);
 
     var isOrg = client.type === 'org';
-    var html = '<div class="breadcrumb"><a id="bcClients">Клиенты</a><span class="sep">/</span><span class="current">' + escapeHtml(client.name||'Без имени') + '</span></div>';
+    var html = '<div class="breadcrumb"><a id="bcClients">Клиенты</a><span class="sep">/</span><span class="current">' + escapeHtml(displayClientName(client)) + '</span></div>';
 
     html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">' +
       '<div></div>' +
@@ -6391,6 +6485,7 @@
     wrap.querySelectorAll('.vehicle-card').forEach(function(card){
       card.addEventListener('click', function(){
         state.openVehicleId = card.dataset.vehicleId;
+        state.vehicleReturnTab = 'clients';
         renderClientsTab();
       });
     });
@@ -6455,6 +6550,7 @@
         client.bank = ''; client.bik = ''; client.account = ''; client.corraccount = '';
       }
       await saveClient(client);
+      state.clientTypeFilter = client.type === 'org' ? 'org' : 'person';
       var idx = state.clients.findIndex(function(c){ return c.id === client.id; });
       if(idx !== -1) state.clients[idx] = client;
       formDiv.remove();
@@ -6462,24 +6558,31 @@
     });
   }
 
-  function renderVehicleDetail(wrap, vehicleId){
+  function renderVehicleDetail(wrap, vehicleId, sourceTab){
+    sourceTab = sourceTab || state.vehicleReturnTab || 'clients';
     var car = getCarById(vehicleId);
-    if(!car){ state.openVehicleId = null; renderClientsTab(); return; }
+    if(!car){
+      state.openVehicleId = null;
+      if(sourceTab === 'cars') renderCarsTab();
+      else renderClientsTab();
+      return;
+    }
 
     var owner = car.clientId ? getClientById(car.clientId) : null;
     var visits = vehicleVisitHistory(vehicleId);
     var carLabel = [car.carMake, car.carModel].filter(Boolean).join(' ') || 'Автомобиль';
 
+    var backLabel = sourceTab === 'cars' ? 'База авто' : 'Клиенты';
     var html = '<div class="breadcrumb">' +
-      '<a id="bcClients2">Клиенты</a><span class="sep">/</span>' +
-      (owner ? '<a id="bcClient">' + escapeHtml(owner.name||'Клиент') + '</a><span class="sep">/</span>' : '') +
+      '<a id="bcVehicleBack">' + backLabel + '</a><span class="sep">/</span>' +
+      (owner ? '<a id="bcClient">' + escapeHtml(displayClientName(owner)) + '</a><span class="sep">/</span>' : '') +
       '<span class="current">' + escapeHtml(carLabel) + ' · ' + escapeHtml(car.plate||'') + '</span>' +
     '</div>';
 
     html += '<div class="payroll-summary">' +
       '<div class="payroll-card"><div class="name">Гос. номер</div><div class="amount" style="font-size:16px; font-family:\'JetBrains Mono\',monospace;">' + escapeHtml(car.plate||'—') + '</div></div>' +
       '<div class="payroll-card"><div class="name">VIN</div><div class="amount" style="font-size:14px; font-family:\'JetBrains Mono\',monospace;">' + escapeHtml(car.vin||'—') + '</div></div>' +
-      '<div class="payroll-card"><div class="name">Текущий владелец</div><div class="amount" style="font-size:16px;">' + escapeHtml(owner ? owner.name||'—' : '—') + '</div></div>' +
+      '<div class="payroll-card"><div class="name">Текущий владелец</div><div class="amount" style="font-size:16px;">' + escapeHtml(owner ? displayClientName(owner) : '—') + '</div></div>' +
     '</div>';
 
     html += '<div class="form-section-title">История визитов (по пробегу)</div>';
@@ -6510,16 +6613,19 @@
 
     wrap.innerHTML = html;
 
-    document.getElementById('bcClients2').addEventListener('click', function(){
+    document.getElementById('bcVehicleBack').addEventListener('click', function(){
       state.openVehicleId = null;
       state.openClientId = null;
-      renderClientsTab();
+      if(sourceTab === 'cars') renderCarsTab();
+      else renderClientsTab();
     });
     var bcClient = document.getElementById('bcClient');
-    if(bcClient){
+    if(bcClient && owner){
       bcClient.addEventListener('click', function(){
         state.openVehicleId = null;
-        renderClientsTab();
+        state.openClientId = owner.id;
+        state.clientTypeFilter = owner.type === 'org' ? 'org' : 'person';
+        switchTab('clients', true);
       });
     }
   }
@@ -7761,6 +7867,7 @@
       var tab = btn.dataset.mobileTab;
       if(tab === 'more'){
         var names = [
+          ['cars','База авто'],
           ['pricelist','Прайс-лист'],
           ['staff','Сотрудники'],
           ['payroll','Зарплата'],

@@ -779,6 +779,8 @@
   .visit-line{ width:1.5px; flex:1; background: var(--border); margin-top:4px; }
   .visit-content{ flex:1; }
   .visit-date{ font-family:'JetBrains Mono', monospace; font-size:12px; color:var(--text-muted); margin-bottom:3px; }
+  .visit-order-link{display:inline-block;border:1px solid var(--border);background:var(--bg-panel-2);color:var(--accent);border-radius:6px;padding:3px 8px;margin-left:3px;font:inherit;cursor:pointer;line-height:1.2;}
+  .visit-order-link:hover{border-color:var(--accent);background:rgba(20,184,166,0.1);}
   .visit-summary{ font-size:13.5px; margin-bottom:3px; }
   .visit-meta{ font-size:12px; color:var(--text-muted); display:flex; gap:12px; flex-wrap:wrap; }
   .visit-meta b{ color: var(--accent); font-weight:600; }
@@ -7068,7 +7070,7 @@
         html += '<div class="visit-item">' +
           '<div class="visit-dot-col"><div class="visit-dot"></div>' + (idx < visits.length-1 ? '<div class="visit-line"></div>' : '') + '</div>' +
           '<div class="visit-content">' +
-            '<div class="visit-date">' + fmtDate(o.dateIn) + ' · наряд № ' + escapeHtml(o.orderNumber||'—') + '</div>' +
+            '<div class="visit-date">' + fmtDate(o.dateIn) + ' · <button type="button" class="visit-order-link" data-order-id="' + escapeHtml(o.id) + '">Наряд № ' + escapeHtml(o.orderNumber||'—') + '</button></div>' +
             '<div class="visit-summary">' + escapeHtml(summary) + '</div>' +
             '<div class="visit-meta">' +
               (o.mileage ? '<span>Пробег: <b>' + escapeHtml(o.mileage) + ' км</b></span>' : '<span>Пробег не указан</span>') +
@@ -7082,6 +7084,13 @@
     }
 
     wrap.innerHTML = html;
+
+    wrap.querySelectorAll('.visit-order-link').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var orderId = btn.dataset.orderId;
+        if(orderId) openDetail(orderId);
+      });
+    });
 
     document.getElementById('bcVehicleBack').addEventListener('click', function(){
       state.openVehicleId = null;

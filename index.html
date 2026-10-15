@@ -4281,7 +4281,7 @@
             (o.signature ? '<div class="form-section"><div class="detail-block-title">Подпись клиента при приёмке</div><div class="detail-sig"><img src="' + o.signature + '" style="max-height:80px; display:block;"></div></div>' : '') +
           '</div>' +
           '<div class="modal-foot">' +
-            '<button class="btn btn-danger btn-sm" id="detailDelete">Удалить наряд</button>' +
+            (o.status === 'done' ? '' : '<button class="btn btn-danger btn-sm" id="detailDelete">Удалить наряд</button>') +
             '<div style="display:flex; gap:10px;">' +
               '<button class="btn btn-ghost" id="detailCloseBtn">Закрыть</button>' +
               '<div style="position:relative;display:inline-block;">' +
@@ -4348,7 +4348,8 @@
         document.addEventListener('click', closePrintPopup);
       }, 0);
     };
-    document.getElementById('detailDelete').onclick = function(){
+    var detailDeleteBtn = document.getElementById('detailDelete');
+    if(detailDeleteBtn) detailDeleteBtn.onclick = function(){
       confirmDelete(o.id);
     };
     document.querySelectorAll('#detailStatusRow .status-chip').forEach(function(chip){

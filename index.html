@@ -4509,7 +4509,6 @@
           '<td class="num" style="color:#888;">' + (i+1) + '</td>' +
           '<td>' + escapeHtml(l.name||'') + '</td>' +
           '<td class="num">' + (l.qty||1) + '</td>' +
-          '<td class="num">' + (l.type === 'work' ? escapeHtml(displayNormHours(l, client)) : '—') + '</td>' +
           '<td class="num">' + fmtMoney(l.price) + '</td>' +
           '<td class="num"><b>' + fmtMoney(lineTotal(l)) + '</b></td>' +
         '</tr>';
@@ -4920,13 +4919,15 @@
     var customerName = (client.type === 'org' && client.orgName) ? client.orgName : (o.clientName || '—');
     var customerPhone = client.phone || o.clientPhone || '—';
 
-    function actRows(lines, emptyText){
-      if(!lines.length) return '<tr><td colspan="6" style="color:#888;font-style:italic;text-align:center;padding:10px;">' + emptyText + '</td></tr>';
+    function actRows(lines, emptyText, includeNormHours){
+      var cols = includeNormHours ? 6 : 5;
+      if(!lines.length) return '<tr><td colspan="' + cols + '" style="color:#888;font-style:italic;text-align:center;padding:10px;">' + emptyText + '</td></tr>';
       return lines.map(function(l, i){
         return '<tr>' +
           '<td class="num" style="color:#888;">' + (i+1) + '</td>' +
           '<td>' + escapeHtml(l.name||'') + '</td>' +
           '<td class="num">' + (l.qty||1) + '</td>' +
+          (includeNormHours ? '<td class="num">' + escapeHtml(displayNormHours(l, client)) + '</td>' : '') +
           '<td class="num">' + fmtMoney(l.price) + '</td>' +
           '<td class="num"><b>' + fmtMoney(lineTotal(l)) + '</b></td>' +
         '</tr>';
@@ -5004,14 +5005,14 @@
         '<div class="p-section-title" style="margin-top:16px;">Выполненные работы</div>' +
         '<table class="p-table">' +
           '<thead><tr><th class="num" style="width:28px;">№</th><th>Наименование</th><th class="num">Кол-во</th><th class="num">Н/ч</th><th class="num">Цена</th><th class="num">Сумма</th></tr></thead>' +
-          '<tbody>' + actRows(workLines, 'Работы не указаны') + '</tbody>' +
+          '<tbody>' + actRows(workLines, 'Работы не указаны', true) + '</tbody>' +
           '<tfoot><tr><td colspan="5" style="text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:#555;padding-top:6px;">Итого работы:</td><td class="num subtotal">' + fmtMoney(workTotal) + '</td></tr></tfoot>' +
         '</table>' +
 
         '<div class="p-section-title" style="margin-top:14px;">Запчасти и материалы</div>' +
         '<table class="p-table">' +
           '<thead><tr><th class="num" style="width:28px;">№</th><th>Наименование</th><th class="num">Кол-во</th><th class="num">Цена</th><th class="num">Сумма</th></tr></thead>' +
-          '<tbody>' + actRows(partLines, 'Запчасти не указаны') + '</tbody>' +
+          '<tbody>' + actRows(partLines, 'Запчасти не указаны', false) + '</tbody>' +
           '<tfoot><tr><td colspan="4" style="text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:#555;padding-top:6px;">Итого запчасти:</td><td class="num subtotal">' + fmtMoney(partTotal) + '</td></tr></tfoot>' +
         '</table>' +
 

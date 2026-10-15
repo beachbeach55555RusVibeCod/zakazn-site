@@ -1936,9 +1936,24 @@
     }
   }
 
-  .line-row:not(.part-line-row){grid-template-columns:minmax(110px,1fr) 55px 85px 65px 80px;}
-  #qForm .q-line-row:not(.q-part-line) .q-hours{min-width:0;}
-  @media(max-width:760px){.line-row:not(.part-line-row){grid-template-columns:1fr 1fr 1fr;}.line-row:not(.part-line-row) input:first-child{grid-column:1/-1;}}
+  /* Работы: название отдельной верхней строкой; ниже кол-во, цена, Н/ч и итог в одну линию */
+  .line-row:not(.part-line-row){grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) minmax(86px,auto);gap:6px;}
+  .line-row:not(.part-line-row) input[data-field="name"]{grid-column:1/-1;grid-row:1;}
+  .line-row:not(.part-line-row) input[data-field="qty"]{grid-column:1;grid-row:2;}
+  .line-row:not(.part-line-row) input[data-field="price"]{grid-column:2;grid-row:2;}
+  .line-row:not(.part-line-row) input[data-field="normHours"]{grid-column:3;grid-row:2;}
+  .line-row:not(.part-line-row) .line-sum{grid-column:4;grid-row:2;min-width:86px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding-right:0;}
+  #qForm .q-line-row:not(.q-part-line){grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr) 34px !important;}
+  #qForm .q-line-row:not(.q-part-line) .q-name{grid-column:1/-1 !important;grid-row:1;}
+  #qForm .q-line-row:not(.q-part-line) .q-qty{grid-column:1 !important;grid-row:2;}
+  #qForm .q-line-row:not(.q-part-line) .q-price{grid-column:2 !important;grid-row:2;}
+  #qForm .q-line-row:not(.q-part-line) .q-hours{grid-column:3 !important;grid-row:2;min-width:0;}
+  #qForm .q-line-row:not(.q-part-line) .q-remove{grid-column:4 !important;grid-row:2;}
+  #qForm .q-line-row:not(.q-part-line) .q-assignee{grid-column:1/-1 !important;grid-row:3;}
+  @media(max-width:560px){
+    .line-row:not(.part-line-row){grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);}
+    .line-row:not(.part-line-row) .line-sum{grid-column:1/-1;grid-row:3;text-align:right;overflow:visible;}
+  }
 </style>
 </head>
 <body>

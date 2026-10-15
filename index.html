@@ -4562,9 +4562,6 @@
         '<div class="p-signatures">' +
           '<div class="p-sig-block"><div class="p-sig-line">Подпись руководителя · Владимиров И. Л.</div></div>' +
           sigBlock +
-          '<div class="p-sig-block">' +
-            '<div class="p-stamp-circle">М.П.</div>' +
-          '</div>' +
         '</div>' +
 
       '</div>';
@@ -4612,7 +4609,6 @@
       '.p-sig-img{max-height:64px;display:block;margin:0 auto 4px;}' +
       '.p-sig-line{border-top:1px solid #111;padding-top:4px;font-size:11px;color:#555;margin-top:44px;}' +
       '.p-sig-block.has-sig .p-sig-line{margin-top:0;}' +
-      '.p-stamp-circle{width:90px;height:90px;border-radius:50%;border:1.5px dashed #aaa;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:11px;color:#bbb;letter-spacing:0.05em;}' +
       '@media print{@page{margin:12mm;size:A4;}body{padding:0;}}';
 
     var docHtml =
@@ -4732,7 +4728,6 @@
       '.sig-line{border-top:1px solid #111;padding-top:4px;font-size:11px;color:#555;margin-top:44px;}' +
       '.sig.has-sig .sig-line{margin-top:0;}' +
       '.sig-img{max-height:60px;display:block;margin:0 auto 4px;}' +
-      '.stamp{width:90px;height:90px;border-radius:50%;border:1.5px dashed #aaa;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:11px;color:#bbb;}' +
       '.note{font-size:12px;margin:8px 0;padding:8px 12px;background:#fffbe6;border-left:3px solid #f0c040;border-radius:2px;}' +
       '@media print{@page{margin:12mm;size:A4;}body{padding:0;}}';
   }
@@ -4800,7 +4795,6 @@
       bankBlock +
       '<div class="doc-header">' +
         '<div><div class="doc-title">Счёт на оплату' + contractTitle + '</div><div class="doc-num">№ ' + escapeHtml(num) + ' от ' + date + '</div></div>' +
-        '<div class="co-block">' + (comp.name ? '<div class="co-name">' + escapeHtml(comp.name) + '</div>' : '') + (comp.phone ? '<div class="co-detail">' + escapeHtml(comp.phone) + '</div>' : '') + '</div>' +
       '</div>' +
       '<div class="parties">' +
         '<div><div class="party-title">Поставщик</div>' + sellerLines + '</div>' +
@@ -4817,7 +4811,6 @@
       '<div class="sigs" style="margin-top:24px;">' +
         '<div class="sig"><div class="sig-line">Руководитель</div></div>' +
         '<div class="sig"><div class="sig-line">Главный бухгалтер</div></div>' +
-        '<div class="sig"><div class="stamp">М.П.</div></div>' +
       '</div>';
 
     openPrintWindow('Счёт № ' + num, body, buildDocCss());
@@ -4859,7 +4852,6 @@
       '.p-sig-img{max-height:64px;display:block;margin:0 auto 4px;}' +
       '.p-sig-line{border-top:1px solid #111;padding-top:4px;font-size:11px;color:#555;margin-top:44px;}' +
       '.p-sig-block.has-sig .p-sig-line{margin-top:0;}' +
-      '.p-stamp-circle{width:90px;height:90px;border-radius:50%;border:1.5px dashed #aaa;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:11px;color:#bbb;letter-spacing:0.05em;}' +
       '@media print{@page{margin:12mm;size:A4;}body{padding:0;}}';
   }
 
@@ -4986,7 +4978,6 @@
             '<div class="act-party-title">Исполнитель</div>' +
             executorDetails +
             '<div class="act-party-signature">Подпись: __________________ / ИП Владимиров</div>' +
-            '<div class="act-party-stamp">М.П.</div>' +
           '</div>' +
           '<div class="act-party">' +
             '<div class="act-party-title">Заказчик</div>' +
@@ -5006,7 +4997,6 @@
       '.act-requisite-value{font-weight:600;}' +
       '.act-party-signature{border-top:1px solid #ccc;margin-top:24px;padding-top:6px;font-size:10.5px;overflow-wrap:anywhere;}' +
       '.act-sig-img{max-height:38px;max-width:150px;display:block;margin-bottom:4px;}' +
-      '.act-party-stamp{font-size:10px;color:#777;margin-top:6px;}' +
       '.p-header{margin-bottom:10px;padding-bottom:8px;}' +
       '.p-info-grid{padding:9px 11px;margin-bottom:7px;}' +
       '.p-meta-row{padding:5px 10px;}' +

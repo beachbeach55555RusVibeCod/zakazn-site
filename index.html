@@ -4267,6 +4267,7 @@
       else openOrderForm(o.id);
     };
     document.getElementById('detailPrint').onclick = function(e){
+      e.stopPropagation();
       var existing = document.querySelector('.assign-popup');
       if(existing){ existing.remove(); return; }
       var popup = document.createElement('div');
@@ -4284,21 +4285,24 @@
       if(top + 160 > window.innerHeight) top = rect.top - 6 - popup.offsetHeight;
       popup.style.left = left + 'px';
       popup.style.top = top + 'px';
+
+      function closePrintPopup(ev){
+        if(ev && popup.contains(ev.target)) return;
+        if(popup.isConnected) popup.remove();
+        document.removeEventListener('click', closePrintPopup);
+      }
+
       popup.querySelectorAll('.assign-popup-item').forEach(function(item){
         item.addEventListener('click', function(ev){
           ev.stopPropagation();
-          popup.remove();
+          closePrintPopup();
           if(item.dataset.doc === 'order')   printOrder(o);
           if(item.dataset.doc === 'invoice') printInvoice(o);
           if(item.dataset.doc === 'act')     printAct(o);
         });
       });
       setTimeout(function(){
-        document.addEventListener('click', function close(){
-          var p = document.querySelector('.assign-popup');
-          if(p) p.remove();
-          document.removeEventListener('click', close);
-        });
+        document.addEventListener('click', closePrintPopup);
       }, 0);
     };
     document.getElementById('detailDelete').onclick = function(){

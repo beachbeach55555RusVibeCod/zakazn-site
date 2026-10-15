@@ -8697,13 +8697,15 @@
   var aiDraft = null;
   function aiWords(v){ return String(v||'').toLowerCase().replace(/ё/g,'е'); }
   function aiFindClient(text){
-    var t=aiWords(text), best=null, score=0;
+    var t=aiWords(text), tokens=t.split(/[^a-zа-я0-9]+/i).filter(function(x){return x.length>=3;}), best=null, bestScore=0, tied=false;
     state.clients.forEach(function(c){
-      var names=[c.name,c.orgName].filter(Boolean);
-      names.forEach(function(n){ var parts=aiWords(n).split(/\s+/).filter(function(x){return x.length>=3;}); var sc=parts.filter(function(p){return t.indexOf(p)>=0;}).length; if(sc>score){score=sc;best=c;} });
-      var ph=normalizePhone(c.phone); if(ph && text.replace(/\D/g,'').indexOf(ph)>=0){score=99;best=c;}
+      var full=aiWords([c.name,c.orgName].filter(Boolean).join(' ')), score=0;
+      var parts=full.split(/\s+/).filter(function(x){return x.length>=3;});
+      parts.forEach(function(p){ if(tokens.indexOf(p)>=0) score+=4; });
+      var ph=normalizePhone(c.phone); if(ph && text.replace(/\D/g,'').indexOf(ph)>=0) score+=50;
+      if(score>bestScore){bestScore=score;best=c;tied=false;} else if(score>0 && score===bestScore){tied=true;}
     });
-    return best;
+    return bestScore>=4 && !tied ? best : null;
   }
   var AI_CAR_ALIASES = {
     'Lada':['лада','ваз','жигули'], 'Toyota':['тойота','тоета'], 'Hyundai':['хендай','хундай','хендэ','хюндай'],
@@ -8744,20 +8746,35 @@
     }
     return {make:make,model:model};
   }
+  function aiVehicleDigits(text){
+    var beforeMileage=String(text||'').split(/пробег/i)[0];
+    var nums=beforeMileage.match(/\d{2,4}/g)||[];
+    return nums.filter(function(n){return n.length>=2;});
+  }
   function aiFindCar(text,client){
-    var t=aiWords(text), detected=aiDetectVehicleText(text), list=client?carsOfClient(client.id):state.cars, best=null, score=0;
-    list.forEach(function(c){
-      var fields=[c.carMake,c.carModel,c.plate,c.vin].filter(Boolean);
-      var sc=fields.reduce(function(n,v){return n+(t.indexOf(aiWords(v))>=0?2:0);},0);
-      if(detected.make && aiWords(c.carMake)===aiWords(detected.make)) sc+=3;
-      if(detected.model && aiWords(c.carModel)===aiWords(detected.model)) sc+=5;
-      if(sc>score){score=sc;best=c;}
+    var t=aiWords(text), detected=aiDetectVehicleText(text), nums=aiVehicleDigits(text), best=null, bestScore=0, tied=false;
+    state.cars.forEach(function(c){
+      var score=0, p=normalizePlate(c.plate), v=normalizeVin(c.vin);
+      if(detected.make && aiWords(c.carMake)===aiWords(detected.make)) score+=5;
+      if(detected.model && aiWords(c.carModel)===aiWords(detected.model)) score+=12;
+      if(c.plate && t.indexOf(aiWords(c.plate))>=0) score+=25;
+      nums.forEach(function(n){ if((p&&p.indexOf(n)>=0)||(v&&v.indexOf(n)>=0)) score+=18; });
+      if(client && c.clientId===client.id) score+=4;
+      if(score>bestScore){bestScore=score;best=c;tied=false;} else if(score>0&&score===bestScore){tied=true;}
     });
-    if(!best && client && list.length===1) best=list[0];
-    return best;
+    return bestScore>=5 && !tied ? best : null;
+  }
+  function aiResolveClientCar(text){
+    var named=aiFindClient(text), car=aiFindCar(text,named), client=named;
+    if(car && car.clientId){
+      var owner=getClientById(car.clientId);
+      // Vehicle evidence wins over a weak name-only guess.
+      if(owner) client=owner;
+    }
+    return {client:client,car:car};
   }
   function aiParseDraft(text){
-    var client=aiFindClient(text), car=aiFindCar(text,client), detectedVehicle=aiDetectVehicleText(text);
+    var resolved=aiResolveClientCar(text), client=resolved.client, car=resolved.car, detectedVehicle=aiDetectVehicleText(text);
     var mileage=''; var mm=text.match(/(?:пробег|пробегом)\s*[:=-]?\s*(\d[\d\s]{2,})/i); if(mm) mileage=mm[1].replace(/\s/g,'');
     var master=''; state.staff.some(function(p){ var first=aiWords(p.name).split(/\s+/)[0]; if(first.length>2 && aiWords(text).indexOf(first)>=0){master=p.name;return true;} return false;});
     var lines=[];

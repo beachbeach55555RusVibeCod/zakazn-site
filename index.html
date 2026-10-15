@@ -6421,9 +6421,9 @@
     var isOrg = client.type === 'org';
     var html = '<div class="breadcrumb"><a id="bcClients">Клиенты</a><span class="sep">/</span><span class="current">' + escapeHtml(displayClientName(client)) + '</span></div>';
 
-    html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">' +
-      '<div></div>' +
-      '<button class="btn btn-ghost btn-sm" id="btnEditClientReqs">✎ Реквизиты</button>' +
+    html += '<div style="display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px;">' +
+      '<button class="btn btn-ghost btn-sm" id="btnEditClientReqs">✎ Редактировать</button>' +
+      '<button class="btn btn-danger btn-sm" id="btnDeleteClient">🗑 Удалить клиента</button>' +
     '</div>';
 
     html += '<div class="payroll-summary">' +
@@ -6484,6 +6484,45 @@
     document.getElementById('btnEditClientReqs').addEventListener('click', function(){
       openClientReqsForm(wrap, client);
     });
+    document.getElementById('btnDeleteClient').addEventListener('click', async function(){
+      var linkedCars = carsOfClient(client.id);
+      var linkedOrders = state.orders.filter(function(order){ return order.clientId === client.id; });
+      var clientLabel = displayClientName(client);
+      var promptText = 'Удалить клиента «' + clientLabel + '»? Автомобили (' + linkedCars.length +
+        ') останутся в базе «Авто» без владельца. Заказ-наряды (' + linkedOrders.length +
+        ') и их история останутся. Это действие нельзя отменить.';
+      if(!window.confirm(promptText)) return;
+
+      var deleteBtn = document.getElementById('btnDeleteClient');
+      if(deleteBtn) deleteBtn.disabled = true;
+      var detachedCars = [];
+      try{
+        for(var i=0;i<linkedCars.length;i++){
+          var originalCar = linkedCars[i];
+          var detachedCar = Object.assign({}, originalCar, { clientId:null, updatedAt:Date.now() });
+          detachedCars.push({ original:originalCar, detached:detachedCar });
+          var saved = await saveCar(detachedCar);
+          if(!saved) throw new Error('Не удалось отвязать автомобиль от клиента');
+        }
+        await localStore.delete('client:' + client.id);
+        detachedCars.forEach(function(entry){
+          var idx = state.cars.findIndex(function(car){ return car.id === entry.detached.id; });
+          if(idx >= 0) state.cars[idx] = entry.detached;
+        });
+        state.clients = state.clients.filter(function(item){ return item.id !== client.id; });
+        state.openClientId = null;
+        state.clientTypeFilter = client.type === 'org' ? 'org' : 'person';
+        renderClientsTab();
+        showToast('Клиент удалён. Автомобили и заказ-наряды сохранены.');
+      }catch(e){
+        console.error(e);
+        for(var j=0;j<detachedCars.length;j++){
+          try{ await saveCar(detachedCars[j].original); }catch(rollbackError){ console.error(rollbackError); }
+        }
+        if(deleteBtn) deleteBtn.disabled = false;
+        showToast('Не удалось удалить клиента. Проверьте соединение и попробуйте ещё раз.');
+      }
+    });
     var addOrgVehicleBtn = document.getElementById('btnAddOrgVehicle');
     if(addOrgVehicleBtn){
       addOrgVehicleBtn.addEventListener('click', function(){
@@ -6502,68 +6541,127 @@
 
   function openClientReqsForm(wrap, client){
     var formDiv = document.createElement('div');
-    formDiv.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px;';
+    formDiv.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:350;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px);';
     var isOrg = client.type === 'org';
+    var fi = 'width:100%;padding:11px 13px;border-radius:9px;border:1px solid var(--border);background:var(--bg-panel-2);color:var(--text-main);font:inherit;box-sizing:border-box;outline:none;';
+    var fl = 'display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-subtle);margin-bottom:6px;';
+    var fg = 'display:flex;flex-direction:column;min-width:0;';
     formDiv.innerHTML =
-      '<div style="background:var(--bg-panel);border-radius:16px;padding:20px 20px 24px;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;">' +
-        '<div style="font-size:16px;font-weight:600;margin-bottom:16px;">Реквизиты клиента</div>' +
-        '<div class="form-group"><label class="form-label">Тип</label>' +
+      '<div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:16px;padding:20px;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.45);">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;">' +
+          '<div><div style="font-size:17px;font-weight:700;">Редактировать клиента</div>' +
+          '<div style="font-size:12px;color:var(--text-subtle);margin-top:3px;">Контактные данные и реквизиты</div></div>' +
+          '<button type="button" class="btn btn-ghost btn-sm" id="fClientCancelTop" aria-label="Закрыть">✕</button>' +
+        '</div>' +
+        '<div class="form-group"><label class="form-label">Тип клиента</label>' +
           '<select class="form-control" id="fClientType">' +
             '<option value="person"' + (!isOrg ? ' selected' : '') + '>Физическое лицо</option>' +
             '<option value="org"' + (isOrg ? ' selected' : '') + '>Юридическое лицо / ИП</option>' +
           '</select></div>' +
-        '<div id="fOrgFields" style="display:' + (isOrg ? 'flex' : 'none') + ';flex-direction:column;gap:12px;">' +
-          '<div class="form-group"><label class="form-label">Название организации</label>' +
-            '<input class="form-control" id="fOrgName" value="' + escapeHtml(client.orgName||'') + '" placeholder="ООО «Компания»"></div>' +
-          '<div class="form-group"><label class="form-label">ИНН</label>' +
-            '<input class="form-control" id="fOrgInn" value="' + escapeHtml(client.inn||'') + '" placeholder="1234567890"></div>' +
-          '<div class="form-group"><label class="form-label">КПП</label>' +
-            '<input class="form-control" id="fOrgKpp" value="' + escapeHtml(client.kpp||'') + '" placeholder="123456789"></div>' +
-          '<div class="form-group"><label class="form-label">Юридический адрес</label>' +
-            '<input class="form-control" id="fOrgAddr" value="' + escapeHtml(client.legalAddress||'') + '" placeholder="г. Москва, ул. Примерная, 1"></div>' +
-          '<div class="form-group"><label class="form-label">Банк</label>' +
-            '<input class="form-control" id="fOrgBank" value="' + escapeHtml(client.bank||'') + '" placeholder="ПАО «Сбербанк»"></div>' +
-          '<div class="form-group"><label class="form-label">БИК</label>' +
-            '<input class="form-control" id="fOrgBik" value="' + escapeHtml(client.bik||'') + '" placeholder="044525225" inputmode="numeric" maxlength="9"></div>' +
-          '<div class="form-group"><label class="form-label">Расчётный счёт</label>' +
-            '<input class="form-control" id="fOrgAccount" value="' + escapeHtml(client.account||'') + '" placeholder="40702810000000000000" inputmode="numeric" maxlength="20"></div>' +
-          '<div class="form-group"><label class="form-label">Корреспондентский счёт</label>' +
-            '<input class="form-control" id="fOrgCorraccount" value="' + escapeHtml(client.corraccount||'') + '" placeholder="30101810400000000225" inputmode="numeric" maxlength="20"></div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px;">' +
+          '<div style="' + fg + '"><label style="' + fl + '">ФИО / контактное лицо</label>' +
+            '<input id="fClientName" style="' + fi + '" value="' + escapeHtml(client.name||'') + '" placeholder="Иванов Иван Иванович"></div>' +
+          '<div style="' + fg + '"><label style="' + fl + '">Телефон</label>' +
+            '<input id="fClientPhone" style="' + fi + '" value="' + escapeHtml(client.phone||'') + '" placeholder="+7 (999) 000-00-00"></div>' +
+          '<div style="' + fg + '"><label style="' + fl + '">Email</label>' +
+            '<input id="fClientEmail" type="email" style="' + fi + '" value="' + escapeHtml(client.email||'') + '" placeholder="mail@example.com"></div>' +
+          '<div style="' + fg + '"><label style="' + fl + '">Примечание</label>' +
+            '<input id="fClientNote" style="' + fi + '" value="' + escapeHtml(client.note||'') + '" placeholder="Заметки о клиенте"></div>' +
         '</div>' +
-        '<div style="display:flex;gap:10px;margin-top:20px;">' +
-          '<button class="btn btn-ghost" id="fClientCancel" style="flex:1;">Отмена</button>' +
-          '<button class="btn btn-primary" id="fClientSave" style="flex:1;">Сохранить</button>' +
+        '<div id="fOrgFields" style="display:' + (isOrg ? 'flex' : 'none') + ';flex-direction:column;gap:12px;margin-top:16px;">' +
+          '<div style="height:1px;background:var(--border);"></div>' +
+          '<div style="font-size:12px;font-weight:700;color:var(--text-subtle);text-transform:uppercase;letter-spacing:.05em;">Реквизиты организации</div>' +
+          '<div style="' + fg + '"><label style="' + fl + '">Название организации</label>' +
+            '<input id="fOrgName" style="' + fi + '" value="' + escapeHtml(client.orgName||'') + '" placeholder="ООО «Компания»"></div>' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
+            '<div style="' + fg + '"><label style="' + fl + '">ИНН</label>' +
+              '<input id="fOrgInn" style="' + fi + '" value="' + escapeHtml(client.inn||'') + '" placeholder="1234567890"></div>' +
+            '<div style="' + fg + '"><label style="' + fl + '">КПП</label>' +
+              '<input id="fOrgKpp" style="' + fi + '" value="' + escapeHtml(client.kpp||'') + '" placeholder="123456789"></div>' +
+          '</div>' +
+          '<div style="' + fg + '"><label style="' + fl + '">Юридический адрес</label>' +
+            '<input id="fOrgAddr" style="' + fi + '" value="' + escapeHtml(client.legalAddress||'') + '" placeholder="г. Москва, ул. Примерная, 1"></div>' +
+          '<div style="' + fg + '"><label style="' + fl + '">Банк</label>' +
+            '<input id="fOrgBank" style="' + fi + '" value="' + escapeHtml(client.bank||'') + '" placeholder="ПАО «Сбербанк»"></div>' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
+            '<div style="' + fg + '"><label style="' + fl + '">БИК</label>' +
+              '<input id="fOrgBik" style="' + fi + '" value="' + escapeHtml(client.bik||'') + '" inputmode="numeric" maxlength="9" placeholder="044525225"></div>' +
+            '<div style="' + fg + '"><label style="' + fl + '">Расчётный счёт</label>' +
+              '<input id="fOrgAccount" style="' + fi + '" value="' + escapeHtml(client.account||'') + '" inputmode="numeric" maxlength="20" placeholder="40702810000000000000"></div>' +
+          '</div>' +
+          '<div style="' + fg + '"><label style="' + fl + '">Корреспондентский счёт</label>' +
+            '<input id="fOrgCorraccount" style="' + fi + '" value="' + escapeHtml(client.corraccount||'') + '" inputmode="numeric" maxlength="20" placeholder="30101810400000000225"></div>' +
+        '</div>' +
+        '<div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:22px;">' +
+          '<button class="btn btn-ghost" id="fClientCancel">Отмена</button>' +
+          '<button class="btn btn-primary" id="fClientSave">Сохранить</button>' +
         '</div>' +
       '</div>';
     document.body.appendChild(formDiv);
 
+    function closeForm(){ if(formDiv.parentNode) formDiv.parentNode.removeChild(formDiv); }
     formDiv.querySelector('#fClientType').addEventListener('change', function(){
       formDiv.querySelector('#fOrgFields').style.display = this.value === 'org' ? 'flex' : 'none';
     });
-    formDiv.querySelector('#fClientCancel').addEventListener('click', function(){
-      formDiv.remove();
-    });
+    formDiv.querySelector('#fClientCancel').addEventListener('click', closeForm);
+    formDiv.querySelector('#fClientCancelTop').addEventListener('click', closeForm);
+    formDiv.addEventListener('click', function(e){ if(e.target === formDiv) closeForm(); });
     formDiv.querySelector('#fClientSave').addEventListener('click', async function(){
-      client.type = formDiv.querySelector('#fClientType').value;
-      if(client.type === 'org'){
-        client.orgName      = formDiv.querySelector('#fOrgName').value.trim();
-        client.inn          = formDiv.querySelector('#fOrgInn').value.trim();
-        client.kpp          = formDiv.querySelector('#fOrgKpp').value.trim();
-        client.legalAddress = formDiv.querySelector('#fOrgAddr').value.trim();
-        client.bank          = formDiv.querySelector('#fOrgBank').value.trim();
-        client.bik           = formDiv.querySelector('#fOrgBik').value.trim();
-        client.account       = formDiv.querySelector('#fOrgAccount').value.trim();
-        client.corraccount   = formDiv.querySelector('#fOrgCorraccount').value.trim();
-      } else {
-        client.orgName = ''; client.inn = ''; client.kpp = ''; client.legalAddress = '';
-        client.bank = ''; client.bik = ''; client.account = ''; client.corraccount = '';
+      var type = formDiv.querySelector('#fClientType').value;
+      var name = formDiv.querySelector('#fClientName').value.trim();
+      var orgName = formDiv.querySelector('#fOrgName').value.trim();
+      if(type === 'person' && !name){
+        showToast('Укажите ФИО клиента');
+        formDiv.querySelector('#fClientName').focus();
+        return;
       }
-      await saveClient(client);
-      state.clientTypeFilter = client.type === 'org' ? 'org' : 'person';
-      var idx = state.clients.findIndex(function(c){ return c.id === client.id; });
-      if(idx !== -1) state.clients[idx] = client;
-      formDiv.remove();
-      renderClientDetail(wrap, client.id);
+      if(type === 'org' && !name && !orgName){
+        showToast('Укажите ФИО контактного лица или название организации');
+        formDiv.querySelector('#fOrgName').focus();
+        return;
+      }
+      var updatedClient = Object.assign({}, client, {
+        type:type,
+        name:name,
+        phone:formDiv.querySelector('#fClientPhone').value.trim(),
+        email:formDiv.querySelector('#fClientEmail').value.trim(),
+        note:formDiv.querySelector('#fClientNote').value.trim(),
+        updatedAt:Date.now()
+      });
+      if(type === 'org'){
+        updatedClient.orgName = orgName;
+        updatedClient.inn = formDiv.querySelector('#fOrgInn').value.trim();
+        updatedClient.kpp = formDiv.querySelector('#fOrgKpp').value.trim();
+        updatedClient.legalAddress = formDiv.querySelector('#fOrgAddr').value.trim();
+        updatedClient.bank = formDiv.querySelector('#fOrgBank').value.trim();
+        updatedClient.bik = formDiv.querySelector('#fOrgBik').value.trim();
+        updatedClient.account = formDiv.querySelector('#fOrgAccount').value.trim();
+        updatedClient.corraccount = formDiv.querySelector('#fOrgCorraccount').value.trim();
+      } else {
+        updatedClient.orgName = '';
+        updatedClient.inn = '';
+        updatedClient.kpp = '';
+        updatedClient.legalAddress = '';
+        updatedClient.bank = '';
+        updatedClient.bik = '';
+        updatedClient.account = '';
+        updatedClient.corraccount = '';
+      }
+      var saveBtn = formDiv.querySelector('#fClientSave');
+      saveBtn.disabled = true;
+      var ok = await saveClient(updatedClient);
+      if(!ok){
+        saveBtn.disabled = false;
+        showToast('Не удалось сохранить клиента. Проверьте соединение и попробуйте ещё раз.');
+        return;
+      }
+      var idx = state.clients.findIndex(function(item){ return item.id === updatedClient.id; });
+      if(idx >= 0) state.clients[idx] = updatedClient;
+      else state.clients.push(updatedClient);
+      state.clientTypeFilter = updatedClient.type === 'org' ? 'org' : 'person';
+      closeForm();
+      renderClientDetail(wrap, updatedClient.id);
+      showToast('Данные клиента сохранены');
     });
   }
 

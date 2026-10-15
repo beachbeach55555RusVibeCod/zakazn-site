@@ -4952,7 +4952,6 @@
 
     var customerDetails =
       partyDetail('Наименование / ФИО', customerName) +
-      (client.type === 'org' ? partyDetail('Контактное лицо', client.name) : '') +
       partyDetail('ИНН', client.inn) +
       partyDetail('КПП', client.kpp) +
       partyDetail('Адрес', client.legalAddress || client.address) +

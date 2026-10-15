@@ -3146,10 +3146,9 @@
 
   function applyHourRate(line, client, forceCurrentRate){
     if(line.type !== 'work' || !client || client.type !== 'org' || !(Number(client.hourRate)>0)) return;
-    if(line.normHours === undefined || line.normHours === null || line.normHours === '') return;
     var rate = (!forceCurrentRate && Number(line.hourRate)>0) ? Number(line.hourRate) : Number(client.hourRate);
     line.hourRate = rate;
-    line.price = Math.round(Number(line.normHours) * rate * 100) / 100;
+    line.normHours = rate > 0 ? Math.round(((Number(line.price)||0) / rate) * 100) / 100 : null;
   }
 
   function applyClientHourRateToEditableOrder(order, forceCurrentRate){
@@ -5395,7 +5394,7 @@
           '<input class="q-name" data-key="' + line._key + '" data-f="name" value="' + escapeHtml(line.name) + '" placeholder="' + (type === 'work' ? 'Работа' : 'Запчасть') + '"' + (type === 'part' ? ' list="' + quickStockListId + '"' : '') + ' autocomplete="off" style="' + fi + 'padding:8px 10px;">' +
           (type === 'part' ? '<datalist id="' + quickStockListId + '">' + quickStockOptions + '</datalist>' : '') +
           '<input class="q-qty" data-key="' + line._key + '" data-f="qty" type="number" min="1" value="' + line.qty + '" placeholder="Кол" style="' + fi + 'padding:8px 6px;text-align:center;">' +
-          (type === 'work' ? '<input class="q-hours" data-key="' + line._key + '" data-f="normHours" type="number" min="0" step="0.01" value="' + (line.normHours===undefined?'':line.normHours) + '" placeholder="Н/ч" title="Нормо-часы" style="' + fi + 'padding:8px 6px;">' : '') +
+          (type === 'work' ? '<input class="q-hours" data-key="' + line._key + '" data-f="normHours" type="number" min="0" step="0.01" value="' + (line.normHours===undefined?'':line.normHours) + '" placeholder="Н/ч" title="Время: цена работы ÷ ставка нормо-часа" readonly style="' + fi + 'padding:8px 6px;">' : '') +
           quickPriceFields +
           '<button class="q-remove" data-key="' + line._key + '" data-f="remove" style="background:none;border:none;color:var(--text-subtle);cursor:pointer;font-size:18px;padding:0 4px;line-height:1;">×</button>' +
           (type === 'work' ? '<select class="q-assignee" data-key="' + line._key + '" style="' + fi + 'padding:8px 8px;"><option value="">Исполнитель</option>' + quickStaffOptions + '</select>' : '');
@@ -5454,11 +5453,10 @@
               if(sellInput) sellInput.value = line.price ? priceInputValue(line.price) : '';
             }
           }
-          if(f === 'price') line.price = Number(el.value)||0;
-          if(f === 'normHours'){
-            line.normHours=Number(el.value)||0;
-            applyHourRate(line,getClientById(qOrder.clientId));
-            var priceBox=currentRow.querySelector('.q-price'); if(priceBox) priceBox.value=line.price;
+          if(f === 'price'){
+            line.price = Number(el.value)||0;
+            applyHourRate(line,getClientById(qOrder.clientId),false);
+            var hoursBox=currentRow.querySelector('.q-hours'); if(hoursBox) hoursBox.value=(line.normHours===null?'':line.normHours);
           }
           updateQTotal();
         });
@@ -6040,7 +6038,7 @@
             '<datalist id="' + nameDatalistId + '">' + nameOptions + '</datalist>' +
             '<input type="number" min="0" step="1" value="' + (line.qty||1) + '" data-field="qty">' +
             '<input type="number" min="0" step="0.01" value="' + (line.price||0) + '" data-field="price">' +
-            '<input type="number" min="0" step="0.01" value="' + (line.normHours===undefined?'':line.normHours) + '" data-field="normHours" placeholder="Н/ч" title="Нормо-часы">' +
+            '<input type="number" min="0" step="0.01" value="' + (line.normHours===undefined?'':line.normHours) + '" data-field="normHours" placeholder="Н/ч" title="Время: цена работы ÷ ставка нормо-часа" readonly>' +
             '<span class="line-sum">' + fmtMoney(lineTotal(line)) + '</span>' +
           '</div>' +
           '<div class="line-assignees">' +
@@ -6052,10 +6050,9 @@
         block.querySelectorAll('.line-row input').forEach(function(inp){
           inp.addEventListener('input', function(){
             line[inp.dataset.field] = inp.dataset.field === 'name' ? inp.value : Number(inp.value);
-            if(inp.dataset.field === 'normHours'){
-              var org = getClientById(order.clientId);
-              applyHourRate(line,org);
-              var pInput=block.querySelector('input[data-field="price"]'); if(pInput) pInput.value=line.price;
+            if(inp.dataset.field === 'price'){
+              applyHourRate(line,getClientById(order.clientId),false);
+              var hInput=block.querySelector('input[data-field="normHours"]'); if(hInput) hInput.value=(line.normHours===null?'':line.normHours);
             }
             if(inp.dataset.field === 'name'){
               var workMatch = findPriceItemByName(inp.value);

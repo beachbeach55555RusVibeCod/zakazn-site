@@ -4485,7 +4485,7 @@
           '<td class="num" style="color:#888;">' + (i+1) + '</td>' +
           '<td>' + escapeHtml(l.name||'') + '</td>' +
           '<td class="num">' + (l.qty||1) + '</td>' +
-          '<td class="num">' + (l.normHours===undefined||l.normHours===null?'—':escapeHtml(String(l.normHours))) + '</td>' +
+          '<td class="num">' + (function(){ var h=(l.normHours!==undefined&&l.normHours!==null&&l.normHours!=='')?Number(l.normHours):null; var rate=Number(l.hourRate)||Number(client.hourRate)||0; if(h===null && rate>0) h=Math.round(((Number(l.price)||0)/rate)*100)/100; return h===null?'—':escapeHtml(String(h)); })() + '</td>' +
           '<td class="num">' + fmtMoney(l.price) + '</td>' +
           '<td class="num"><b>' + fmtMoney(lineTotal(l)) + '</b></td>' +
         '</tr>';

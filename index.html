@@ -1936,6 +1936,9 @@
     }
   }
 
+  .line-row:not(.part-line-row){grid-template-columns:minmax(110px,1fr) 55px 85px 65px 80px;}
+  #qForm .q-line-row:not(.q-part-line) .q-hours{min-width:0;}
+  @media(max-width:760px){.line-row:not(.part-line-row){grid-template-columns:1fr 1fr 1fr;}.line-row:not(.part-line-row) input:first-child{grid-column:1/-1;}}
 </style>
 </head>
 <body>
@@ -3124,6 +3127,13 @@
 
   function lineTotal(l){
     return (Number(l.qty)||0) * (Number(l.price)||0);
+  }
+
+  function applyHourRate(line, client){
+    if(line.type !== 'work' || !client || client.type !== 'org' || !(Number(client.hourRate)>0)) return;
+    if(line.normHours === undefined || line.normHours === null || line.normHours === '') return;
+    line.hourRate = Number(client.hourRate);
+    line.price = Math.round(Number(line.normHours) * line.hourRate * 100) / 100;
   }
 
   function getCommissionPct(staffId){
@@ -4448,12 +4458,13 @@
     }
 
     function workRows(){
-      if(!workLines.length) return '<tr><td colspan="5" style="color:#888;font-style:italic;text-align:center;padding:10px;">Работы не указаны</td></tr>';
+      if(!workLines.length) return '<tr><td colspan="6" style="color:#888;font-style:italic;text-align:center;padding:10px;">Работы не указаны</td></tr>';
       return workLines.map(function(l, i){
         return '<tr>' +
           '<td class="num" style="color:#888;">' + (i+1) + '</td>' +
           '<td>' + escapeHtml(l.name||'') + '</td>' +
           '<td class="num">' + (l.qty||1) + '</td>' +
+          '<td class="num">' + (l.normHours===undefined||l.normHours===null?'—':escapeHtml(String(l.normHours))) + '</td>' +
           '<td class="num">' + fmtMoney(l.price) + '</td>' +
           '<td class="num"><b>' + fmtMoney(lineTotal(l)) + '</b></td>' +
         '</tr>';
@@ -4524,12 +4535,13 @@
             '<th class="num" style="width:28px;">№</th>' +
             '<th>Наименование</th>' +
             '<th class="num">Кол-во</th>' +
+            '<th class="num">Н/ч</th>' +
             '<th class="num">Цена</th>' +
             '<th class="num">Сумма</th>' +
           '</tr></thead>' +
           '<tbody>' + workRows() + '</tbody>' +
           '<tfoot><tr>' +
-            '<td colspan="4" style="text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:#555;padding-top:6px;">Итого работы:</td>' +
+            '<td colspan="5" style="text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:#555;padding-top:6px;">Итого работы:</td>' +
             '<td class="num subtotal">' + fmtMoney(workTotal) + '</td>' +
           '</tr></tfoot>' +
         '</table>' +
@@ -5361,6 +5373,7 @@
           '<input class="q-name" data-key="' + line._key + '" data-f="name" value="' + escapeHtml(line.name) + '" placeholder="' + (type === 'work' ? 'Работа' : 'Запчасть') + '"' + (type === 'part' ? ' list="' + quickStockListId + '"' : '') + ' autocomplete="off" style="' + fi + 'padding:8px 10px;">' +
           (type === 'part' ? '<datalist id="' + quickStockListId + '">' + quickStockOptions + '</datalist>' : '') +
           '<input class="q-qty" data-key="' + line._key + '" data-f="qty" type="number" min="1" value="' + line.qty + '" placeholder="Кол" style="' + fi + 'padding:8px 6px;text-align:center;">' +
+          (type === 'work' ? '<input class="q-hours" data-key="' + line._key + '" data-f="normHours" type="number" min="0" step="0.01" value="' + (line.normHours===undefined?'':line.normHours) + '" placeholder="Н/ч" title="Нормо-часы" style="' + fi + 'padding:8px 6px;">' : '') +
           quickPriceFields +
           '<button class="q-remove" data-key="' + line._key + '" data-f="remove" style="background:none;border:none;color:var(--text-subtle);cursor:pointer;font-size:18px;padding:0 4px;line-height:1;">×</button>' +
           (type === 'work' ? '<select class="q-assignee" data-key="' + line._key + '" style="' + fi + 'padding:8px 8px;"><option value="">Исполнитель</option>' + quickStaffOptions + '</select>' : '');
@@ -5420,6 +5433,11 @@
             }
           }
           if(f === 'price') line.price = Number(el.value)||0;
+          if(f === 'normHours'){
+            line.normHours=Number(el.value)||0;
+            applyHourRate(line,getClientById(qOrder.clientId));
+            var priceBox=currentRow.querySelector('.q-price'); if(priceBox) priceBox.value=line.price;
+          }
           updateQTotal();
         });
         el.addEventListener('focus', function(){ el.style.borderColor='var(--accent)'; });
@@ -5553,6 +5571,8 @@
           name:l.name || '',
           qty:Number(l.qty)||1,
           price:quickLineSellPrice(l),
+          normHours:l.type==='work' ? (l.normHours===undefined?null:Number(l.normHours)) : null,
+          hourRate:l.type==='work' ? (Number(l.hourRate)||null) : null,
           type:l.type,
           assignees:l.type === 'work' ? (l.assignees||[]).filter(Boolean) : [],
           stockItemId:l.type === 'part' ? (l.stockItemId || null) : null,
@@ -5994,6 +6014,7 @@
             '<datalist id="' + nameDatalistId + '">' + nameOptions + '</datalist>' +
             '<input type="number" min="0" step="1" value="' + (line.qty||1) + '" data-field="qty">' +
             '<input type="number" min="0" step="0.01" value="' + (line.price||0) + '" data-field="price">' +
+            '<input type="number" min="0" step="0.01" value="' + (line.normHours===undefined?'':line.normHours) + '" data-field="normHours" placeholder="Н/ч" title="Нормо-часы">' +
             '<span class="line-sum">' + fmtMoney(lineTotal(line)) + '</span>' +
           '</div>' +
           '<div class="line-assignees">' +
@@ -6005,6 +6026,11 @@
         block.querySelectorAll('.line-row input').forEach(function(inp){
           inp.addEventListener('input', function(){
             line[inp.dataset.field] = inp.dataset.field === 'name' ? inp.value : Number(inp.value);
+            if(inp.dataset.field === 'normHours'){
+              var org = getClientById(order.clientId);
+              applyHourRate(line,org);
+              var pInput=block.querySelector('input[data-field="price"]'); if(pInput) pInput.value=line.price;
+            }
             if(inp.dataset.field === 'name'){
               var workMatch = findPriceItemByName(inp.value);
               if(workMatch){
@@ -6715,8 +6741,9 @@
             '<label class="form-label" for="orgContractNumber">Номер договора</label>' +
             '<input class="form-control" id="orgContractNumber" value="' + escapeHtml(client.contractNumber||'') + '" placeholder="Например: 15/2026 или Д-001">' +
           '</div>' +
-          '<button class="btn btn-primary btn-sm" id="btnSaveContractNumber">Сохранить номер</button>' +
+          '<button class="btn btn-primary btn-sm" id="btnSaveContractNumber">Сохранить настройки</button>' +
         '</div>' +
+        '<div style="margin-top:10px;max-width:250px;"><label class="form-label" for="orgHourRate">Стоимость нормо-часа, ₽</label><input class="form-control" id="orgHourRate" type="number" min="0" step="0.01" value="' + (Number(client.hourRate)||0) + '" placeholder="Например: 2000"></div>' +
         '<div style="font-size:11px;color:var(--text-subtle);margin-top:7px;">Номер автоматически добавляется в заголовки заказ-наряда, акта и счёта.</div>' +
       '</div>';
     }
@@ -6761,7 +6788,7 @@
     if(saveContractBtn){
       saveContractBtn.addEventListener('click', async function(){
         var input = document.getElementById('orgContractNumber');
-        var updatedClient = Object.assign({}, client, { contractNumber: input ? input.value.trim() : '', updatedAt: Date.now() });
+        var updatedClient = Object.assign({}, client, { contractNumber: input ? input.value.trim() : '', hourRate: Math.max(0, Number(document.getElementById('orgHourRate').value)||0), updatedAt: Date.now() });
         saveContractBtn.disabled = true;
         var ok = await saveClient(updatedClient);
         if(!ok){ saveContractBtn.disabled = false; showToast('Не удалось сохранить номер договора'); return; }
@@ -6880,6 +6907,7 @@
             '<input id="fOrgCorraccount" style="' + fi + '" value="' + escapeHtml(client.corraccount||'') + '" inputmode="numeric" maxlength="20" placeholder="30101810400000000225"></div>' +
           '<div style="' + fg + '"><label style="' + fl + '">Номер договора</label>' +
             '<input id="fOrgContractNumber" style="' + fi + '" value="' + escapeHtml(client.contractNumber||'') + '" placeholder="Например: 15/2026 или Д-001"></div>' +
+          '<div style="' + fg + '"><label style="' + fl + '">Стоимость нормо-часа, ₽</label><input id="fOrgHourRate" type="number" min="0" step="0.01" style="' + fi + '" value="' + (Number(client.hourRate)||0) + '"></div>' +
         '</div>' +
         '<div style="display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;margin-top:22px;">' +
           '<button class="btn btn-ghost" id="fClientCancel">Отмена</button>' +
@@ -6927,6 +6955,7 @@
         updatedClient.account = formDiv.querySelector('#fOrgAccount').value.trim();
         updatedClient.corraccount = formDiv.querySelector('#fOrgCorraccount').value.trim();
         updatedClient.contractNumber = formDiv.querySelector('#fOrgContractNumber').value.trim();
+        updatedClient.hourRate = Math.max(0,Number(formDiv.querySelector('#fOrgHourRate').value)||0);
       } else {
         updatedClient.orgName = '';
         updatedClient.inn = '';
@@ -6937,6 +6966,7 @@
         updatedClient.account = '';
         updatedClient.corraccount = '';
         updatedClient.contractNumber = '';
+        updatedClient.hourRate = 0;
       }
       var saveBtn = formDiv.querySelector('#fClientSave');
       saveBtn.disabled = true;

@@ -4649,15 +4649,48 @@
 
   // ---------- Invoice & Act ----------
 
-  function openPrintWindow(title, bodyHtml, css){
+  function openPrintWindow(title, bodyHtml, css, fitOnePage){
+    if(fitOnePage){
+      // A4 printable area: 190 x 277 mm with 10 mm page margins.
+      css += 'body{width:190mm;margin:0 auto;padding:0;box-sizing:border-box;}' +
+        '.print-doc{display:flow-root;}' +
+        '@media print{@page{size:A4;margin:10mm;}body{width:190mm;margin:0;padding:0;}}';
+    }
     var docHtml = '<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><title>' + title + '</title>' +
       '<style>' + css + '</style></head><body>' + bodyHtml + '</body></html>';
     var w = window.open('', '_blank', 'width=900,height=1000');
     if(!w){ showToast('Браузер заблокировал окно печати. Разрешите всплывающие окна.'); return; }
     w.document.open(); w.document.write(docHtml); w.document.close(); w.focus();
-    function tryPrint(){ try{ w.print(); }catch(e){} }
-    if(w.document.readyState === 'complete'){ setTimeout(tryPrint, 150); }
-    else { w.onload = function(){ setTimeout(tryPrint, 150); }; setTimeout(tryPrint, 600); }
+    var printStarted = false;
+    function tryPrint(){
+      if(printStarted || w.closed) return;
+      printStarted = true;
+      try{
+        if(fitOnePage){
+          var page = w.document.querySelector('.print-doc');
+          if(page){
+            // Measure at A4 print width; reduce the entire layout (including fonts)
+            // only if the document exceeds the safe one-page height.
+            var measure = w.document.createElement('div');
+            measure.style.cssText = 'position:absolute;visibility:hidden;height:270mm;width:1px;pointer-events:none;';
+            w.document.body.appendChild(measure);
+            var maxHeight = measure.getBoundingClientRect().height;
+            measure.remove();
+            var scale = 1;
+            page.style.zoom = '1';
+            for(var i=0; i<75 && page.getBoundingClientRect().height > maxHeight; i++){
+              scale = Math.max(0.25, scale * 0.94);
+              page.style.zoom = String(scale);
+              if(scale <= 0.25) break;
+            }
+          }
+        }
+        w.focus();
+        w.print();
+      }catch(e){ console.error('Ошибка печати', e); }
+    }
+    if(w.document.readyState === 'complete'){ setTimeout(tryPrint, fitOnePage ? 250 : 150); }
+    else { w.onload = function(){ setTimeout(tryPrint, fitOnePage ? 250 : 150); }; setTimeout(tryPrint, 800); }
   }
 
   function buildDocCss(){
@@ -4764,11 +4797,11 @@
     }
 
     var body =
+      bankBlock +
       '<div class="doc-header">' +
         '<div><div class="doc-title">Счёт на оплату' + contractTitle + '</div><div class="doc-num">№ ' + escapeHtml(num) + ' от ' + date + '</div></div>' +
         '<div class="co-block">' + (comp.name ? '<div class="co-name">' + escapeHtml(comp.name) + '</div>' : '') + (comp.phone ? '<div class="co-detail">' + escapeHtml(comp.phone) + '</div>' : '') + '</div>' +
       '</div>' +
-      bankBlock +
       '<div class="parties">' +
         '<div><div class="party-title">Поставщик</div>' + sellerLines + '</div>' +
         '<div><div class="party-title">Покупатель</div>' + buyerLines + '</div>' +
@@ -4859,9 +4892,39 @@
       }).join('');
     }
 
-    var sigBlock = o.signature
-      ? '<div class="p-sig-block has-sig"><img class="p-sig-img" src="' + o.signature + '"><div class="p-sig-line">Заказчик</div></div>'
-      : '<div class="p-sig-block"><div class="p-sig-line">Заказчик</div></div>';
+    function partyDetail(label, value){
+      if(value === undefined || value === null || String(value).trim() === '') return '';
+      return '<div class="act-requisite"><span class="act-requisite-label">' + escapeHtml(label) + ':</span> ' +
+        '<span class="act-requisite-value">' + escapeHtml(String(value)) + '</span></div>';
+    }
+    var executorDetails =
+      partyDetail('Наименование', comp.name || 'ИП Владимиров') +
+      partyDetail('ИНН', comp.inn) +
+      partyDetail('КПП', comp.kpp) +
+      partyDetail('Адрес', comp.address) +
+      partyDetail('Телефон', comp.phone) +
+      partyDetail('Банк', comp.bank) +
+      partyDetail('БИК', comp.bik) +
+      partyDetail('Расчётный счёт', comp.account) +
+      partyDetail('Корр. счёт', comp.corraccount);
+
+    var customerDetails =
+      partyDetail('Наименование / ФИО', customerName) +
+      (client.type === 'org' ? partyDetail('Контактное лицо', client.name) : '') +
+      partyDetail('ИНН', client.inn) +
+      partyDetail('КПП', client.kpp) +
+      partyDetail('Адрес', client.legalAddress || client.address) +
+      partyDetail('Телефон', customerPhone !== '—' ? customerPhone : '') +
+      partyDetail('Email', client.email) +
+      partyDetail('Банк', client.bank) +
+      partyDetail('БИК', client.bik) +
+      partyDetail('Расчётный счёт', client.account) +
+      partyDetail('Корр. счёт', client.corraccount) +
+      partyDetail('Договор №', client.contractNumber);
+
+    var customerSignature = o.signature
+      ? '<img class="act-sig-img" src="' + o.signature + '" alt="Подпись заказчика">'
+      : '';
 
     var compRight = '';
     if(comp.name)    compRight += '<div class="co-name">' + escapeHtml(comp.name) + '</div>';
@@ -4918,16 +4981,40 @@
           '<div class="p-total-words"><b>Сумма прописью:</b> ' + escapeHtml(moneyToWordsRu(total)) + '</div>' +
         '</div>' +
 
-        '<div class="p-note">Вышеперечисленные работы выполнены полностью и в срок. Заказчик претензий по объёму, качеству и срокам оказания услуг не имеет.</div>' +
-
-        '<div class="p-signatures">' +
-          '<div class="p-sig-block"><div class="p-sig-line">Исполнитель · ИП Владимиров</div></div>' +
-          sigBlock +
-          '<div class="p-sig-block"><div class="p-stamp-circle">М.П.</div></div>' +
+        '<div class="act-parties">' +
+          '<div class="act-party">' +
+            '<div class="act-party-title">Исполнитель</div>' +
+            executorDetails +
+            '<div class="act-party-signature">Подпись: __________________ / ИП Владимиров</div>' +
+            '<div class="act-party-stamp">М.П.</div>' +
+          '</div>' +
+          '<div class="act-party">' +
+            '<div class="act-party-title">Заказчик</div>' +
+            customerDetails +
+            '<div class="act-party-signature">' + customerSignature +
+              'Подпись: __________________ / ' + escapeHtml(customerName) + '</div>' +
+          '</div>' +
         '</div>' +
       '</div>';
 
-    openPrintWindow('Акт № ' + num, body, buildOrderLikeDocCss());
+    var actCss = buildOrderLikeDocCss() +
+      '.act-parties{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;margin-top:14px;break-inside:avoid;page-break-inside:avoid;}' +
+      '.act-party{min-width:0;border-top:1.5px solid #222;padding-top:8px;}' +
+      '.act-party-title{font-size:13px;font-weight:700;text-transform:uppercase;margin-bottom:7px;}' +
+      '.act-requisite{font-size:10.5px;line-height:1.35;margin:3px 0;overflow-wrap:anywhere;}' +
+      '.act-requisite-label{color:#666;}' +
+      '.act-requisite-value{font-weight:600;}' +
+      '.act-party-signature{border-top:1px solid #ccc;margin-top:24px;padding-top:6px;font-size:10.5px;overflow-wrap:anywhere;}' +
+      '.act-sig-img{max-height:38px;max-width:150px;display:block;margin-bottom:4px;}' +
+      '.act-party-stamp{font-size:10px;color:#777;margin-top:6px;}' +
+      '.p-header{margin-bottom:10px;padding-bottom:8px;}' +
+      '.p-info-grid{padding:9px 11px;margin-bottom:7px;}' +
+      '.p-meta-row{padding:5px 10px;}' +
+      'table.p-table td{padding:4px 5px;}' +
+      'table.p-table th{padding:4px 5px;}' +
+      '.p-total-block{padding:8px 11px;margin-top:7px;}' +
+      '.p-section-title{margin-bottom:5px;}';
+    openPrintWindow('Акт № ' + num, body, actCss, true);
   }
 
   // ---------- Order form (create / edit) ----------

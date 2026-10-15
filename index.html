@@ -89,6 +89,19 @@
     box-shadow:none;
   }
   .header-clock::before{ content:none; }
+  .header-media-row{display:flex;align-items:center;gap:12px;}
+  .radio-player{display:flex;align-items:center;gap:9px;}
+  .radio-play{width:48px;height:48px;border-radius:50%;border:3px solid rgba(20,184,166,.55);background:rgba(20,184,166,.08);color:var(--accent);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:19px;line-height:1;box-shadow:0 0 0 5px rgba(20,184,166,.06);transition:.18s ease;}
+  .radio-play:hover{border-color:var(--accent);background:rgba(20,184,166,.15);}
+  .radio-play.playing{box-shadow:0 0 0 5px rgba(20,184,166,.1),0 0 18px rgba(20,184,166,.28);}
+  .radio-select{height:42px;min-width:190px;max-width:230px;border:1px solid var(--border);border-radius:8px;background:var(--bg-panel-2);color:var(--text-main);padding:0 34px 0 12px;font:inherit;font-size:13px;outline:none;cursor:pointer;}
+  .radio-select:focus{border-color:var(--accent);}
+  .radio-levels{height:30px;display:flex;align-items:flex-end;gap:3px;padding:0 2px;}
+  .radio-levels i{display:block;width:4px;border-radius:3px;background:var(--accent);opacity:.35;}
+  .radio-levels i:nth-child(1){height:9px}.radio-levels i:nth-child(2){height:15px}.radio-levels i:nth-child(3){height:22px}.radio-levels i:nth-child(4){height:28px}
+  .radio-player.playing .radio-levels i{opacity:1;animation:radioBars .7s ease-in-out infinite alternate;}
+  .radio-player.playing .radio-levels i:nth-child(2){animation-delay:.15s}.radio-player.playing .radio-levels i:nth-child(3){animation-delay:.3s}.radio-player.playing .radio-levels i:nth-child(4){animation-delay:.45s}
+  @keyframes radioBars{from{transform:scaleY(.45)}to{transform:scaleY(1)}}
   .clock-screen{
     position:relative;
     z-index:1;
@@ -1082,6 +1095,10 @@
     .header h1{ font-size:17px; }
     .header .sub{ font-size:12px; }
     .header-actions-stack{ align-items:stretch; }
+    .header-media-row{flex-wrap:wrap;justify-content:flex-end;gap:9px;}
+    .radio-player{width:100%;justify-content:flex-end;}
+    .radio-play{width:42px;height:42px;}
+    .radio-select{min-width:0;max-width:none;flex:1;}
     .header-clock{
       min-width:0;
       width:auto;
@@ -2007,7 +2024,21 @@
     <div id="mobileDailySalary" class="mobile-daily-salary"></div>
     <div id="salaryWidgetsRow" class="salary-widgets-row"></div>
     <div class="header-actions-stack">
-      <div class="header-clock" id="headerClock" aria-label="Текущее время"><div class="clock-screen"></div></div>
+      <div class="header-media-row">
+        <div class="header-clock" id="headerClock" aria-label="Текущее время"><div class="clock-screen"></div></div>
+        <div class="radio-player" id="radioPlayer">
+          <button type="button" class="radio-play" id="radioPlay" title="Включить радио" aria-label="Включить радио">▶</button>
+          <select class="radio-select" id="radioStation" title="Радиостанция">
+            <option value="https://pub0201.101.ru:8000/stream/air/aac/64/200">Relax FM</option>
+            <option value="https://montecarlo.hostingradio.ru/montecarlo96.aacp">Radio Monte Carlo</option>
+            <option value="https://ep256.hostingradio.ru:8052/europaplus256.mp3">Europa Plus</option>
+            <option value="https://dfm.hostingradio.ru/dfm96.aacp">DFM</option>
+            <option value="https://radiorecord.hostingradio.ru/rr_main96.aacp">Record</option>
+          </select>
+          <div class="radio-levels" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+          <audio id="radioAudio" preload="none"></audio>
+        </div>
+      </div>
       <div class="header-actions">
         <span class="stat-pill" id="statTotal">Всего: <b>0</b></span>
         <span class="stat-pill" id="statSum">Сумма в работе: <b>0&nbsp;₽</b></span>
@@ -4042,6 +4073,38 @@
       }).join('');
       statusRow.innerHTML = rows;
     }
+  }
+
+  // ===== Internet radio =====
+  function initRadio(){
+    var audio=document.getElementById('radioAudio');
+    var play=document.getElementById('radioPlay');
+    var select=document.getElementById('radioStation');
+    var player=document.getElementById('radioPlayer');
+    if(!audio||!play||!select||!player) return;
+    var saved=localStorage.getItem('radioStation');
+    if(saved && Array.prototype.some.call(select.options,function(o){return o.value===saved;})) select.value=saved;
+    audio.src=select.value;
+    function setPlaying(on){
+      play.textContent=on?'❚❚':'▶';
+      play.title=on?'Остановить радио':'Включить радио';
+      play.setAttribute('aria-label',play.title);
+      play.classList.toggle('playing',on);
+      player.classList.toggle('playing',on);
+    }
+    play.addEventListener('click',function(){
+      if(!audio.paused){ audio.pause(); setPlaying(false); return; }
+      audio.play().then(function(){setPlaying(true);}).catch(function(){setPlaying(false);showToast('Не удалось запустить эту радиостанцию');});
+    });
+    select.addEventListener('change',function(){
+      var wasPlaying=!audio.paused;
+      localStorage.setItem('radioStation',select.value);
+      audio.src=select.value;
+      if(wasPlaying) audio.play().then(function(){setPlaying(true);}).catch(function(){setPlaying(false);showToast('Поток станции сейчас недоступен');});
+    });
+    audio.addEventListener('playing',function(){setPlaying(true);});
+    audio.addEventListener('pause',function(){setPlaying(false);});
+    audio.addEventListener('error',function(){setPlaying(false);});
   }
 
   // ===== Theme toggle =====
@@ -8675,6 +8738,7 @@
     document.getElementById('btnExportCSV').addEventListener('click', exportOrdersCSV);
     document.getElementById('btnExportPayroll').addEventListener('click', exportPayrollCSV);
     initTheme();
+    initRadio();
     updateHeaderClock();
     setInterval(updateHeaderClock, 1000);
     document.getElementById('btnLogout').addEventListener('click', async function(){

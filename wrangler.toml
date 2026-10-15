@@ -1,0 +1,8 @@
+name = "zakaz123"
+main = "worker.js"
+compatibility_date = "2026-10-15"
+
+[assets]
+directory = "."
+binding = "ASSETS"
+run_worker_first = ["/api/*"]

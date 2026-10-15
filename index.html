@@ -8705,18 +8705,59 @@
     });
     return best;
   }
+  var AI_CAR_ALIASES = {
+    'Lada':['лада','ваз','жигули'], 'Toyota':['тойота','тоета'], 'Hyundai':['хендай','хундай','хендэ','хюндай'],
+    'Kia':['киа'], 'Skoda':['шкода'], 'Chevrolet':['шевроле','шеви'], 'Renault':['рено'], 'Nissan':['ниссан','нисан'],
+    'Volkswagen':['фольксваген','фольцваген','фолькс'], 'Ford':['форд'], 'BMW':['бмв','бэ эм вэ'], 'Mercedes-Benz':['мерседес','мерс'],
+    'Audi':['ауди'], 'Mazda':['мазда'], 'Mitsubishi':['митсубиси','мицубиси'], 'Honda':['хонда'], 'Subaru':['субару'],
+    'Opel':['опель'], 'Peugeot':['пежо'], 'Citroen':['ситроен','цитроен'], 'Geely':['джили','джили'], 'Chery':['чери'],
+    'Haval':['хавал','хавейл'], 'Great Wall':['грейт волл','грет вол'], 'Daewoo':['дэу','деу'], 'Suzuki':['сузуки'],
+    'Volvo':['вольво'], 'Land Rover':['ленд ровер','лэнд ровер'], 'Lexus':['лексус'], 'Infiniti':['инфинити'], 'Porsche':['порше']
+  };
+  var AI_MODEL_ALIASES = {
+    'XRAY':['иксрей','икс рей','xray','x-ray'], 'Vesta':['веста'], 'Granta':['гранта'], 'Largus':['ларгус'], 'Niva':['нива'],
+    'Solaris':['солярис'], 'Creta':['крета','грета'], 'Rio':['рио'], 'Sportage':['спортейдж','спортаж'],
+    'Camry':['камри'], 'Corolla':['королла','каролла'], 'RAV4':['рав4','рав 4'], 'Logan':['логан'], 'Duster':['дастер'],
+    'Kaptur':['каптур'], 'Sandero':['сандеро'], 'Polo':['поло'], 'Tiguan':['тигуан'], 'Octavia':['октавия'], 'Rapid':['рапид'],
+    'Focus':['фокус'], 'Mondeo':['мондео'], 'Qashqai':['кашкай'], 'X-Trail':['икстрейл','икс трейл'], 'Almera':['альмера'],
+    'Lacetti':['лачетти'], 'Cruze':['круз'], 'Aveo':['авео'], 'Nexia':['нексия'], 'Matiz':['матиз']
+  };
+  function aiAliasMatch(text,map){
+    var t=aiWords(text), found='';
+    Object.keys(map).some(function(canonical){
+      return map[canonical].some(function(alias){
+        var a=aiWords(alias); if(t.indexOf(a)>=0){found=canonical;return true;} return false;
+      });
+    });
+    return found;
+  }
+  function aiDetectVehicleText(text){
+    var make=aiAliasMatch(text,AI_CAR_ALIASES), model=aiAliasMatch(text,AI_MODEL_ALIASES);
+    if(!make){
+      Object.keys(CAR_DB).some(function(m){if(aiWords(text).indexOf(aiWords(m))>=0){make=m;return true;}return false;});
+    }
+    if(make && !model){
+      (CAR_DB[make]||[]).some(function(m){if(aiWords(text).indexOf(aiWords(m))>=0){model=m;return true;}return false;});
+    }
+    if(model && !make){
+      Object.keys(CAR_DB).some(function(m){if((CAR_DB[m]||[]).indexOf(model)>=0){make=m;return true;}return false;});
+    }
+    return {make:make,model:model};
+  }
   function aiFindCar(text,client){
-    var t=aiWords(text), list=client?carsOfClient(client.id):state.cars, best=null, score=0;
+    var t=aiWords(text), detected=aiDetectVehicleText(text), list=client?carsOfClient(client.id):state.cars, best=null, score=0;
     list.forEach(function(c){
       var fields=[c.carMake,c.carModel,c.plate,c.vin].filter(Boolean);
-      var sc=fields.reduce(function(n,v){return n+(t.indexOf(aiWords(v))>=0?1:0);},0);
+      var sc=fields.reduce(function(n,v){return n+(t.indexOf(aiWords(v))>=0?2:0);},0);
+      if(detected.make && aiWords(c.carMake)===aiWords(detected.make)) sc+=3;
+      if(detected.model && aiWords(c.carModel)===aiWords(detected.model)) sc+=5;
       if(sc>score){score=sc;best=c;}
     });
     if(!best && client && list.length===1) best=list[0];
     return best;
   }
   function aiParseDraft(text){
-    var client=aiFindClient(text), car=aiFindCar(text,client);
+    var client=aiFindClient(text), car=aiFindCar(text,client), detectedVehicle=aiDetectVehicleText(text);
     var mileage=''; var mm=text.match(/(?:пробег|пробегом)\s*[:=-]?\s*(\d[\d\s]{2,})/i); if(mm) mileage=mm[1].replace(/\s/g,'');
     var master=''; state.staff.some(function(p){ var first=aiWords(p.name).split(/\s+/)[0]; if(first.length>2 && aiWords(text).indexOf(first)>=0){master=p.name;return true;} return false;});
     var chunks=text.split(/[,;\n]+/), lines=[];
@@ -8727,14 +8768,14 @@
       name=name.replace(/^(?:работа|работы|запчасть|деталь)\s*[:=-]?\s*/i,'').trim();
       if(name) lines.push({name:name,qty:1,price:Number(m[2].replace(',','.')),type:/фильтр|масло\s+\w+|колодк|свеч|ремень|ролик|детал|запчаст/i.test(low)?'part':'work',assignees:[]});
     });
-    return {client:client,car:car,mileage:mileage,master:master,lines:lines,text:text};
+    return {client:client,car:car,detectedMake:detectedVehicle.make,detectedModel:detectedVehicle.model,mileage:mileage,master:master,lines:lines,text:text};
   }
   function aiEsc(v){return escapeHtml(String(v==null?'':v));}
   function aiShowDraft(d){
     var body=document.getElementById('aiAssistantBody');
     var client=d.client,car=d.car,total=d.lines.reduce(function(s,l){return s+l.price*l.qty;},0);
     var lines=d.lines.length?d.lines.map(function(l){return '<div class="ai-row"><span>'+aiEsc(l.name)+'</span><b>'+fmtMoney(l.price)+'</b></div>';}).join(''):'<div class="ai-hint">Работы/запчасти с ценами пока не распознаны.</div>';
-    body.insertAdjacentHTML('beforeend','<div class="ai-msg">Я разобрал задачу. Проверьте данные:</div><div class="ai-preview"><h4>Предпросмотр ЗН</h4><div class="ai-row"><span>Клиент</span><b>'+aiEsc(client?client.name:'не найден')+'</b></div><div class="ai-row"><span>Автомобиль</span><b>'+aiEsc(car?[car.carMake,car.carModel,car.plate].filter(Boolean).join(' '):'не найден')+'</b></div><div class="ai-row"><span>Пробег</span><b>'+aiEsc(d.mileage||'—')+'</b></div>'+lines+'<div class="ai-row" style="border-top:1px solid var(--border);padding-top:8px;margin-top:8px"><span>Итого</span><b>'+fmtMoney(total)+'</b></div><button class="ai-confirm" id="aiOpenDraft" type="button" style="width:100%;margin-top:10px">Открыть ЗН для проверки</button></div>');
+    body.insertAdjacentHTML('beforeend','<div class="ai-msg">Я разобрал задачу. Проверьте данные:</div><div class="ai-preview"><h4>Предпросмотр ЗН</h4><div class="ai-row"><span>Клиент</span><b>'+aiEsc(client?client.name:'не найден')+'</b></div><div class="ai-row"><span>Автомобиль</span><b>'+aiEsc(car?[car.carMake,car.carModel,car.plate].filter(Boolean).join(' '):([d.detectedMake,d.detectedModel].filter(Boolean).join(' ')||'не найден'))+'</b></div><div class="ai-row"><span>Пробег</span><b>'+aiEsc(d.mileage||'—')+'</b></div>'+lines+'<div class="ai-row" style="border-top:1px solid var(--border);padding-top:8px;margin-top:8px"><span>Итого</span><b>'+fmtMoney(total)+'</b></div><button class="ai-confirm" id="aiOpenDraft" type="button" style="width:100%;margin-top:10px">Открыть ЗН для проверки</button></div>');
     body.scrollTop=body.scrollHeight;
     document.getElementById('aiOpenDraft').onclick=function(){ aiOpenInOrderForm(d); };
   }
@@ -8743,7 +8784,7 @@
     openOrderForm(null);
     setTimeout(function(){
       if(d.client){document.getElementById('f_clientName').value=d.client.name||'';document.getElementById('f_clientPhone').value=d.client.phone||'';}
-      if(d.car){document.getElementById('f_carMake').value=d.car.carMake||'';document.getElementById('f_carModel').value=d.car.carModel||'';document.getElementById('f_plate').value=d.car.plate||'';document.getElementById('f_vin').value=d.car.vin||'';}
+      if(d.car){document.getElementById('f_carMake').value=d.car.carMake||'';document.getElementById('f_carModel').value=d.car.carModel||'';document.getElementById('f_plate').value=d.car.plate||'';document.getElementById('f_vin').value=d.car.vin||'';}else{if(d.detectedMake)document.getElementById('f_carMake').value=d.detectedMake;if(d.detectedModel)document.getElementById('f_carModel').value=d.detectedModel;}
       if(d.mileage) document.getElementById('f_mileage').value=d.mileage;
       if(d.master) document.getElementById('f_master').value=d.master;
       var addW=document.getElementById('addWorkLineBtn'),addP=document.getElementById('addPartLineBtn');

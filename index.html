@@ -8760,14 +8760,36 @@
     var client=aiFindClient(text), car=aiFindCar(text,client), detectedVehicle=aiDetectVehicleText(text);
     var mileage=''; var mm=text.match(/(?:пробег|пробегом)\s*[:=-]?\s*(\d[\d\s]{2,})/i); if(mm) mileage=mm[1].replace(/\s/g,'');
     var master=''; state.staff.some(function(p){ var first=aiWords(p.name).split(/\s+/)[0]; if(first.length>2 && aiWords(text).indexOf(first)>=0){master=p.name;return true;} return false;});
-    var chunks=text.split(/[,;\n]+/), lines=[];
-    chunks.forEach(function(raw){
-      var c=raw.trim(), m=c.match(/(.+?)\s+(\d+(?:[.,]\d{1,2})?)\s*(?:р|₽|руб)?\.?$/i);
-      if(!m) return; var name=m[1].trim(); var low=aiWords(name);
-      if(low.indexOf('пробег')>=0 || low.indexOf('телефон')>=0) return;
+    var lines=[];
+    // A price closes the phrase immediately before it. This also works with normal speech without commas.
+    var cleaned=String(text||'').replace(/\s+/g,' ').trim();
+    var priceRe=/([^,;]+?)\s+(\d+(?:[.,]\d{1,2})?)\s*(?:р|₽|руб(?:лей|ля)?\.?|(?=\s|$))/gi, pm;
+    var candidates=[];
+    while((pm=priceRe.exec(cleaned))!==null){
+      candidates.push({raw:pm[1].trim(),price:Number(pm[2].replace(',','.'))});
+    }
+    candidates.forEach(function(item){
+      var name=item.raw;
+      // Strip context belonging to customer/car/mileage/master and previous priced item.
+      name=name.replace(/^.*?(?:пробег(?:ом)?\s*[:=-]?\s*\d[\d\s]*)(?:\s+|$)/i,'');
+      name=name.replace(/^.*?(?:мастер(?:-приемщик)?\s+[^,;]+?)(?=\s+(?:замена|ремонт|диагност|фильтр|масло|колодк|свеч|ремень|ролик|работа|запчаст)|$)/i,'');
+      var marker=name.match(/(?:^|\s)(замена|ремонт|диагностика|диагностировать|снятие|установка|регулировка|проверка|фильтр|масло|колодки|колодок|свечи|свечей|ремень|ролик|работа|запчасть)\b/i);
+      if(marker && marker.index!==undefined) name=name.slice(marker.index).trim();
       name=name.replace(/^(?:работа|работы|запчасть|деталь)\s*[:=-]?\s*/i,'').trim();
-      if(name) lines.push({name:name,qty:1,price:Number(m[2].replace(',','.')),type:/фильтр|масло\s+\w+|колодк|свеч|ремень|ролик|детал|запчаст/i.test(low)?'part':'work',assignees:[]});
+      var low=aiWords(name);
+      if(!name || low.indexOf('пробег')===0 || low.indexOf('телефон')===0) return;
+      lines.push({name:name,qty:1,price:item.price,type:/фильтр|масло\s+\w+|колодк|свеч|ремень|ролик|детал|запчаст/i.test(low)?'part':'work',assignees:[]});
     });
+    // Keep the old comma parser as a fallback for unusual phrases.
+    if(!lines.length){
+      text.split(/[,;\n]+/).forEach(function(raw){
+        var c=raw.trim(), m=c.match(/(.+?)\s+(\d+(?:[.,]\d{1,2})?)\s*(?:р|₽|руб)?\.?$/i);
+        if(!m) return; var name=m[1].trim(), low=aiWords(name);
+        if(low.indexOf('пробег')>=0 || low.indexOf('телефон')>=0) return;
+        name=name.replace(/^(?:работа|работы|запчасть|деталь)\s*[:=-]?\s*/i,'').trim();
+        if(name) lines.push({name:name,qty:1,price:Number(m[2].replace(',','.')),type:/фильтр|масло\s+\w+|колодк|свеч|ремень|ролик|детал|запчаст/i.test(low)?'part':'work',assignees:[]});
+      });
+    }
     return {client:client,car:car,detectedMake:detectedVehicle.make,detectedModel:detectedVehicle.model,mileage:mileage,master:master,lines:lines,text:text};
   }
   function aiEsc(v){return escapeHtml(String(v==null?'':v));}

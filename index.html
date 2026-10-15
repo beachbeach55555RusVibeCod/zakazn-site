@@ -8778,6 +8778,11 @@
       name=name.replace(/^(?:работа|работы|запчасть|деталь)\s*[:=-]?\s*/i,'').trim();
       var low=aiWords(name);
       if(!name || low.indexOf('пробег')===0 || low.indexOf('телефон')===0) return;
+      if(/^(то|т\.о\.)$/i.test(name)) name='Техническое обслуживание';
+      else if(/^(масло|замена масла)$/i.test(name)) name='Замена масла';
+      else if(/^(диагност|диагностика)$/i.test(name)) name='Диагностика';
+      else if(/^(ходовка|диагностика ходовки)$/i.test(name)) name='Диагностика ходовой части';
+      low=aiWords(name);
       lines.push({name:name,qty:1,price:item.price,type:/фильтр|масло\s+\w+|колодк|свеч|ремень|ролик|детал|запчаст/i.test(low)?'part':'work',assignees:[]});
     });
     // Keep the old comma parser as a fallback for unusual phrases.

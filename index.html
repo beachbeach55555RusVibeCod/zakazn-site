@@ -2025,7 +2025,7 @@
   <div class="tabs" id="mainTabs">
     <button class="tab-btn active" data-tab="board">Доска заказов</button>
     <button class="tab-btn" data-tab="clients">Клиенты</button>
-    <button class="tab-btn" data-tab="cars">База авто</button>
+    <button class="tab-btn" data-tab="cars">Авто</button>
     <button class="tab-btn" data-tab="pricelist">Прайс-лист</button>
     <button class="tab-btn" data-tab="stock">Склад</button>
     <button class="tab-btn" data-tab="staff">Сотрудники</button>
@@ -6448,7 +6448,10 @@
       '</div>';
     }
 
-    html += '<div class="form-section-title">Автомобили клиента</div>';
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px;">' +
+      '<div class="form-section-title" style="margin:0;">Автомобили клиента</div>' +
+      (isOrg ? '<button class="btn btn-primary btn-sm" id="btnAddOrgVehicle">+ Добавить авто</button>' : '') +
+    '</div>';
 
     if(cars.length === 0){
       html += '<div class="clients-empty">У этого клиента пока нет привязанных автомобилей</div>';
@@ -6481,6 +6484,12 @@
     document.getElementById('btnEditClientReqs').addEventListener('click', function(){
       openClientReqsForm(wrap, client);
     });
+    var addOrgVehicleBtn = document.getElementById('btnAddOrgVehicle');
+    if(addOrgVehicleBtn){
+      addOrgVehicleBtn.addEventListener('click', function(){
+        openVehicleForm(null, client.id, 'clients');
+      });
+    }
 
     wrap.querySelectorAll('.vehicle-card').forEach(function(card){
       card.addEventListener('click', function(){
@@ -6572,11 +6581,16 @@
     var visits = vehicleVisitHistory(vehicleId);
     var carLabel = [car.carMake, car.carModel].filter(Boolean).join(' ') || 'Автомобиль';
 
-    var backLabel = sourceTab === 'cars' ? 'База авто' : 'Клиенты';
+    var backLabel = sourceTab === 'cars' ? 'Авто' : 'Клиенты';
     var html = '<div class="breadcrumb">' +
       '<a id="bcVehicleBack">' + backLabel + '</a><span class="sep">/</span>' +
       (owner ? '<a id="bcClient">' + escapeHtml(displayClientName(owner)) + '</a><span class="sep">/</span>' : '') +
       '<span class="current">' + escapeHtml(carLabel) + ' · ' + escapeHtml(car.plate||'') + '</span>' +
+    '</div>';
+
+    html += '<div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin:-4px 0 16px;">' +
+      '<button class="btn btn-ghost btn-sm" id="btnEditVehicle">✎ Редактировать</button>' +
+      '<button class="btn btn-danger btn-sm" id="btnDeleteVehicle">🗑 Удалить авто</button>' +
     '</div>';
 
     html += '<div class="payroll-summary">' +
@@ -6628,6 +6642,128 @@
         switchTab('clients', true);
       });
     }
+    document.getElementById('btnEditVehicle').addEventListener('click', function(){
+      openVehicleForm(car.id, car.clientId || null, sourceTab);
+    });
+    document.getElementById('btnDeleteVehicle').addEventListener('click', async function(){
+      var label = [car.carMake, car.carModel, car.plate].filter(Boolean).join(' ') || 'этот автомобиль';
+      if(!window.confirm('Удалить ' + label + ' из базы? Заказ-наряды останутся, но карточка автомобиля и её история будут удалены.')) return;
+      var deleteBtn = document.getElementById('btnDeleteVehicle');
+      if(deleteBtn) deleteBtn.disabled = true;
+      try{
+        await localStore.delete('car:' + vehicleId);
+        state.cars = state.cars.filter(function(item){ return item.id !== vehicleId; });
+        state.openVehicleId = null;
+        if(sourceTab === 'cars'){
+          state.openClientId = null;
+          renderCarsTab();
+        } else {
+          if(owner){
+            state.openClientId = owner.id;
+            state.clientTypeFilter = owner.type === 'org' ? 'org' : 'person';
+          }
+          renderClientsTab();
+        }
+        showToast('Автомобиль удалён из базы. Заказ-наряды сохранены.');
+      }catch(e){
+        console.error(e);
+        if(deleteBtn) deleteBtn.disabled = false;
+        showToast('Не удалось удалить автомобиль');
+      }
+    });
+  }
+
+  function openVehicleForm(vehicleId, ownerClientId, sourceTab){
+    sourceTab = sourceTab || (state.activeTab === 'cars' ? 'cars' : 'clients');
+    var existing = vehicleId ? getCarById(vehicleId) : null;
+    if(vehicleId && !existing){
+      showToast('Автомобиль не найден');
+      return;
+    }
+    var car = existing || {
+      id: carUid(), clientId: ownerClientId || null,
+      carMake: '', carModel: '', plate: '', vin: '', createdAt: Date.now()
+    };
+    var currentOwnerId = existing ? (existing.clientId || '') : (ownerClientId || '');
+    var fi = 'width:100%;padding:11px 13px;border-radius:9px;border:1px solid var(--border);background:var(--bg-panel-2);color:var(--text-main);font:inherit;box-sizing:border-box;outline:none;';
+    var fl = 'display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-subtle);margin-bottom:6px;';
+    var owners = state.clients.slice().sort(function(a,b){
+      return displayClientName(a).localeCompare(displayClientName(b));
+    });
+    var ownerOptions = '<option value="">— Без владельца —</option>' + owners.map(function(client){
+      return '<option value="' + escapeHtml(client.id) + '"' + (client.id === currentOwnerId ? ' selected' : '') + '>' +
+        escapeHtml(displayClientName(client)) + (client.phone ? ' · ' + escapeHtml(client.phone) : '') + '</option>';
+    }).join('');
+    var formDiv = document.createElement('div');
+    formDiv.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:350;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px);';
+    formDiv.innerHTML =
+      '<div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:16px;padding:22px;width:100%;max-width:520px;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.45);">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px;">' +
+          '<div style="font-size:17px;font-weight:700;">' + (existing ? 'Редактировать автомобиль' : 'Добавить автомобиль') + '</div>' +
+          '<button type="button" id="fVehicleCancelTop" class="btn btn-ghost btn-sm" aria-label="Закрыть">✕</button>' +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
+          '<div><label style="' + fl + '">Марка</label><input id="fVehicleMake" style="' + fi + '" value="' + escapeHtml(car.carMake||'') + '" placeholder="Toyota"></div>' +
+          '<div><label style="' + fl + '">Модель</label><input id="fVehicleModel" style="' + fi + '" value="' + escapeHtml(car.carModel||'') + '" placeholder="Camry"></div>' +
+          '<div><label style="' + fl + '">Госномер</label><input id="fVehiclePlate" style="' + fi + '" value="' + escapeHtml(car.plate||'') + '" placeholder="А123АА77" maxlength="20"></div>' +
+          '<div><label style="' + fl + '">VIN</label><input id="fVehicleVin" style="' + fi + '" value="' + escapeHtml(car.vin||'') + '" placeholder="17 символов" maxlength="40"></div>' +
+        '</div>' +
+        '<div style="margin-top:14px;"><label style="' + fl + '">Владелец / организация</label>' +
+          '<select id="fVehicleOwner" style="' + fi + '">' + ownerOptions + '</select></div>' +
+        '<div style="font-size:12px;color:var(--text-subtle);line-height:1.45;margin-top:12px;">История заказ-нарядов сохраняется отдельно. При удалении автомобиля его карточка и история в базе авто будут удалены.</div>' +
+        '<div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:20px;">' +
+          '<button type="button" id="fVehicleCancel" class="btn btn-ghost">Отмена</button>' +
+          '<button type="button" id="fVehicleSave" class="btn btn-primary">' + (existing ? 'Сохранить изменения' : 'Добавить авто') + '</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(formDiv);
+    function closeForm(){ if(formDiv.parentNode) formDiv.parentNode.removeChild(formDiv); }
+    formDiv.querySelector('#fVehicleCancelTop').addEventListener('click', closeForm);
+    formDiv.querySelector('#fVehicleCancel').addEventListener('click', closeForm);
+    formDiv.addEventListener('click', function(e){ if(e.target === formDiv) closeForm(); });
+    formDiv.querySelector('#fVehicleSave').addEventListener('click', async function(){
+      var make = formDiv.querySelector('#fVehicleMake').value.trim();
+      var model = formDiv.querySelector('#fVehicleModel').value.trim();
+      var plate = formDiv.querySelector('#fVehiclePlate').value.trim().toUpperCase();
+      var vin = formDiv.querySelector('#fVehicleVin').value.trim().toUpperCase();
+      if(!make && !model && !plate && !vin){
+        showToast('Укажите марку, модель, госномер или VIN');
+        formDiv.querySelector('#fVehicleMake').focus();
+        return;
+      }
+      var duplicate = state.cars.find(function(other){
+        if(other.id === car.id) return false;
+        var plateMatch = !!plate && normalizePlate(other.plate) === normalizePlate(plate);
+        var vinMatch = !!vin && normalizeVin(other.vin) === normalizeVin(vin);
+        return plateMatch || vinMatch;
+      });
+      if(duplicate){
+        showToast('Автомобиль с таким госномером или VIN уже есть в базе');
+        return;
+      }
+      var saveBtn = formDiv.querySelector('#fVehicleSave');
+      saveBtn.disabled = true;
+      var updatedCar = Object.assign({}, car, {
+        carMake: make, carModel: model, plate: plate, vin: vin,
+        clientId: formDiv.querySelector('#fVehicleOwner').value || null,
+        updatedAt: Date.now()
+      });
+      var ok = await saveCar(updatedCar);
+      if(!ok){
+        saveBtn.disabled = false;
+        showToast('Не удалось сохранить автомобиль');
+        return;
+      }
+      var idx = state.cars.findIndex(function(item){ return item.id === updatedCar.id; });
+      if(idx >= 0) state.cars[idx] = updatedCar;
+      else state.cars.push(updatedCar);
+      closeForm();
+      state.openVehicleId = existing ? updatedCar.id : null;
+      state.vehicleReturnTab = sourceTab;
+      if(sourceTab === 'cars') renderCarsTab();
+      else renderClientsTab();
+      showToast(existing ? 'Данные автомобиля сохранены' : 'Автомобиль добавлен в базу');
+    });
   }
 
   // ---------- Price list tab ----------
@@ -7867,7 +8003,7 @@
       var tab = btn.dataset.mobileTab;
       if(tab === 'more'){
         var names = [
-          ['cars','База авто'],
+          ['cars','Авто'],
           ['pricelist','Прайс-лист'],
           ['staff','Сотрудники'],
           ['payroll','Зарплата'],

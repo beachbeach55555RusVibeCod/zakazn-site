@@ -1974,6 +1974,13 @@
     .line-row:not(.part-line-row) .line-sum{grid-column:1/-1;grid-row:3;text-align:right;overflow:visible;}
   }
 </style>
+
+<style id="aiAssistantStyles">
+.ai-fab{position:fixed;right:22px;bottom:22px;z-index:145;border:0;border-radius:999px;padding:12px 17px;background:var(--accent);color:#17100f;font:700 13px inherit;box-shadow:0 10px 30px rgba(0,0,0,.28);cursor:pointer}
+.ai-panel{position:fixed;right:20px;top:84px;bottom:20px;width:min(390px,calc(100vw - 24px));z-index:210;background:var(--bg-panel);border:1px solid var(--border);border-radius:16px;box-shadow:0 24px 70px rgba(0,0,0,.42);display:none;flex-direction:column;overflow:hidden}
+.ai-panel.open{display:flex}.ai-head{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}.ai-head b{font-size:15px}.ai-close{border:0;background:none;color:var(--text-muted);font-size:22px;cursor:pointer}.ai-body{padding:15px;overflow:auto;flex:1}.ai-msg{padding:11px 12px;border-radius:12px;background:var(--bg-panel-2);font-size:13px;line-height:1.45;margin-bottom:10px}.ai-msg.user{background:rgba(255,115,87,.13)}.ai-preview{border:1px solid var(--border);border-radius:12px;padding:12px;margin-top:10px}.ai-preview h4{margin:0 0 8px}.ai-row{display:flex;justify-content:space-between;gap:12px;margin:5px 0;font-size:12.5px}.ai-foot{border-top:1px solid var(--border);padding:12px}.ai-compose{display:flex;gap:8px}.ai-input{flex:1;min-width:0;border:1px solid var(--border);border-radius:10px;background:var(--bg-panel-2);color:var(--text-main);padding:10px 11px;font:13px inherit}.ai-send,.ai-confirm{border:0;border-radius:10px;background:var(--accent);color:#17100f;font-weight:700;padding:10px 13px;cursor:pointer}.ai-hint{font-size:11px;color:var(--text-subtle);margin-top:7px;line-height:1.35}
+@media(max-width:640px){.ai-fab{right:12px;bottom:88px}.ai-panel{inset:62px 8px 82px;width:auto}}
+</style>
 </head>
 <body>
 
@@ -2120,6 +2127,13 @@
     <button class="mobile-nav-btn" data-mobile-tab="more"><span class="mi">•••</span><span>Ещё</span></button>
   </nav>
 
+
+<button class="ai-fab" id="aiAssistantBtn" type="button">✦ ИИ-помощник</button>
+<div class="ai-panel" id="aiAssistantPanel">
+  <div class="ai-head"><b>✦ ИИ-помощник</b><button class="ai-close" id="aiAssistantClose" type="button">&times;</button></div>
+  <div class="ai-body" id="aiAssistantBody"><div class="ai-msg">Напишите задачу обычным текстом. Например:<br><b>Руслан, X-Ray, пробег 223500, замена масла 1200, фильтр 500</b></div></div>
+  <div class="ai-foot"><div class="ai-compose"><input class="ai-input" id="aiAssistantInput" placeholder="Клиент, машина, пробег, работы..."><button class="ai-send" id="aiAssistantSend" type="button">➜</button></div><div class="ai-hint">Пока это локальный помощник: он использует только данные вашего сайта и ничего не отправляет во внешний ИИ.</div></div>
+</div>
 <div id="modalRoot"></div>
 <div id="toastRoot"></div>
 
@@ -8677,6 +8691,74 @@
       await saveCompany();
     });
   }
+
+
+  // ---------- Local AI-style assistant (no external AI/API) ----------
+  var aiDraft = null;
+  function aiWords(v){ return String(v||'').toLowerCase().replace(/ё/g,'е'); }
+  function aiFindClient(text){
+    var t=aiWords(text), best=null, score=0;
+    state.clients.forEach(function(c){
+      var names=[c.name,c.orgName].filter(Boolean);
+      names.forEach(function(n){ var parts=aiWords(n).split(/\s+/).filter(function(x){return x.length>=3;}); var sc=parts.filter(function(p){return t.indexOf(p)>=0;}).length; if(sc>score){score=sc;best=c;} });
+      var ph=normalizePhone(c.phone); if(ph && text.replace(/\D/g,'').indexOf(ph)>=0){score=99;best=c;}
+    });
+    return best;
+  }
+  function aiFindCar(text,client){
+    var t=aiWords(text), list=client?carsOfClient(client.id):state.cars, best=null, score=0;
+    list.forEach(function(c){
+      var fields=[c.carMake,c.carModel,c.plate,c.vin].filter(Boolean);
+      var sc=fields.reduce(function(n,v){return n+(t.indexOf(aiWords(v))>=0?1:0);},0);
+      if(sc>score){score=sc;best=c;}
+    });
+    if(!best && client && list.length===1) best=list[0];
+    return best;
+  }
+  function aiParseDraft(text){
+    var client=aiFindClient(text), car=aiFindCar(text,client);
+    var mileage=''; var mm=text.match(/(?:пробег|пробегом)\s*[:=-]?\s*(\d[\d\s]{2,})/i); if(mm) mileage=mm[1].replace(/\s/g,'');
+    var master=''; state.staff.some(function(p){ var first=aiWords(p.name).split(/\s+/)[0]; if(first.length>2 && aiWords(text).indexOf(first)>=0){master=p.name;return true;} return false;});
+    var chunks=text.split(/[,;\n]+/), lines=[];
+    chunks.forEach(function(raw){
+      var c=raw.trim(), m=c.match(/(.+?)\s+(\d+(?:[.,]\d{1,2})?)\s*(?:р|₽|руб)?\.?$/i);
+      if(!m) return; var name=m[1].trim(); var low=aiWords(name);
+      if(low.indexOf('пробег')>=0 || low.indexOf('телефон')>=0) return;
+      name=name.replace(/^(?:работа|работы|запчасть|деталь)\s*[:=-]?\s*/i,'').trim();
+      if(name) lines.push({name:name,qty:1,price:Number(m[2].replace(',','.')),type:/фильтр|масло\s+\w+|колодк|свеч|ремень|ролик|детал|запчаст/i.test(low)?'part':'work',assignees:[]});
+    });
+    return {client:client,car:car,mileage:mileage,master:master,lines:lines,text:text};
+  }
+  function aiEsc(v){return escapeHtml(String(v==null?'':v));}
+  function aiShowDraft(d){
+    var body=document.getElementById('aiAssistantBody');
+    var client=d.client,car=d.car,total=d.lines.reduce(function(s,l){return s+l.price*l.qty;},0);
+    var lines=d.lines.length?d.lines.map(function(l){return '<div class="ai-row"><span>'+aiEsc(l.name)+'</span><b>'+fmtMoney(l.price)+'</b></div>';}).join(''):'<div class="ai-hint">Работы/запчасти с ценами пока не распознаны.</div>';
+    body.insertAdjacentHTML('beforeend','<div class="ai-msg">Я разобрал задачу. Проверьте данные:</div><div class="ai-preview"><h4>Предпросмотр ЗН</h4><div class="ai-row"><span>Клиент</span><b>'+aiEsc(client?client.name:'не найден')+'</b></div><div class="ai-row"><span>Автомобиль</span><b>'+aiEsc(car?[car.carMake,car.carModel,car.plate].filter(Boolean).join(' '):'не найден')+'</b></div><div class="ai-row"><span>Пробег</span><b>'+aiEsc(d.mileage||'—')+'</b></div>'+lines+'<div class="ai-row" style="border-top:1px solid var(--border);padding-top:8px;margin-top:8px"><span>Итого</span><b>'+fmtMoney(total)+'</b></div><button class="ai-confirm" id="aiOpenDraft" type="button" style="width:100%;margin-top:10px">Открыть ЗН для проверки</button></div>');
+    body.scrollTop=body.scrollHeight;
+    document.getElementById('aiOpenDraft').onclick=function(){ aiOpenInOrderForm(d); };
+  }
+  function aiOpenInOrderForm(d){
+    document.getElementById('aiAssistantPanel').classList.remove('open');
+    openOrderForm(null);
+    setTimeout(function(){
+      if(d.client){document.getElementById('f_clientName').value=d.client.name||'';document.getElementById('f_clientPhone').value=d.client.phone||'';}
+      if(d.car){document.getElementById('f_carMake').value=d.car.carMake||'';document.getElementById('f_carModel').value=d.car.carModel||'';document.getElementById('f_plate').value=d.car.plate||'';document.getElementById('f_vin').value=d.car.vin||'';}
+      if(d.mileage) document.getElementById('f_mileage').value=d.mileage;
+      if(d.master) document.getElementById('f_master').value=d.master;
+      var addW=document.getElementById('addWorkLineBtn'),addP=document.getElementById('addPartLineBtn');
+      d.lines.forEach(function(l){(l.type==='part'?addP:addW).click();var wrap=document.getElementById(l.type==='part'?'partLinesWrap':'workLinesWrap');var blocks=wrap.querySelectorAll('.line-block');var b=blocks[blocks.length-1];if(!b)return;var ni=b.querySelector('input[data-field="name"]'),pi=b.querySelector('input[data-field="price"]');if(ni){ni.value=l.name;ni.dispatchEvent(new Event('input',{bubbles:true}));}if(pi){pi.value=l.price;pi.dispatchEvent(new Event('input',{bubbles:true}));}});
+      showToast('Черновик заполнен — проверьте и нажмите «Сохранить наряд»');
+    },0);
+  }
+  function aiSubmit(){
+    var inp=document.getElementById('aiAssistantInput'),text=inp.value.trim();if(!text)return;
+    document.getElementById('aiAssistantBody').insertAdjacentHTML('beforeend','<div class="ai-msg user">'+aiEsc(text)+'</div>');inp.value='';aiDraft=aiParseDraft(text);aiShowDraft(aiDraft);
+  }
+  document.getElementById('aiAssistantBtn').addEventListener('click',function(){document.getElementById('aiAssistantPanel').classList.add('open');});
+  document.getElementById('aiAssistantClose').addEventListener('click',function(){document.getElementById('aiAssistantPanel').classList.remove('open');});
+  document.getElementById('aiAssistantSend').addEventListener('click',aiSubmit);
+  document.getElementById('aiAssistantInput').addEventListener('keydown',function(e){if(e.key==='Enter')aiSubmit();});
 
   async function init(){
     await loadCompany();

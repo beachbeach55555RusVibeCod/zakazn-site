@@ -195,6 +195,7 @@
   .btn:active{ transform: scale(0.98); }
   .btn-primary{ background: var(--accent); border-color: var(--accent); color:#1C1110; font-weight:600; }
   .btn-primary:hover{ background:#2DD4BF; border-color:#2DD4BF; }
+  #detailEdit:disabled{ opacity:.48; cursor:not-allowed; filter:saturate(.45); }
   .btn-ghost{ background:transparent; }
   .btn-danger{ color: var(--danger); border-color: rgba(229,72,77,0.35); background:transparent; }
   .btn-danger:hover{ background: rgba(229,72,77,0.1); }
@@ -4221,7 +4222,7 @@
               '<div style="position:relative;display:inline-block;">' +
                 '<button class="btn btn-ghost" id="detailPrint">🖨 Печать ▾</button>' +
               '</div>' +
-              '<button class="btn btn-primary" id="detailEdit">Редактировать</button>' +
+              '<button class="btn btn-primary" id="detailEdit"' + (o.status === 'done' ? ' disabled title="Нельзя редактировать выданный наряд. Сначала измените его статус."' : '') + '>' + (o.status === 'done' ? '🔒 Редактирование закрыто' : 'Редактировать') + '</button>' +
             '</div>' +
           '</div>' +
         '</div>' +
@@ -4235,6 +4236,10 @@
       if(e.target.id === 'detailOverlay') closeModal();
     });
     document.getElementById('detailEdit').onclick = function(){
+      if(o.status === 'done'){
+        showToast('Нельзя редактировать выданный наряд. Сначала измените статус.');
+        return;
+      }
       closeModal();
       if(isQuickOrder(o)) openQuickOrderForm(o.id);
       else openOrderForm(o.id);
@@ -4849,6 +4854,10 @@
       showToast('Наряд не найден');
       return;
     }
+    if(existingOrder && existingOrder.status === 'done'){
+      showToast('Нельзя редактировать выданный наряд. Сначала измените статус.');
+      return;
+    }
 
     function editableQuickLine(source){
       var line = JSON.parse(JSON.stringify(source || {}));
@@ -5215,6 +5224,12 @@
 
     /* Сохранить */
     document.getElementById('qSave').addEventListener('click', async function(){
+      var latestQuickOrder = existingOrder ? state.orders.find(function(o){ return o.id === existingOrder.id; }) : null;
+      if(existingOrder && (existingOrder.status === 'done' || (latestQuickOrder && latestQuickOrder.status === 'done'))){
+        showToast('Нельзя редактировать выданный наряд. Сначала измените статус.');
+        overlay.remove();
+        return;
+      }
       var btn = document.getElementById('qSave');
       btn.disabled = true; btn.textContent = 'Сохранение…';
 
@@ -5303,6 +5318,14 @@
     var order;
     if(editId){
       var existing = state.orders.find(function(o){ return o.id === editId; });
+      if(!existing){
+        showToast('Наряд не найден');
+        return;
+      }
+      if(existing.status === 'done'){
+        showToast('Нельзя редактировать выданный наряд. Сначала измените статус.');
+        return;
+      }
       order = JSON.parse(JSON.stringify(existing));
     } else {
       order = emptyOrder();
@@ -5949,6 +5972,11 @@
   }
 
   async function submitOrderForm(order){
+    var savedOrder = state.orders.find(function(o){ return o.id === order.id; });
+    if(savedOrder && savedOrder.status === 'done'){
+      showToast('Нельзя редактировать выданный наряд. Сначала измените статус.');
+      return;
+    }
     order.editorMode = 'full';
     order.orderNumber = document.getElementById('f_orderNumber').value.trim();
     order.dateIn = document.getElementById('f_dateIn').value;

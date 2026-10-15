@@ -6249,7 +6249,15 @@
             '</div>' +
             '<div style="' + fg + '"><label style="' + fl + '">Юридический адрес</label>' +
               '<input id="fNewOrgAddr" style="' + fi + '" placeholder="г. Москва, ул. Примерная, 1"></div>' +
-          '</div>' +
+            '<div style="' + fg + '"><label style="' + fl + '">Банк</label>' +
+              '<input id="fNewOrgBank" style="' + fi + '" placeholder="ПАО «Сбербанк»"></div>' +
+            '<div style="' + fg + '"><label style="' + fl + '">БИК</label>' +
+              '<input id="fNewOrgBik" style="' + fi + '" placeholder="044525225" inputmode="numeric" maxlength="9"></div>' +
+            '<div style="' + fg + '"><label style="' + fl + '">Расчётный счёт</label>' +
+              '<input id="fNewOrgAccount" style="' + fi + '" placeholder="40702810000000000000" inputmode="numeric" maxlength="20"></div>' +
+            '<div style="' + fg + '"><label style="' + fl + '">Корреспондентский счёт</label>' +
+              '<input id="fNewOrgCorraccount" style="' + fi + '" placeholder="30101810400000000225" inputmode="numeric" maxlength="20"></div>' +
+          '</div>'
 
           '<div style="' + fg + '"><label style="' + fl + '">Примечание</label>' +
             '<input id="fNewClientNote" style="' + fi + '" placeholder="Любые заметки..."></div>' +
@@ -6296,6 +6304,10 @@
         client.inn          = formDiv.querySelector('#fNewOrgInn').value.trim();
         client.kpp          = formDiv.querySelector('#fNewOrgKpp').value.trim();
         client.legalAddress = formDiv.querySelector('#fNewOrgAddr').value.trim();
+        client.bank          = formDiv.querySelector('#fNewOrgBank').value.trim();
+        client.bik           = formDiv.querySelector('#fNewOrgBik').value.trim();
+        client.account       = formDiv.querySelector('#fNewOrgAccount').value.trim();
+        client.corraccount   = formDiv.querySelector('#fNewOrgCorraccount').value.trim();
       }
       await saveClient(client);
       state.clients.push(client);
@@ -6334,6 +6346,10 @@
           '<div><span style="color:var(--text-subtle);">ИНН</span><div style="margin-top:2px;font-family:monospace;">' + escapeHtml(client.inn||'—') + '</div></div>' +
           '<div><span style="color:var(--text-subtle);">КПП</span><div style="margin-top:2px;font-family:monospace;">' + escapeHtml(client.kpp||'—') + '</div></div>' +
           '<div><span style="color:var(--text-subtle);">Юр. адрес</span><div style="margin-top:2px;">' + escapeHtml(client.legalAddress||'—') + '</div></div>' +
+          '<div><span style="color:var(--text-subtle);">Банк</span><div style="margin-top:2px;">' + escapeHtml(client.bank||'—') + '</div></div>' +
+          '<div><span style="color:var(--text-subtle);">БИК</span><div style="margin-top:2px;font-family:monospace;">' + escapeHtml(client.bik||'—') + '</div></div>' +
+          '<div><span style="color:var(--text-subtle);">Расчётный счёт</span><div style="margin-top:2px;font-family:monospace;overflow-wrap:anywhere;">' + escapeHtml(client.account||'—') + '</div></div>' +
+          '<div><span style="color:var(--text-subtle);">Корреспондентский счёт</span><div style="margin-top:2px;font-family:monospace;overflow-wrap:anywhere;">' + escapeHtml(client.corraccount||'—') + '</div></div>' +
         '</div>' +
       '</div>';
     }
@@ -6401,6 +6417,14 @@
             '<input class="form-control" id="fOrgKpp" value="' + escapeHtml(client.kpp||'') + '" placeholder="123456789"></div>' +
           '<div class="form-group"><label class="form-label">Юридический адрес</label>' +
             '<input class="form-control" id="fOrgAddr" value="' + escapeHtml(client.legalAddress||'') + '" placeholder="г. Москва, ул. Примерная, 1"></div>' +
+          '<div class="form-group"><label class="form-label">Банк</label>' +
+            '<input class="form-control" id="fOrgBank" value="' + escapeHtml(client.bank||'') + '" placeholder="ПАО «Сбербанк»"></div>' +
+          '<div class="form-group"><label class="form-label">БИК</label>' +
+            '<input class="form-control" id="fOrgBik" value="' + escapeHtml(client.bik||'') + '" placeholder="044525225" inputmode="numeric" maxlength="9"></div>' +
+          '<div class="form-group"><label class="form-label">Расчётный счёт</label>' +
+            '<input class="form-control" id="fOrgAccount" value="' + escapeHtml(client.account||'') + '" placeholder="40702810000000000000" inputmode="numeric" maxlength="20"></div>' +
+          '<div class="form-group"><label class="form-label">Корреспондентский счёт</label>' +
+            '<input class="form-control" id="fOrgCorraccount" value="' + escapeHtml(client.corraccount||'') + '" placeholder="30101810400000000225" inputmode="numeric" maxlength="20"></div>' +
         '</div>' +
         '<div style="display:flex;gap:10px;margin-top:20px;">' +
           '<button class="btn btn-ghost" id="fClientCancel" style="flex:1;">Отмена</button>' +
@@ -6422,8 +6446,13 @@
         client.inn          = formDiv.querySelector('#fOrgInn').value.trim();
         client.kpp          = formDiv.querySelector('#fOrgKpp').value.trim();
         client.legalAddress = formDiv.querySelector('#fOrgAddr').value.trim();
+        client.bank          = formDiv.querySelector('#fOrgBank').value.trim();
+        client.bik           = formDiv.querySelector('#fOrgBik').value.trim();
+        client.account       = formDiv.querySelector('#fOrgAccount').value.trim();
+        client.corraccount   = formDiv.querySelector('#fOrgCorraccount').value.trim();
       } else {
         client.orgName = ''; client.inn = ''; client.kpp = ''; client.legalAddress = '';
+        client.bank = ''; client.bik = ''; client.account = ''; client.corraccount = '';
       }
       await saveClient(client);
       var idx = state.clients.findIndex(function(c){ return c.id === client.id; });

@@ -4354,6 +4354,77 @@
 
   // ---------- Print ----------
 
+  function pluralRu(n, one, few, many){
+    n = Math.abs(Number(n)||0) % 100;
+    if(n >= 11 && n <= 14) return many;
+    n = n % 10;
+    if(n === 1) return one;
+    if(n >= 2 && n <= 4) return few;
+    return many;
+  }
+
+  function integerToWordsRu(value){
+    var n = Math.floor(Math.abs(Number(value)||0));
+    if(n === 0) return 'ноль';
+
+    var onesMale = ['', 'один', 'два', 'три', 'четыре', 'пять', 'шесть', 'семь', 'восемь', 'девять'];
+    var onesFemale = ['', 'одна', 'две', 'три', 'четыре', 'пять', 'шесть', 'семь', 'восемь', 'девять'];
+    var teens = ['десять', 'одиннадцать', 'двенадцать', 'тринадцать', 'четырнадцать', 'пятнадцать', 'шестнадцать', 'семнадцать', 'восемнадцать', 'девятнадцать'];
+    var tens = ['', '', 'двадцать', 'тридцать', 'сорок', 'пятьдесят', 'шестьдесят', 'семьдесят', 'восемьдесят', 'девяносто'];
+    var hundreds = ['', 'сто', 'двести', 'триста', 'четыреста', 'пятьсот', 'шестьсот', 'семьсот', 'восемьсот', 'девятьсот'];
+    var scales = [
+      null,
+      ['тысяча', 'тысячи', 'тысяч', true],
+      ['миллион', 'миллиона', 'миллионов', false],
+      ['миллиард', 'миллиарда', 'миллиардов', false],
+      ['триллион', 'триллиона', 'триллионов', false]
+    ];
+
+    var groups = [];
+    while(n > 0){
+      groups.push(n % 1000);
+      n = Math.floor(n / 1000);
+    }
+
+    var result = [];
+    for(var i = groups.length - 1; i >= 0; i--){
+      var g = groups[i];
+      if(!g) continue;
+      var words = [];
+      var hnd = Math.floor(g / 100);
+      var rest = g % 100;
+      if(hnd) words.push(hundreds[hnd]);
+      if(rest >= 10 && rest <= 19){
+        words.push(teens[rest - 10]);
+      }else{
+        var ten = Math.floor(rest / 10);
+        var one = rest % 10;
+        if(ten) words.push(tens[ten]);
+        if(one){
+          var female = i === 1;
+          words.push((female ? onesFemale : onesMale)[one]);
+        }
+      }
+      if(i > 0 && scales[i]){
+        words.push(pluralRu(g, scales[i][0], scales[i][1], scales[i][2]));
+      }
+      result = result.concat(words);
+    }
+    return result.join(' ');
+  }
+
+  function moneyToWordsRu(value){
+    var num = Number(value) || 0;
+    var negative = num < 0;
+    var totalKopecks = Math.round(Math.abs(num) * 100);
+    var rubles = Math.floor(totalKopecks / 100);
+    var kopecks = totalKopecks % 100;
+    var words = integerToWordsRu(rubles) + ' ' + pluralRu(rubles, 'рубль', 'рубля', 'рублей') +
+      ' ' + String(kopecks).padStart(2, '0') + ' ' + pluralRu(kopecks, 'копейка', 'копейки', 'копеек');
+    if(negative) words = 'минус ' + words;
+    return words.charAt(0).toUpperCase() + words.slice(1);
+  }
+
   function printOrder(o){
     var total     = calcOrderTotal(o);
     var carLine   = [o.carMake, o.carModel].filter(Boolean).join(' ') || '—';
@@ -4438,7 +4509,6 @@
         '<div class="p-meta-row">' +
           '<span><b>Создан:</b> ' + fmtOrderDateTime(o.dateIn, o.createdAt) + '</span>' +
           '<span><b>Выдан:</b> ' + (o.dateOut ? fmtOrderDateTime(o.dateOut, o.issuedAt) : '—') + '</span>' +
-          '<span><b>Статус:</b> ' + escapeHtml(STATUS_LABEL[o.status]||'—') + '</span>' +
         '</div>' +
 
         /* ── Таблица работ ── */
@@ -4483,11 +4553,12 @@
           (workTotal && partTotal ? '<div class="p-total-row sub"><span>Работы</span><span>' + fmtMoney(workTotal) + '</span></div>' : '') +
           (workTotal && partTotal ? '<div class="p-total-row sub"><span>Запчасти</span><span>' + fmtMoney(partTotal) + '</span></div>' : '') +
           '<div class="p-total-row grand"><span>ИТОГО К ОПЛАТЕ</span><span>' + fmtMoney(total) + '</span></div>' +
+          '<div class="p-total-words"><b>Сумма прописью:</b> ' + escapeHtml(moneyToWordsRu(total)) + '</div>' +
         '</div>' +
 
         /* ── Подписи ── */
         '<div class="p-signatures">' +
-          '<div class="p-sig-block"><div class="p-sig-line">Подпись руководителя</div></div>' +
+          '<div class="p-sig-block"><div class="p-sig-line">Подпись руководителя · Владимиров И. Л.</div></div>' +
           sigBlock +
           '<div class="p-sig-block">' +
             '<div class="p-stamp-circle">М.П.</div>' +
@@ -4531,6 +4602,7 @@
       '.p-total-row.sub{font-size:12px;color:#555;border-bottom:1px dashed #ccc;}' +
       '.p-total-row.grand{font-size:16px;font-weight:700;padding-top:8px;}' +
       '.p-total-row.grand span:last-child{font-family:"Courier New",monospace;font-size:20px;white-space:nowrap;}' +
+      '.p-total-words{margin-top:8px;padding-top:7px;border-top:1px dashed #bbb;font-size:12px;line-height:1.45;}' +
       /* Signatures */
       '.p-signatures{display:flex;justify-content:space-between;margin-top:32px;gap:20px;}' +
       '.p-sig-block{flex:1;text-align:center;}' +
@@ -4608,7 +4680,8 @@
       '.total-row{display:flex;justify-content:space-between;padding:3px 0;font-size:13px;}' +
       '.total-row.grand{font-size:16px;font-weight:700;border-top:1px solid #ccc;margin-top:4px;padding-top:6px;}' +
       '.total-row.grand span:last-child{font-family:"Courier New",monospace;font-size:19px;white-space:nowrap;}' +
-      '.bank-block{margin-top:10px;font-size:12px;padding:8px 12px;background:#f5f5f5;border-radius:4px;line-height:1.8;}' +
+      '.amount-words{margin-top:8px;padding-top:7px;border-top:1px dashed #bbb;font-size:12px;line-height:1.45;}' +
+      '.bank-block{margin:0 0 12px;font-size:12px;padding:8px 12px;background:#f5f5f5;border-radius:4px;line-height:1.8;}' +
       '.sigs{display:flex;justify-content:space-between;margin-top:32px;gap:24px;}' +
       '.sig{flex:1;text-align:center;}' +
       '.sig-line{border-top:1px solid #111;padding-top:4px;font-size:11px;color:#555;margin-top:44px;}' +
@@ -4669,14 +4742,15 @@
         '<div><div class="party-title">Поставщик</div>' + sellerLines + '</div>' +
         '<div><div class="party-title">Покупатель</div>' + buyerLines + '</div>' +
       '</div>' +
+      bankBlock +
       '<table>' +
         '<thead><tr><th class="num" style="width:28px;">№</th><th>Наименование</th><th>Ед.</th><th class="num">Кол-во</th><th class="num">Цена</th><th class="num">Сумма</th></tr></thead>' +
         '<tbody>' + rows + '</tbody>' +
         '<tfoot><tr><td colspan="5" style="text-align:right;">Итого без НДС:</td><td class="num">' + fmtMoney(total) + '</td></tr>' +
         '<tr><td colspan="5" style="text-align:right;">НДС:</td><td class="num">Без НДС</td></tr></tfoot>' +
       '</table>' +
-      '<div class="total-block"><div class="total-row grand"><span>ИТОГО К ОПЛАТЕ</span><span>' + fmtMoney(total) + '</span></div></div>' +
-      bankBlock +
+      '<div class="total-block"><div class="total-row grand"><span>ИТОГО К ОПЛАТЕ</span><span>' + fmtMoney(total) + '</span></div>' +
+        '<div class="amount-words"><b>Сумма прописью:</b> ' + escapeHtml(moneyToWordsRu(total)) + '</div></div>' +
       '<div class="sigs" style="margin-top:24px;">' +
         '<div class="sig"><div class="sig-line">Руководитель</div></div>' +
         '<div class="sig"><div class="sig-line">Главный бухгалтер</div></div>' +
@@ -4686,67 +4760,142 @@
     openPrintWindow('Счёт № ' + num, body, buildDocCss());
   }
 
+  function buildOrderLikeDocCss(){
+    return 'body{margin:0;padding:16px 20px;font-family:Arial,Helvetica,sans-serif;color:#111;font-size:13px;}' +
+      '.print-doc{}' +
+      '.p-header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2.5px solid #111;padding-bottom:12px;margin-bottom:14px;}' +
+      '.p-title{font-size:22px;font-weight:700;margin:0 0 2px;}' +
+      '.p-docnum{font-family:"Courier New",monospace;font-size:15px;margin-top:4px;}' +
+      '.p-docnum b{font-size:19px;}' +
+      '.p-company{text-align:right;}' +
+      '.co-name{font-size:15px;font-weight:700;margin-bottom:3px;}' +
+      '.co-detail{font-size:11.5px;color:#444;line-height:1.6;}' +
+      '.p-info-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 28px;border:1px solid #ddd;border-radius:4px;padding:12px 14px;margin-bottom:10px;}' +
+      '.p-section-title{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#555;border-bottom:1px solid #ddd;padding-bottom:4px;margin-bottom:8px;}' +
+      '.p-row{display:flex;gap:6px;margin-bottom:4px;font-size:12.5px;}' +
+      '.p-lbl{color:#777;white-space:nowrap;min-width:110px;flex-shrink:0;}' +
+      '.p-val{font-weight:500;}' +
+      '.mono{font-family:"Courier New",monospace;}' +
+      '.p-meta-row{display:flex;gap:20px;flex-wrap:wrap;background:#f5f5f5;padding:7px 12px;border-radius:4px;font-size:12px;margin-bottom:4px;}' +
+      'table.p-table{width:100%;border-collapse:collapse;margin:6px 0 2px;font-size:12px;}' +
+      'table.p-table th{text-align:left;border-bottom:1.5px solid #111;padding:5px 6px;font-size:10.5px;text-transform:uppercase;letter-spacing:0.03em;background:#fafafa;}' +
+      'table.p-table td{border-bottom:1px solid #e0e0e0;padding:6px 6px;vertical-align:top;}' +
+      'table.p-table tfoot td{border-bottom:none;border-top:1.5px solid #111;background:#fafafa;}' +
+      'table.p-table .num{text-align:right;white-space:nowrap;word-break:keep-all;}' +
+      '.subtotal{font-family:"Courier New",monospace;font-weight:700;font-size:13px;}' +
+      '.p-note{font-size:12px;margin:10px 0;padding:8px 12px;background:#fffbe6;border-left:3px solid #f0c040;border-radius:2px;}' +
+      '.p-total-block{margin-top:10px;padding:10px 14px;border:2px solid #111;border-radius:4px;}' +
+      '.p-total-row{display:flex;justify-content:space-between;align-items:baseline;padding:3px 0;}' +
+      '.p-total-row.sub{font-size:12px;color:#555;border-bottom:1px dashed #ccc;}' +
+      '.p-total-row.grand{font-size:16px;font-weight:700;padding-top:8px;}' +
+      '.p-total-row.grand span:last-child{font-family:"Courier New",monospace;font-size:20px;white-space:nowrap;}' +
+      '.p-total-words{margin-top:8px;padding-top:7px;border-top:1px dashed #bbb;font-size:12px;line-height:1.45;}' +
+      '.p-signatures{display:flex;justify-content:space-between;margin-top:32px;gap:20px;}' +
+      '.p-sig-block{flex:1;text-align:center;}' +
+      '.p-sig-img{max-height:64px;display:block;margin:0 auto 4px;}' +
+      '.p-sig-line{border-top:1px solid #111;padding-top:4px;font-size:11px;color:#555;margin-top:44px;}' +
+      '.p-sig-block.has-sig .p-sig-line{margin-top:0;}' +
+      '.p-stamp-circle{width:90px;height:90px;border-radius:50%;border:1.5px dashed #aaa;margin:0 auto;display:flex;align-items:center;justify-content:center;font-size:11px;color:#bbb;letter-spacing:0.05em;}' +
+      '@media print{@page{margin:12mm;size:A4;}body{padding:0;}}';
+  }
+
   function printAct(o){
     var comp   = state.company || {};
     var client = getClientById(o.clientId) || {};
     var total  = calcOrderTotal(o);
     var workLines = (o.lines||[]).filter(function(l){ return l.type === 'work'; });
+    var partLines = (o.lines||[]).filter(function(l){ return l.type !== 'work'; });
+    var workTotal = workLines.reduce(function(s,l){ return s + lineTotal(l); }, 0);
+    var partTotal = partLines.reduce(function(s,l){ return s + lineTotal(l); }, 0);
     var num   = o.orderNumber || '—';
-    var date  = fmtDate(o.dateIn || Date.now());
+    var date  = fmtDate(o.dateOut || o.dateIn || Date.now());
+    var carLine = [o.carMake, o.carModel].filter(Boolean).join(' ') || '—';
 
-    var contractorLines =
-      '<div class="p-row"><span class="p-lbl">Исполнитель</span><span class="p-val">' + escapeHtml(comp.name||'—') + '</span></div>' +
-      (comp.inn ? '<div class="p-row"><span class="p-lbl">ИНН</span><span class="p-val">' + escapeHtml(comp.inn) + (comp.kpp ? ' / КПП ' + escapeHtml(comp.kpp) : '') + '</span></div>' : '') +
-      (comp.address ? '<div class="p-row"><span class="p-lbl">Адрес</span><span class="p-val">' + escapeHtml(comp.address) + '</span></div>' : '');
+    var customerName = (client.type === 'org' && client.orgName) ? client.orgName : (o.clientName || '—');
+    var customerPhone = client.phone || o.clientPhone || '—';
 
-    var custName = (client.type === 'org' && client.orgName) ? client.orgName : (o.clientName || '—');
-    var customerLines =
-      '<div class="p-row"><span class="p-lbl">Заказчик</span><span class="p-val">' + escapeHtml(custName) + '</span></div>' +
-      (client.type === 'org' && client.inn ? '<div class="p-row"><span class="p-lbl">ИНН</span><span class="p-val">' + escapeHtml(client.inn) + (client.kpp ? ' / КПП ' + escapeHtml(client.kpp) : '') + '</span></div>' : '') +
-      (client.type === 'org' && client.legalAddress ? '<div class="p-row"><span class="p-lbl">Адрес</span><span class="p-val">' + escapeHtml(client.legalAddress) + '</span></div>' : '');
-
-    var carLine = [o.carMake, o.carModel].filter(Boolean).join(' ');
-    var objDesc = 'Автомобиль: ' + escapeHtml(carLine||'—') + (o.plate ? ', г/н ' + escapeHtml(o.plate) : '') + (o.vin ? ', VIN ' + escapeHtml(o.vin) : '');
-
-    var rows = workLines.map(function(l, i){
-      return '<tr>' +
-        '<td class="num" style="color:#888;">' + (i+1) + '</td>' +
-        '<td>' + escapeHtml(l.name||'') + '</td>' +
-        '<td>усл.</td>' +
-        '<td class="num">' + (l.qty||1) + '</td>' +
-        '<td class="num">' + fmtMoney(l.price) + '</td>' +
-        '<td class="num"><b>' + fmtMoney(lineTotal(l)) + '</b></td>' +
-      '</tr>';
-    }).join('') || '<tr><td colspan="6" style="text-align:center;color:#888;">Работы не указаны</td></tr>';
+    function actRows(lines, emptyText){
+      if(!lines.length) return '<tr><td colspan="5" style="color:#888;font-style:italic;text-align:center;padding:10px;">' + emptyText + '</td></tr>';
+      return lines.map(function(l, i){
+        return '<tr>' +
+          '<td class="num" style="color:#888;">' + (i+1) + '</td>' +
+          '<td>' + escapeHtml(l.name||'') + '</td>' +
+          '<td class="num">' + (l.qty||1) + '</td>' +
+          '<td class="num">' + fmtMoney(l.price) + '</td>' +
+          '<td class="num"><b>' + fmtMoney(lineTotal(l)) + '</b></td>' +
+        '</tr>';
+      }).join('');
+    }
 
     var sigBlock = o.signature
-      ? '<div class="sig has-sig"><img class="sig-img" src="' + o.signature + '"><div class="sig-line">Заказчик</div></div>'
-      : '<div class="sig"><div class="sig-line">Заказчик</div></div>';
+      ? '<div class="p-sig-block has-sig"><img class="p-sig-img" src="' + o.signature + '"><div class="p-sig-line">Заказчик</div></div>'
+      : '<div class="p-sig-block"><div class="p-sig-line">Заказчик</div></div>';
+
+    var compRight = '';
+    if(comp.name)    compRight += '<div class="co-name">' + escapeHtml(comp.name) + '</div>';
+    if(comp.phone)   compRight += '<div class="co-detail">Тел.: ' + escapeHtml(comp.phone) + '</div>';
+    if(comp.address) compRight += '<div class="co-detail">' + escapeHtml(comp.address) + '</div>';
+    if(comp.inn)     compRight += '<div class="co-detail">ИНН: ' + escapeHtml(comp.inn) + '</div>';
 
     var body =
-      '<div class="doc-header">' +
-        '<div><div class="doc-title">Акт выполненных работ</div><div class="doc-num">№ ' + escapeHtml(num) + ' от ' + date + '</div></div>' +
-        '<div class="co-block">' + (comp.name ? '<div class="co-name">' + escapeHtml(comp.name) + '</div>' : '') + '</div>' +
-      '</div>' +
-      '<div class="parties">' +
-        '<div><div class="party-title">Исполнитель</div>' + contractorLines + '</div>' +
-        '<div><div class="party-title">Заказчик</div>' + customerLines + '</div>' +
-      '</div>' +
-      '<div class="note"><b>Объект:</b> ' + objDesc + '</div>' +
-      '<table>' +
-        '<thead><tr><th class="num" style="width:28px;">№</th><th>Наименование работы</th><th>Ед.</th><th class="num">Кол-во</th><th class="num">Цена</th><th class="num">Сумма</th></tr></thead>' +
-        '<tbody>' + rows + '</tbody>' +
-        '<tfoot><tr><td colspan="5" style="text-align:right;">Итого:</td><td class="num">' + fmtMoney(total) + '</td></tr></tfoot>' +
-      '</table>' +
-      '<div class="total-block"><div class="total-row grand"><span>ИТОГО К ОПЛАТЕ</span><span>' + fmtMoney(total) + '</span></div></div>' +
-      '<div style="margin-top:14px;font-size:12.5px;">Вышеперечисленные работы выполнены полностью и в срок. Заказчик претензий по объёму, качеству и срокам оказания услуг не имеет.</div>' +
-      '<div class="sigs">' +
-        '<div class="sig"><div class="sig-line">Исполнитель</div></div>' +
-        sigBlock +
-        '<div class="sig"><div class="stamp">М.П.</div></div>' +
+      '<div class="print-doc">' +
+        '<div class="p-header">' +
+          '<div><div class="p-title">Акт выполненных работ</div><div class="p-docnum">№ <b>' + escapeHtml(num) + '</b> от ' + date + '</div></div>' +
+          '<div class="p-company">' + compRight + '</div>' +
+        '</div>' +
+
+        '<div class="p-info-grid">' +
+          '<div class="p-info-col">' +
+            '<div class="p-section-title">Заказчик</div>' +
+            '<div class="p-row"><span class="p-lbl">Наименование</span><span class="p-val">' + escapeHtml(customerName) + '</span></div>' +
+            '<div class="p-row"><span class="p-lbl">Телефон</span><span class="p-val">' + escapeHtml(customerPhone) + '</span></div>' +
+            (client.type === 'org' && client.inn ? '<div class="p-row"><span class="p-lbl">ИНН</span><span class="p-val">' + escapeHtml(client.inn) + (client.kpp ? ' / КПП ' + escapeHtml(client.kpp) : '') + '</span></div>' : '') +
+          '</div>' +
+          '<div class="p-info-col">' +
+            '<div class="p-section-title">Автомобиль</div>' +
+            '<div class="p-row"><span class="p-lbl">Марка / Модель</span><span class="p-val">' + escapeHtml(carLine) + '</span></div>' +
+            '<div class="p-row"><span class="p-lbl">Гос. номер</span><span class="p-val mono">' + escapeHtml(o.plate||'—') + '</span></div>' +
+            '<div class="p-row"><span class="p-lbl">VIN</span><span class="p-val mono">' + escapeHtml(o.vin||'—') + '</span></div>' +
+            '<div class="p-row"><span class="p-lbl">Пробег</span><span class="p-val">' + (o.mileage ? escapeHtml(String(o.mileage)) + ' км' : '—') + '</span></div>' +
+          '</div>' +
+        '</div>' +
+
+        '<div class="p-meta-row">' +
+          '<span><b>Заказ-наряд:</b> № ' + escapeHtml(num) + '</span>' +
+          '<span><b>Дата акта:</b> ' + date + '</span>' +
+        '</div>' +
+
+        '<div class="p-section-title" style="margin-top:16px;">Выполненные работы</div>' +
+        '<table class="p-table">' +
+          '<thead><tr><th class="num" style="width:28px;">№</th><th>Наименование</th><th class="num">Кол-во</th><th class="num">Цена</th><th class="num">Сумма</th></tr></thead>' +
+          '<tbody>' + actRows(workLines, 'Работы не указаны') + '</tbody>' +
+          '<tfoot><tr><td colspan="4" style="text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:#555;padding-top:6px;">Итого работы:</td><td class="num subtotal">' + fmtMoney(workTotal) + '</td></tr></tfoot>' +
+        '</table>' +
+
+        '<div class="p-section-title" style="margin-top:14px;">Запчасти и материалы</div>' +
+        '<table class="p-table">' +
+          '<thead><tr><th class="num" style="width:28px;">№</th><th>Наименование</th><th class="num">Кол-во</th><th class="num">Цена</th><th class="num">Сумма</th></tr></thead>' +
+          '<tbody>' + actRows(partLines, 'Запчасти не указаны') + '</tbody>' +
+          '<tfoot><tr><td colspan="4" style="text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:#555;padding-top:6px;">Итого запчасти:</td><td class="num subtotal">' + fmtMoney(partTotal) + '</td></tr></tfoot>' +
+        '</table>' +
+
+        '<div class="p-total-block">' +
+          (workTotal && partTotal ? '<div class="p-total-row sub"><span>Работы</span><span>' + fmtMoney(workTotal) + '</span></div>' : '') +
+          (workTotal && partTotal ? '<div class="p-total-row sub"><span>Запчасти</span><span>' + fmtMoney(partTotal) + '</span></div>' : '') +
+          '<div class="p-total-row grand"><span>ИТОГО К ОПЛАТЕ</span><span>' + fmtMoney(total) + '</span></div>' +
+          '<div class="p-total-words"><b>Сумма прописью:</b> ' + escapeHtml(moneyToWordsRu(total)) + '</div>' +
+        '</div>' +
+
+        '<div class="p-note">Вышеперечисленные работы выполнены полностью и в срок. Заказчик претензий по объёму, качеству и срокам оказания услуг не имеет.</div>' +
+
+        '<div class="p-signatures">' +
+          '<div class="p-sig-block"><div class="p-sig-line">Исполнитель · ИП Владимиров</div></div>' +
+          sigBlock +
+          '<div class="p-sig-block"><div class="p-stamp-circle">М.П.</div></div>' +
+        '</div>' +
       '</div>';
 
-    openPrintWindow('Акт № ' + num, body, buildDocCss());
+    openPrintWindow('Акт № ' + num, body, buildOrderLikeDocCss());
   }
 
   // ---------- Order form (create / edit) ----------

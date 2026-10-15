@@ -330,6 +330,32 @@
   .assign-popup-item:hover{ background:var(--bg-panel-2); }
   .assign-popup-item.active{ color:var(--accent); font-weight:600; }
 
+  .issued-pin-overlay{
+    position:fixed; inset:0; z-index:500; display:flex; align-items:center; justify-content:center;
+    padding:16px; background:rgba(10,11,14,.68); backdrop-filter:blur(3px);
+  }
+  .issued-pin-modal{
+    width:100%; max-width:320px; box-sizing:border-box; padding:22px 20px 18px;
+    border:1px solid var(--border); border-radius:14px; background:var(--bg-panel);
+    box-shadow:0 22px 60px rgba(0,0,0,.42); text-align:center;
+  }
+  .issued-pin-icon{
+    width:42px; height:42px; margin:0 auto 12px; display:flex; align-items:center; justify-content:center;
+    border-radius:12px; background:rgba(20,184,166,.12); font-size:20px;
+  }
+  .issued-pin-title{ font-size:16px; font-weight:700; color:var(--text-main); }
+  .issued-pin-desc{ margin:6px 0 16px; font-size:12.5px; line-height:1.45; color:var(--text-subtle); }
+  .issued-pin-input{
+    width:100%; box-sizing:border-box; padding:11px 12px; border:1px solid var(--border); border-radius:9px;
+    background:var(--bg-panel-2); color:var(--text-main); font-family:'JetBrains Mono',monospace;
+    font-size:22px; letter-spacing:.42em; text-align:center; outline:none;
+  }
+  .issued-pin-input:focus{ border-color:var(--accent); box-shadow:0 0 0 3px rgba(20,184,166,.12); }
+  .issued-pin-error{ min-height:17px; margin:7px 0 10px; color:#ef4444; font-size:12px; }
+  .issued-pin-actions{ display:flex; justify-content:center; gap:8px; }
+  .issued-pin-actions .btn{ flex:1; justify-content:center; }
+  @media(max-width:380px){ .issued-pin-modal{ padding:20px 16px 16px; } }
+
   /* Modal */
   .modal-overlay{
     position:fixed; inset:0; background: rgba(10,11,14,0.7);
@@ -2171,6 +2197,7 @@
   ];
   var STATUS_LABEL = {};
   STATUSES.forEach(function(s){ STATUS_LABEL[s.key] = s.label; });
+  var ISSUED_STATUS_PIN = '5555';
 
   var DEFAULT_COMMISSION_PCT = 40;
   var DEFAULT_STOCK_MARKUP_PCT = 30;
@@ -3343,6 +3370,75 @@
     return names;
   }
 
+  function requestIssuedStatusPassword(){
+    return new Promise(function(resolve){
+      if(document.getElementById('issuedPinOverlay')){ resolve(false); return; }
+      var overlay = document.createElement('div');
+      overlay.className = 'issued-pin-overlay';
+      overlay.id = 'issuedPinOverlay';
+      overlay.innerHTML =
+        '<div class="issued-pin-modal" role="dialog" aria-modal="true" aria-labelledby="issuedPinTitle">' +
+          '<div class="issued-pin-icon" aria-hidden="true">🔒</div>' +
+          '<div class="issued-pin-title" id="issuedPinTitle">Введите пароль</div>' +
+          '<div class="issued-pin-desc">Чтобы вернуть наряд из статуса «Выдан», подтвердите действие.</div>' +
+          '<form id="issuedPinForm" novalidate>' +
+            '<input class="issued-pin-input" id="issuedPinInput" type="password" inputmode="numeric" pattern="[0-9]{4}" maxlength="4" autocomplete="off" aria-label="Четырёхзначный пароль" placeholder="••••">' +
+            '<div class="issued-pin-error" id="issuedPinError" role="alert" aria-live="polite"></div>' +
+            '<div class="issued-pin-actions">' +
+              '<button class="btn btn-ghost btn-sm" id="issuedPinCancel" type="button">Отмена</button>' +
+              '<button class="btn btn-primary btn-sm" type="submit">Подтвердить</button>' +
+            '</div>' +
+          '</form>' +
+        '</div>';
+      document.body.appendChild(overlay);
+
+      var input = overlay.querySelector('#issuedPinInput');
+      var form = overlay.querySelector('#issuedPinForm');
+      var error = overlay.querySelector('#issuedPinError');
+      var finished = false;
+
+      function finish(approved){
+        if(finished) return;
+        finished = true;
+        document.removeEventListener('keydown', onKeydown);
+        overlay.remove();
+        resolve(approved);
+      }
+      function onKeydown(e){
+        if(e.key === 'Escape'){
+          e.preventDefault();
+          finish(false);
+        }
+      }
+
+      input.addEventListener('input', function(){
+        input.value = input.value.replace(/[^0-9]/g,'').slice(0,4);
+        error.textContent = '';
+      });
+      form.addEventListener('submit', function(e){
+        e.preventDefault();
+        if(!/^\d{4}$/.test(input.value)){
+          error.textContent = 'Введите четыре цифры';
+          input.focus();
+          return;
+        }
+        if(input.value !== ISSUED_STATUS_PIN){
+          error.textContent = 'Неверный пароль. Попробуйте ещё раз.';
+          input.value = '';
+          input.focus();
+          return;
+        }
+        finish(true);
+      });
+      overlay.querySelector('#issuedPinCancel').addEventListener('click', function(){ finish(false); });
+      overlay.addEventListener('mousedown', function(e){
+        if(e.target === overlay) finish(false);
+      });
+      document.addEventListener('keydown', onKeydown);
+      input.focus();
+    });
+  }
+
   function showStatusPopup(e, order){
     var existing = document.querySelector('.assign-popup');
     if(existing) existing.remove();
@@ -3375,18 +3471,7 @@
         popup.remove();
         var newKey = item.dataset.skey;
         if(newKey === order.status) return;
-        order.status = newKey;
-        if(newKey === 'done'){
-          if(!order.dateOut) order.dateOut = todayStr();
-          if(!order.issuedAt) order.issuedAt = Date.now();
-        }
-        var ok = await saveOrder(order);
-        if(ok){
-          var idx = state.orders.findIndex(function(x){ return x.id === order.id; });
-          if(idx !== -1) state.orders[idx] = order;
-          render();
-          showToast('Статус: ' + STATUS_LABEL[newKey]);
-        }
+        await changeStatus(order.id, newKey);
       });
     });
 
@@ -3969,8 +4054,15 @@
 
     async function changeStatus(id, newStatus){
     var order = state.orders.find(function(o){ return o.id === id; });
-    if(!order || order.status === newStatus) return;
+    if(!order || order.status === newStatus) return false;
     var prev = order.status;
+
+    if(prev === 'done' && newStatus !== 'done'){
+      var pinApproved = await requestIssuedStatusPassword();
+      if(!pinApproved) return false;
+      if(order.status !== prev) return false;
+    }
+
     order.status = newStatus;
     if(newStatus === 'done'){
       if(!order.dateOut) order.dateOut = todayStr();
@@ -3980,9 +4072,11 @@
     var ok = await saveOrder(order);
     if(ok){
       showToast('Статус изменён: ' + STATUS_LABEL[newStatus]);
+      return true;
     } else {
       order.status = prev;
       render();
+      return false;
     }
   }
 
@@ -4184,10 +4278,13 @@
       confirmDelete(o.id);
     };
     document.querySelectorAll('#detailStatusRow .status-chip').forEach(function(chip){
-      chip.addEventListener('click', function(){
-        changeStatus(o.id, chip.dataset.status);
-        document.querySelectorAll('#detailStatusRow .status-chip').forEach(function(c){ c.classList.remove('active'); });
-        chip.classList.add('active');
+      chip.addEventListener('click', async function(){
+        var changed = await changeStatus(o.id, chip.dataset.status);
+        if(changed){
+          document.querySelectorAll('#detailStatusRow .status-chip').forEach(function(c){
+            c.classList.toggle('active', c.dataset.status === chip.dataset.status);
+          });
+        }
       });
     });
   }
@@ -5867,7 +5964,9 @@
     order.note = document.getElementById('f_note').value.trim();
 
     var activeChip = document.querySelector('#formStatusRow .status-chip.active');
-    order.status = activeChip ? activeChip.dataset.status : 'new';
+    var requestedStatus = activeChip ? activeChip.dataset.status : 'new';
+    var existingStatusOrder = state.orders.find(function(o){ return o.id === order.id; });
+    var previousStatus = existingStatusOrder ? existingStatusOrder.status : order.status;
 
     order.lines = (order.lines||[]).filter(function(l){ return (l.name && l.name.trim()) || (Number(l.qty)>0 && Number(l.price)>0); })
       .map(function(l){
@@ -5910,6 +6009,17 @@
       showToast('Недостаточно на складе «' + itemName + '»: нужно ' + stockCheck.needed + ', есть ' + stockCheck.available);
       return;
     }
+
+    if(previousStatus === 'done' && requestedStatus !== 'done'){
+      var pinApproved = await requestIssuedStatusPassword();
+      if(!pinApproved){
+        document.querySelectorAll('#formStatusRow .status-chip').forEach(function(c){
+          c.classList.toggle('active', c.dataset.status === previousStatus);
+        });
+        return;
+      }
+    }
+    order.status = requestedStatus;
 
     var saveBtn = document.getElementById('formSave');
     saveBtn.disabled = true;

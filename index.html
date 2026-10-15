@@ -3144,11 +3144,18 @@
     return (Number(l.qty)||0) * (Number(l.price)||0);
   }
 
-  function applyHourRate(line, client){
+  function applyHourRate(line, client, forceCurrentRate){
     if(line.type !== 'work' || !client || client.type !== 'org' || !(Number(client.hourRate)>0)) return;
     if(line.normHours === undefined || line.normHours === null || line.normHours === '') return;
-    line.hourRate = Number(client.hourRate);
-    line.price = Math.round(Number(line.normHours) * line.hourRate * 100) / 100;
+    var rate = (!forceCurrentRate && Number(line.hourRate)>0) ? Number(line.hourRate) : Number(client.hourRate);
+    line.hourRate = rate;
+    line.price = Math.round(Number(line.normHours) * rate * 100) / 100;
+  }
+
+  function applyClientHourRateToEditableOrder(order, forceCurrentRate){
+    var client = order && order.clientId ? getClientById(order.clientId) : null;
+    if(!client || client.type !== 'org' || !(Number(client.hourRate)>0)) return;
+    (order.lines||[]).forEach(function(line){ applyHourRate(line, client, !!forceCurrentRate); });
   }
 
   function getCommissionPct(staffId){
@@ -5577,6 +5584,7 @@
       order.editorMode = 'quick';
       order.orderNumber = orderNum;
       order.clientId = qOrder.clientId;
+      applyClientHourRateToEditableOrder(qOrder, false);
       order.carMake = (document.getElementById('qCarMake').value || '').trim();
       order.lines = qOrder.lines.filter(function(l){
         return (l.name && l.name.trim()) || Number(l.price) > 0;
@@ -5674,6 +5682,7 @@
     if(order.lines.length === 0){
       order.lines.push({ name:'', qty:1, price:0, type:'work', assignees:[], _key:lineId() });
     }
+    if(editId) applyClientHourRateToEditableOrder(order, false);
     state.editingId = editId || null;
 
     var statusChips = STATUSES.map(function(s){
@@ -5891,6 +5900,8 @@
         document.getElementById('f_clientPhone').value = client.phone || '';
         document.getElementById('phoneAutofillHint').innerHTML = '';
         order.clientId = client.id;
+        applyClientHourRateToEditableOrder(order, true);
+        renderAllLines();
 
         var badge = document.getElementById('selectedClientBadge');
         badge.style.display = '';
@@ -6327,6 +6338,8 @@
           name: l.name||'',
           qty: Number(l.qty)||0,
           price: Number(l.price)||0,
+          normHours: l.type === 'work' ? (l.normHours===undefined || l.normHours===null ? null : Number(l.normHours)) : null,
+          hourRate: l.type === 'work' ? (Number(l.hourRate)||null) : null,
           type: l.type === 'part' ? 'part' : 'work',
           assignees: l.type === 'work' ? (l.assignees||[]).filter(Boolean) : [],
           stockItemId: l.type === 'part' ? (l.stockItemId || null) : null,

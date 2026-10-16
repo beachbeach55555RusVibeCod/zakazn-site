@@ -7194,18 +7194,21 @@
       });
     }
     document.getElementById('btnCreateOrderForVehicle').addEventListener('click', function(){
-      var draft = emptyOrder();
-      draft.carMake = car.carMake || '';
-      draft.carModel = car.carModel || '';
-      draft.plate = car.plate || '';
-      draft.vin = car.vin || '';
-      draft.vehicleId = car.id;
-      if(owner){
-        draft.clientName = displayClientName(owner);
-        draft.clientPhone = owner.phone || '';
-        draft.clientId = owner.id;
-      }
-      openOrderForm(draft);
+      openOrderForm(null);
+      setTimeout(function(){
+        var makeEl=document.getElementById('f_carMake'), modelEl=document.getElementById('f_carModel');
+        var plateEl=document.getElementById('f_plate'), vinEl=document.getElementById('f_vin');
+        if(makeEl){ makeEl.value=car.carMake||''; makeEl.dispatchEvent(new Event('input',{bubbles:true})); }
+        if(modelEl) modelEl.value=car.carModel||'';
+        if(plateEl) plateEl.value=car.plate||'';
+        if(vinEl) vinEl.value=car.vin||'';
+        if(owner){
+          var nameEl=document.getElementById('f_clientName'), phoneEl=document.getElementById('f_clientPhone');
+          if(nameEl) nameEl.value=displayClientName(owner);
+          if(phoneEl) phoneEl.value=owner.phone||'';
+        }
+        showToast('Автомобиль заполнен — добавьте работы и сохраните наряд');
+      },0);
     });
     document.getElementById('btnEditVehicle').addEventListener('click', function(){
       openVehicleForm(car.id, car.clientId || null, sourceTab);

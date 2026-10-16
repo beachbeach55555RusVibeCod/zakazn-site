@@ -6635,10 +6635,13 @@
 
     var html = '<div class="clients-toolbar">' +
       '<div class="clients-search"><span class="search-icon">⌕</span><input type="text" id="carsSearchInput" placeholder="Поиск: марка, модель, госномер, VIN, владелец..."></div>' +
-      '<div class="cars-db-count">' + (q ? 'Найдено ' + cars.length + ' из ' + allCars.length : 'Всего в базе: ' + allCars.length) + ' авто</div>' +
+      '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">' +
+        '<div class="cars-db-count">' + (q ? 'Найдено ' + cars.length + ' из ' + allCars.length : 'Всего в базе: ' + allCars.length) + ' авто</div>' +
+        '<button class="btn btn-primary btn-sm" id="btnAddCar">+ Добавить автомобиль</button>' +
+      '</div>' +
     '</div>';
     if(cars.length === 0){
-      html += '<div class="clients-empty">' + (q ? 'По запросу ничего не найдено' : 'В базе пока нет автомобилей. Они появятся здесь автоматически после сохранения заказ-наряда с данными автомобиля.') + '</div>';
+      html += '<div class="clients-empty">' + (q ? 'По запросу ничего не найдено' : 'В базе пока нет автомобилей. Нажмите «Добавить автомобиль», чтобы создать первую карточку.') + '</div>';
     } else {
       html += '<div class="client-list">';
       cars.forEach(function(car){
@@ -6659,6 +6662,8 @@
       html += '</div>';
     }
     wrap.innerHTML = html;
+    var addCarBtn = document.getElementById('btnAddCar');
+    if(addCarBtn) addCarBtn.addEventListener('click', function(){ openVehicleForm(null, null, 'cars'); });
     var searchInput = document.getElementById('carsSearchInput');
     searchInput.value = state.carsSearchQuery || '';
     searchInput.addEventListener('input', function(){

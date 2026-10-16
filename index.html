@@ -7251,8 +7251,8 @@
           '<button type="button" id="fVehicleCancelTop" class="btn btn-ghost btn-sm" aria-label="Закрыть">✕</button>' +
         '</div>' +
         '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
-          '<div><label style="' + fl + '">Марка</label><input id="fVehicleMake" style="' + fi + '" value="' + escapeHtml(car.carMake||'') + '" placeholder="Toyota"></div>' +
-          '<div><label style="' + fl + '">Модель</label><input id="fVehicleModel" style="' + fi + '" value="' + escapeHtml(car.carModel||'') + '" placeholder="Camry"></div>' +
+          '<div><label style="' + fl + '">Марка</label><input id="fVehicleMake" list="fVehicleMakeList" autocomplete="off" style="' + fi + '" value="' + escapeHtml(car.carMake||'') + '" placeholder="Начните вводить или выберите"><datalist id="fVehicleMakeList">' + CAR_MAKES.map(function(m){ return '<option value="' + escapeHtml(m) + '">'; }).join('') + '</datalist></div>' +
+          '<div><label style="' + fl + '">Модель</label><input id="fVehicleModel" list="fVehicleModelList" autocomplete="off" style="' + fi + '" value="' + escapeHtml(car.carModel||'') + '" placeholder="Сначала выберите марку"><datalist id="fVehicleModelList"></datalist></div>' +
           '<div><label style="' + fl + '">Госномер</label><input id="fVehiclePlate" style="' + fi + '" value="' + escapeHtml(car.plate||'') + '" placeholder="А123АА77" maxlength="20"></div>' +
           '<div><label style="' + fl + '">VIN</label><input id="fVehicleVin" style="' + fi + '" value="' + escapeHtml(car.vin||'') + '" placeholder="17 символов" maxlength="40"></div>' +
         '</div>' +
@@ -7266,6 +7266,16 @@
       '</div>';
     document.body.appendChild(formDiv);
     function closeForm(){ if(formDiv.parentNode) formDiv.parentNode.removeChild(formDiv); }
+    function updateVehicleModelList(){
+      var makeVal = formDiv.querySelector('#fVehicleMake').value.trim();
+      var modelList = formDiv.querySelector('#fVehicleModelList');
+      var models = CAR_DB[makeVal] || [];
+      modelList.innerHTML = models.map(function(m){ return '<option value="' + escapeHtml(m) + '">'; }).join('');
+      formDiv.querySelector('#fVehicleModel').placeholder = models.length ? 'Выберите или впишите модель' : 'Впишите модель';
+    }
+    updateVehicleModelList();
+    formDiv.querySelector('#fVehicleMake').addEventListener('input', updateVehicleModelList);
+    formDiv.querySelector('#fVehicleMake').addEventListener('change', updateVehicleModelList);
     formDiv.querySelector('#fVehicleCancelTop').addEventListener('click', closeForm);
     formDiv.querySelector('#fVehicleCancel').addEventListener('click', closeForm);
     formDiv.addEventListener('click', function(e){ if(e.target === formDiv) closeForm(); });

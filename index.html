@@ -5838,7 +5838,10 @@
                 '<div class="form-section lines-column">' +
                   '<div class="form-section-title">Работы</div>' +
                   '<div class="lines" id="workLinesWrap"></div>' +
-                  '<button type="button" class="add-line-btn" id="addWorkLineBtn">+ Добавить работу</button>' +
+                  '<div style="display:grid;grid-template-columns:72px minmax(0,1fr);gap:8px;">' +
+                    '<button type="button" class="add-line-btn" id="presetTOBtn" title="Добавить стандартное ТО" style="border-style:solid;border-color:var(--accent);color:var(--accent);font-weight:700;">ТО</button>' +
+                    '<button type="button" class="add-line-btn" id="addWorkLineBtn">+ Добавить работу</button>' +
+                  '</div>' +
                   '<div class="total-row"><span class="label">Итого работы</span><span class="value" id="workLinesTotal">0&nbsp;₽</span></div>' +
                 '</div>' +
 
@@ -6022,6 +6025,31 @@
       });
     });
 
+    document.getElementById('presetTOBtn').onclick = function(){
+      var preset = [
+        { name:'Замена масла в ДВС', price:1000 },
+        { name:'Замена воздушного фильтра', price:550 },
+        { name:'Замена салонного фильтра', price:550 }
+      ];
+      order.lines = order.lines.filter(function(l){
+        if(l.type !== 'work') return true;
+        return String(l.name||'').trim() || Number(l.price) > 0;
+      });
+      var existingNames = {};
+      order.lines.forEach(function(l){
+        if(l.type === 'work' && l.name) existingNames[String(l.name).trim().toLowerCase()] = true;
+      });
+      preset.forEach(function(p){
+        var key=p.name.toLowerCase();
+        if(existingNames[key]) return;
+        var line={name:p.name,qty:1,price:p.price,type:'work',assignees:[],_key:lineId()};
+        applyHourRate(line,getClientById(order.clientId),false);
+        order.lines.push(line);
+        existingNames[key]=true;
+      });
+      renderAllLines();
+      showToast('Пресет ТО добавлен');
+    };
     document.getElementById('addWorkLineBtn').onclick = function(){
       order.lines.push({ name:'', qty:1, price:0, type:'work', assignees:[], _key:lineId() });
       renderAllLines();

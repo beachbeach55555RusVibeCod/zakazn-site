@@ -7131,6 +7131,7 @@
     '</div>';
 
     html += '<div style="display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin:-4px 0 16px;">' +
+      '<button class="btn btn-primary btn-sm" id="btnCreateOrderForVehicle">+ Создать заказ-наряд</button>' +
       '<button class="btn btn-ghost btn-sm" id="btnEditVehicle">✎ Редактировать</button>' +
       '<button class="btn btn-danger btn-sm" id="btnDeleteVehicle">🗑 Удалить авто</button>' +
     '</div>';
@@ -7192,6 +7193,20 @@
         switchTab('clients', true);
       });
     }
+    document.getElementById('btnCreateOrderForVehicle').addEventListener('click', function(){
+      var draft = emptyOrder();
+      draft.carMake = car.carMake || '';
+      draft.carModel = car.carModel || '';
+      draft.plate = car.plate || '';
+      draft.vin = car.vin || '';
+      draft.vehicleId = car.id;
+      if(owner){
+        draft.clientName = displayClientName(owner);
+        draft.clientPhone = owner.phone || '';
+        draft.clientId = owner.id;
+      }
+      openOrderForm(draft);
+    });
     document.getElementById('btnEditVehicle').addEventListener('click', function(){
       openVehicleForm(car.id, car.clientId || null, sourceTab);
     });

@@ -5837,6 +5837,7 @@
               '<div class="lines-columns">' +
                 '<div class="form-section lines-column">' +
                   '<div class="form-section-title">Работы</div>' +
+                  '<div style="margin:-3px 0 10px;"><select id="allWorksAssignee" style="width:100%;padding:9px 11px;border-radius:9px;border:1px solid var(--border);background:var(--bg-panel-2);color:var(--text-main);font:inherit;"><option value="">Исполнитель на все работы…</option>' + state.staff.map(function(s){ return '<option value="' + escapeHtml(s.id) + '">' + escapeHtml(s.name) + '</option>'; }).join('') + '</select></div>' +
                   '<div class="lines" id="workLinesWrap"></div>' +
                   '<div style="display:grid;grid-template-columns:72px minmax(0,1fr);gap:8px;">' +
                     '<button type="button" class="add-line-btn" id="presetTOBtn" title="Добавить стандартное ТО" style="border-style:solid;border-color:var(--accent);color:var(--accent);font-weight:700;">ТО</button>' +
@@ -6025,6 +6026,19 @@
       });
     });
 
+    document.getElementById('allWorksAssignee').onchange = function(){
+      var staffId=this.value;
+      if(!staffId) return;
+      order.lines.forEach(function(line){
+        if(line.type !== 'work') return;
+        if(!line.assignees) line.assignees=[];
+        line.assignees[0]=staffId;
+      });
+      renderAllLines();
+      document.getElementById('allWorksAssignee').value=staffId;
+      var staffMember=state.staff.find(function(x){ return x.id===staffId; });
+      showToast('Исполнитель ' + (staffMember ? staffMember.name : '') + ' назначен на все работы');
+    };
     document.getElementById('presetTOBtn').onclick = function(){
       var preset = [
         { name:'Замена масла в ДВС', price:1000 },

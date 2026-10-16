@@ -54,6 +54,10 @@
   }
 
   .app{ max-width: 1320px; margin: 0 auto; padding: 28px 24px 64px; }
+  @media(min-width:761px){
+    .header{position:sticky;top:0;z-index:80;background:var(--bg);padding-top:12px;margin-top:-12px;}
+    .tabs{position:sticky;top:var(--sticky-header-bottom,120px);z-index:79;background:var(--bg);padding-top:8px;}
+  }
 
   /* Header */
   .header{
@@ -3309,7 +3313,15 @@
     });
   }
 
+  function updateStickyHeaderOffset(){
+    if(window.innerWidth<=760) return;
+    var header=document.querySelector('.header');
+    if(!header) return;
+    document.documentElement.style.setProperty('--sticky-header-bottom', Math.ceil(header.getBoundingClientRect().height) + 'px');
+  }
+
   function render(){
+    updateStickyHeaderOffset();
     if(!state.loaded){
       return;
     }
@@ -3331,6 +3343,14 @@
       col.dataset.status = s.key;
 
       var colOrders = list.filter(function(o){ return o.status === s.key; });
+      var visibleColOrders = colOrders;
+      if(s.key === 'done'){
+        visibleColOrders = colOrders.slice().sort(function(a,b){
+          var at=Number(a.issuedAt)||Number(a.createdAt)||0, bt=Number(b.issuedAt)||Number(b.createdAt)||0;
+          if(bt!==at) return bt-at;
+          return String(b.dateOut||'').localeCompare(String(a.dateOut||''));
+        }).slice(0,5);
+      }
 
       var head = document.createElement('div');
       head.className = 'column-head';
@@ -3343,18 +3363,27 @@
       var cardsWrap = document.createElement('div');
       cardsWrap.className = 'cards';
 
-      if(colOrders.length === 0){
+      if(visibleColOrders.length === 0){
         var empty = document.createElement('div');
         empty.className = 'empty-col';
         empty.textContent = 'Нет заказов';
         cardsWrap.appendChild(empty);
       } else {
-        colOrders.forEach(function(o){
+        visibleColOrders.forEach(function(o){
           cardsWrap.appendChild(renderCard(o, s.key));
         });
       }
 
       col.appendChild(cardsWrap);
+      if(s.key === 'done' && colOrders.length > 5){
+        var moreHint=document.createElement('button');
+        moreHint.type='button';
+        moreHint.className='btn btn-ghost btn-sm';
+        moreHint.style.cssText='width:100%;margin-top:8px;';
+        moreHint.textContent='Ещё ' + (colOrders.length-5) + ' · Все заказ-наряды';
+        moreHint.addEventListener('click',function(e){e.stopPropagation();openAllIssuedOrders();});
+        col.appendChild(moreHint);
+      }
 
       col.addEventListener('dragover', function(e){
         e.preventDefault();

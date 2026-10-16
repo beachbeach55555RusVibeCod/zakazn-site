@@ -3339,6 +3339,15 @@
         '<span class="column-title">' + s.label + '</span></div>' +
         '<span class="column-count">' + colOrders.length + '</span>';
       col.appendChild(head);
+      if(s.key === 'done'){
+        var allDoneBtn=document.createElement('button');
+        allDoneBtn.type='button';
+        allDoneBtn.className='btn btn-ghost btn-sm';
+        allDoneBtn.style.cssText='width:100%;margin:0 0 10px;';
+        allDoneBtn.textContent='Все заказ-наряды';
+        allDoneBtn.addEventListener('click',function(e){ e.stopPropagation(); openAllIssuedOrders(); });
+        col.appendChild(allDoneBtn);
+      }
 
       var cardsWrap = document.createElement('div');
       cardsWrap.className = 'cards';
@@ -3380,6 +3389,39 @@
     updateStats();
   }
 
+
+  function openAllIssuedOrders(){
+    var orders=state.orders.filter(function(o){ return o.status==='done'; }).slice().sort(function(a,b){
+      var at=Number(a.issuedAt)||Number(a.createdAt)||0, bt=Number(b.issuedAt)||Number(b.createdAt)||0;
+      if(bt!==at) return bt-at;
+      return String(b.dateOut||'').localeCompare(String(a.dateOut||''));
+    });
+    var rows=orders.map(function(o){
+      var car=[o.carMake,o.carModel].filter(Boolean).join(' ')||'Авто не указано';
+      return '<button type="button" data-issued-order="'+escapeHtml(o.id)+'" style="width:100%;display:grid;grid-template-columns:110px 130px minmax(180px,1.2fr) minmax(180px,1fr) 120px;gap:14px;align-items:center;text-align:left;padding:13px 14px;border:0;border-bottom:1px solid var(--border);background:transparent;color:var(--text-main);cursor:pointer;font:inherit;">' +
+        '<b>№ '+escapeHtml(o.orderNumber||'—')+'</b>' +
+        '<span>'+escapeHtml(fmtDate(o.dateOut||o.dateIn))+'</span>' +
+        '<span>'+escapeHtml(o.clientName||'—')+'</span>' +
+        '<span>'+escapeHtml(car)+(o.plate?' · '+escapeHtml(o.plate):'')+'</span>' +
+        '<b style="text-align:right;">'+fmtMoney(calcOrderTotal(o))+'</b>' +
+      '</button>';
+    }).join('');
+    document.getElementById('modalRoot').innerHTML=
+      '<div class="modal-overlay" id="allIssuedOverlay">' +
+        '<div class="modal" style="max-width:1180px;width:calc(100vw - 32px);height:min(86vh,820px);display:flex;flex-direction:column;">' +
+          '<div class="modal-head"><div><h2 style="margin:0;">Все выданные заказ-наряды</h2><div style="font-size:12px;color:var(--text-subtle);margin-top:3px;">Всего: '+orders.length+'</div></div><button class="modal-close" id="allIssuedClose">&times;</button></div>' +
+          '<div class="modal-body" style="padding:0;overflow:auto;flex:1;">' +
+            (orders.length ? '<div style="min-width:820px;"><div style="display:grid;grid-template-columns:110px 130px minmax(180px,1.2fr) minmax(180px,1fr) 120px;gap:14px;padding:10px 14px;background:var(--bg-panel-2);color:var(--text-subtle);font-size:11px;font-weight:700;text-transform:uppercase;position:sticky;top:0;z-index:1;"><span>Номер</span><span>Выдан</span><span>Клиент</span><span>Автомобиль</span><span style="text-align:right;">Сумма</span></div>'+rows+'</div>' : '<div class="clients-empty" style="padding:40px;">Выданных заказ-нарядов пока нет</div>') +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    var overlay=document.getElementById('allIssuedOverlay');
+    document.getElementById('allIssuedClose').onclick=closeModal;
+    overlay.addEventListener('mousedown',function(e){ if(e.target===overlay) closeModal(); });
+    overlay.querySelectorAll('[data-issued-order]').forEach(function(row){
+      row.addEventListener('click',function(){ var id=row.dataset.issuedOrder; closeModal(); openDetail(id); });
+    });
+  }
 
   function renderMobileBoard(wrap, list){
     var board = document.createElement('div');

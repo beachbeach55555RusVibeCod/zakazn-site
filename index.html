@@ -4895,36 +4895,7 @@
       '.p-sig-block.has-sig .p-sig-line{margin-top:0;}' +
       '@media print{@page{margin:12mm;size:A4;}body{padding:0;}}';
 
-    var docHtml =
-      '<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8">' +
-      '<title>Наряд № ' + escapeHtml(o.orderNumber||'') + '</title>' +
-      '<style>' + css + '</style>' +
-      '</head><body>' + bodyHtml + '</body></html>';
-
-    var printWin = window.open('', '_blank', 'width=900,height=1000');
-    if(!printWin){
-      showToast('Браузер заблокировал окно печати. Разрешите всплывающие окна для этой страницы.');
-      return;
-    }
-    printWin.document.open();
-    printWin.document.write(docHtml);
-    printWin.document.close();
-    printWin.focus();
-
-    function tryPrint(){
-      try{
-        printWin.print();
-      }catch(e){
-        console.error('Print failed', e);
-      }
-    }
-
-    if(printWin.document.readyState === 'complete'){
-      setTimeout(tryPrint, 150);
-    } else {
-      printWin.onload = function(){ setTimeout(tryPrint, 150); };
-      setTimeout(tryPrint, 600);
-    }
+    openPrintWindow('Наряд № ' + (o.orderNumber||''), bodyHtml, css, true);
   }
 
   // ---------- Invoice & Act ----------
@@ -5098,7 +5069,7 @@
         '<div class="sig"><div class="sig-line">Главный бухгалтер</div></div>' +
       '</div>';
 
-    openPrintWindow('Счёт № ' + num, body, buildDocCss());
+    openPrintWindow('Счёт № ' + num, '<div class="print-doc">' + body + '</div>', buildDocCss(), true);
   }
 
   function buildOrderLikeDocCss(){

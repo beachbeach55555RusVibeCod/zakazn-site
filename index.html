@@ -3416,29 +3416,68 @@
   }
 
 
+  var WORK_CATALOG = [
+    {make:'Opel',model:'Vivaro',generation:'2014>',years:'2014 — н.в.',work:'Замена масла в двигателе',price:1400,source:'i-Tronik',sourceUrl:'https://i-tronik.ru/service/?brand_id=65&mod_id=1165',checked:'19.10.2026'},
+    {make:'Opel',model:'Vivaro',generation:'2014>',years:'2014 — н.в.',work:'Фильтр воздушный',price:637,source:'i-Tronik',sourceUrl:'https://i-tronik.ru/service/?brand_id=65&mod_id=1165',checked:'19.10.2026'},
+    {make:'Opel',model:'Vivaro',generation:'2014>',years:'2014 — н.в.',work:'Фильтр салона',price:1092,source:'i-Tronik',sourceUrl:'https://i-tronik.ru/service/?brand_id=65&mod_id=1165',checked:'19.10.2026'},
+    {make:'Mercedes-Benz',model:'GLE',generation:'C292 GLE Coupe',years:'2015 — н.в.',work:'Масло моторное (замена)',price:2000,source:'i-Tronik',sourceUrl:'https://i-tronik.ru/service/?brand_id=61&mod_id=900',checked:'19.10.2026'},
+    {make:'Mercedes-Benz',model:'GLE',generation:'C292 GLE Coupe',years:'2015 — н.в.',work:'Диски тормозные задние, комплект (замена)',price:6500,source:'i-Tronik',sourceUrl:'https://i-tronik.ru/service/?brand_id=61&mod_id=900',checked:'19.10.2026'},
+    {make:'Mercedes-Benz',model:'GLE',generation:'C292 GLE Coupe',years:'2015 — н.в.',work:'Диски тормозные передние вентилируемые, комплект (замена)',price:5500,source:'i-Tronik',sourceUrl:'https://i-tronik.ru/service/?brand_id=61&mod_id=900',checked:'19.10.2026'},
+    {make:'Mercedes-Benz',model:'GLE',generation:'C292 GLE Coupe',years:'2015 — н.в.',work:'Масло трансмиссионное',price:5500,source:'i-Tronik',sourceUrl:'https://i-tronik.ru/service/?brand_id=61&mod_id=900',checked:'19.10.2026'},
+    {make:'Mercedes-Benz',model:'GLE',generation:'C292 GLE Coupe',years:'2015 — н.в.',work:'Опора двигателя (642) (замена)',price:12500,source:'i-Tronik',sourceUrl:'https://i-tronik.ru/service/?brand_id=61&mod_id=900',checked:'19.10.2026'},
+    {make:'Mercedes-Benz',model:'GLE',generation:'C292 GLE Coupe',years:'2015 — н.в.',work:'Радиатор основной',price:15000,source:'i-Tronik',sourceUrl:'https://i-tronik.ru/service/?brand_id=61&mod_id=900',checked:'19.10.2026'},
+    {make:'Mercedes-Benz',model:'GLE',generation:'C292 GLE Coupe',years:'2015 — н.в.',work:'Сход-развал',price:5500,source:'i-Tronik',sourceUrl:'https://i-tronik.ru/service/?brand_id=61&mod_id=900',checked:'19.10.2026'},
+    {make:'Mercedes-Benz',model:'GLE',generation:'C292 GLE Coupe',years:'2015 — н.в.',work:'Ремень ручейковый',price:2500,source:'i-Tronik',sourceUrl:'https://i-tronik.ru/service/?brand_id=61&mod_id=900',checked:'19.10.2026'},
+    {make:'Mercedes-Benz',model:'GLE',generation:'C292 GLE Coupe',years:'2015 — н.в.',work:'Стойка переднего стабилизатора',price:1000,source:'i-Tronik',sourceUrl:'https://i-tronik.ru/service/?brand_id=61&mod_id=900',checked:'19.10.2026'},
+    {make:'Mercedes-Benz',model:'GLE',generation:'C292 GLE Coupe',years:'2015 — н.в.',work:'Турбокомпрессор (турбина) (642)',price:12000,source:'i-Tronik',sourceUrl:'https://i-tronik.ru/service/?brand_id=61&mod_id=900',checked:'19.10.2026'},
+    {make:'Mercedes-Benz',model:'GLE',generation:'C292 GLE Coupe',years:'2015 — н.в.',work:'Фильтр воздушный, комплект (642)',price:3000,source:'i-Tronik',sourceUrl:'https://i-tronik.ru/service/?brand_id=61&mod_id=900',checked:'19.10.2026'},
+    {make:'Mercedes-Benz',model:'GLE',generation:'C292 GLE Coupe',years:'2015 — н.в.',work:'Фильтр салона',price:2000,source:'i-Tronik',sourceUrl:'https://i-tronik.ru/service/?brand_id=61&mod_id=900',checked:'19.10.2026'},
+    {make:'Mercedes-Benz',model:'E-Class',generation:'W213 E-Klasse',years:'2016 — н.в.',work:'Рейка рулевая',price:8500,source:'i-Tronik',sourceUrl:'https://i-tronik.ru/service/?brand_id=61&mod_id=959',checked:'19.10.2026'},
+    {make:'Mercedes-Benz',model:'E-Class',generation:'W213 E-Klasse',years:'2016 — н.в.',work:'Сход-развал',price:4500,source:'i-Tronik',sourceUrl:'https://i-tronik.ru/service/?brand_id=61&mod_id=959',checked:'19.10.2026'},
+    {make:'Mercedes-Benz',model:'E-Class',generation:'W213 E-Klasse',years:'2016 — н.в.',work:'Ремень ручейковый',price:2500,source:'i-Tronik',sourceUrl:'https://i-tronik.ru/service/?brand_id=61&mod_id=959',checked:'19.10.2026'},
+    {make:'Mercedes-Benz',model:'E-Class',generation:'W213 E-Klasse',years:'2016 — н.в.',work:'Рычаг передний нижний',price:3000,source:'i-Tronik',sourceUrl:'https://i-tronik.ru/service/?brand_id=61&mod_id=959',checked:'19.10.2026'},
+    {make:'Mercedes-Benz',model:'E-Class',generation:'W213 E-Klasse',years:'2016 — н.в.',work:'Стартер (2,0)',price:5500,source:'i-Tronik',sourceUrl:'https://i-tronik.ru/service/?brand_id=61&mod_id=959',checked:'19.10.2026'},
+    {make:'Mercedes-Benz',model:'E-Class',generation:'W213 E-Klasse',years:'2016 — н.в.',work:'Термостат (2,0)',price:12000,source:'i-Tronik',sourceUrl:'https://i-tronik.ru/service/?brand_id=61&mod_id=959',checked:'19.10.2026'},
+    {make:'Mercedes-Benz',model:'E-Class',generation:'W213 E-Klasse',years:'2016 — н.в.',work:'Фильтр воздушный',price:1000,source:'i-Tronik',sourceUrl:'https://i-tronik.ru/service/?brand_id=61&mod_id=959',checked:'19.10.2026'},
+    {make:'Mercedes-Benz',model:'E-Class',generation:'W213 E-Klasse',years:'2016 — н.в.',work:'Фильтр салона (в салоне)',price:1500,source:'i-Tronik',sourceUrl:'https://i-tronik.ru/service/?brand_id=61&mod_id=959',checked:'19.10.2026'},
+    {make:'Mercedes-Benz',model:'E-Class',generation:'W213 E-Klasse',years:'2016 — н.в.',work:'Фильтр салона (под капотом)',price:500,source:'i-Tronik',sourceUrl:'https://i-tronik.ru/service/?brand_id=61&mod_id=959',checked:'19.10.2026'},
+    {make:'Mercedes-Benz',model:'E-Class',generation:'W213 E-Klasse',years:'2016 — н.в.',work:'Фильтр топливный (2.0D)',price:3000,source:'i-Tronik',sourceUrl:'https://i-tronik.ru/service/?brand_id=61&mod_id=959',checked:'19.10.2026'}
+  ];
+
   function openWorkCatalog(){
+    var makes=Array.from(new Set(WORK_CATALOG.map(function(x){return x.make;}))).sort(function(a,b){return a.localeCompare(b,'ru');});
     document.getElementById('modalRoot').innerHTML=
-      '<div class="modal-overlay" id="workCatalogOverlay">' +
-        '<div class="modal" style="max-width:1280px;width:calc(100vw - 32px);height:min(90vh,900px);display:flex;flex-direction:column;">' +
-          '<div class="modal-head"><div><h2 style="margin:0;">Каталог работ</h2><div style="font-size:12px;color:var(--text-subtle);margin-top:3px;">Ориентировочные цены ремонта по маркам и моделям автомобилей</div></div><button class="modal-close" id="workCatalogClose">&times;</button></div>' +
-          '<div class="modal-body" style="overflow:auto;flex:1;">' +
-            '<div style="display:grid;grid-template-columns:minmax(180px,1fr) minmax(180px,1fr) minmax(240px,1.6fr);gap:10px;margin-bottom:18px;">' +
-              '<div class="field" style="margin:0;"><label>Марка</label><select id="workCatalogMake"><option value="">Выберите марку</option>' + CAR_MAKES.map(function(m){return '<option value="'+escapeHtml(m)+'">'+escapeHtml(m)+'</option>';}).join('') + '</select></div>' +
-              '<div class="field" style="margin:0;"><label>Модель</label><select id="workCatalogModel" disabled><option value="">Сначала выберите марку</option></select></div>' +
-              '<div class="field" style="margin:0;"><label>Поиск работы</label><input id="workCatalogSearch" type="text" placeholder="Например: замена ступицы, масло, тормоза..."></div>' +
-            '</div>' +
-            '<div id="workCatalogResults" style="border:1px solid var(--border);border-radius:12px;background:var(--bg-panel-2);padding:36px 20px;text-align:center;color:var(--text-muted);">Выберите марку и модель автомобиля. Здесь будут отображаться работы и цены из каталога.</div>' +
-          '</div>' +
-        '</div>' +
-      '</div>';
-    var overlay=document.getElementById('workCatalogOverlay'), make=document.getElementById('workCatalogMake'), model=document.getElementById('workCatalogModel');
-    make.addEventListener('change',function(){
-      var models=CAR_DB[make.value]||[];
-      model.disabled=!make.value;
-      model.innerHTML=make.value ? '<option value="">Выберите модель</option>'+models.map(function(m){return '<option value="'+escapeHtml(m)+'">'+escapeHtml(m)+'</option>';}).join('') : '<option value="">Сначала выберите марку</option>';
-    });
-    document.getElementById('workCatalogClose').onclick=closeModal;
-    overlay.addEventListener('mousedown',function(e){if(e.target===overlay)closeModal();});
+      '<div class="modal-overlay" id="workCatalogOverlay"><div class="modal" style="max-width:1280px;width:calc(100vw - 32px);height:min(90vh,900px);display:flex;flex-direction:column;">' +
+      '<div class="modal-head"><div><h2 style="margin:0;">Каталог работ</h2><div style="font-size:12px;color:var(--text-subtle);margin-top:3px;">Проверенные цены · источник и дата проверки указаны у каждой позиции</div></div><button class="modal-close" id="workCatalogClose">&times;</button></div>' +
+      '<div class="modal-body" style="overflow:auto;flex:1;"><div style="display:grid;grid-template-columns:minmax(180px,1fr) minmax(180px,1fr) minmax(240px,1.6fr);gap:10px;margin-bottom:18px;">' +
+      '<div class="field" style="margin:0;"><label>Марка</label><select id="workCatalogMake"><option value="">Все марки</option>'+makes.map(function(m){return '<option>'+escapeHtml(m)+'</option>';}).join('')+'</select></div>' +
+      '<div class="field" style="margin:0;"><label>Модель</label><select id="workCatalogModel"><option value="">Все модели</option></select></div>' +
+      '<div class="field" style="margin:0;"><label>Поиск работы</label><input id="workCatalogSearch" placeholder="Например: масло, фильтр, тормоза..."></div></div>' +
+      '<div id="workCatalogResults"></div></div></div></div>';
+    var overlay=document.getElementById('workCatalogOverlay'),make=document.getElementById('workCatalogMake'),model=document.getElementById('workCatalogModel'),search=document.getElementById('workCatalogSearch'),results=document.getElementById('workCatalogResults');
+    function refreshModels(){
+      var vals=WORK_CATALOG.filter(function(x){return !make.value||x.make===make.value;}).map(function(x){return x.model;});
+      vals=Array.from(new Set(vals)).sort(function(a,b){return a.localeCompare(b,'ru');});
+      var keep=model.value;
+      model.innerHTML='<option value="">Все модели</option>'+vals.map(function(m){return '<option value="'+escapeHtml(m)+'">'+escapeHtml(m)+'</option>';}).join('');
+      if(vals.indexOf(keep)>=0)model.value=keep;
+    }
+    function renderCatalog(){
+      var q=String(search.value||'').trim().toLowerCase();
+      var rows=WORK_CATALOG.filter(function(x){
+        return (!make.value||x.make===make.value)&&(!model.value||x.model===model.value)&&(!q||[x.work,x.make,x.model,x.generation].join(' ').toLowerCase().indexOf(q)>=0);
+      });
+      if(!rows.length){results.innerHTML='<div class="clients-empty" style="padding:40px;">По выбранным условиям проверенных цен пока нет</div>';return;}
+      results.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px;">'+rows.map(function(x){
+        return '<div style="border:1px solid var(--border);border-radius:11px;background:var(--bg-panel-2);padding:13px 14px;">' +
+          '<div style="font-size:14px;font-weight:700;margin-bottom:6px;">'+escapeHtml(x.work)+'</div>' +
+          '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;"><div style="font-size:12px;color:var(--text-muted);line-height:1.5;">'+escapeHtml(x.make+' '+x.model)+'<br>'+escapeHtml(x.generation)+' · '+escapeHtml(x.years)+'</div><div style="font-family:\'JetBrains Mono\',monospace;font-size:17px;font-weight:700;color:var(--accent);white-space:nowrap;">'+fmtMoney(x.price)+'</div></div>' +
+          '<div style="font-size:10.5px;color:var(--text-subtle);margin-top:9px;padding-top:8px;border-top:1px solid var(--border);">Источник: '+escapeHtml(x.source)+' · проверено '+escapeHtml(x.checked)+'</div></div>';
+      }).join('')+'</div>';
+    }
+    make.addEventListener('change',function(){refreshModels();renderCatalog();});model.addEventListener('change',renderCatalog);search.addEventListener('input',renderCatalog);
+    refreshModels();renderCatalog();
+    document.getElementById('workCatalogClose').onclick=closeModal;overlay.addEventListener('mousedown',function(e){if(e.target===overlay)closeModal();});
   }
 
   function openAllIssuedOrders(){

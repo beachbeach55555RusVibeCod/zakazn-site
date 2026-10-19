@@ -3406,10 +3406,9 @@
     wrap.innerHTML = '';
     var boardTools=document.createElement('div');
     boardTools.style.cssText='display:flex;justify-content:flex-end;gap:8px;margin:0 0 12px;flex-wrap:wrap;';
-    boardTools.innerHTML='<button type="button" class="btn btn-ghost btn-sm" id="workCatalogBtn">Каталог работ</button><button type="button" class="btn btn-ghost btn-sm" id="allIssuedOrdersBtn">Все заказ-наряды</button>';
+    boardTools.innerHTML='<button type="button" class="btn btn-ghost btn-sm" id="allIssuedOrdersBtn">Все заказ-наряды</button>';
     wrap.appendChild(boardTools);
     wrap.appendChild(board);
-    document.getElementById('workCatalogBtn').addEventListener('click',openWorkCatalog);
     document.getElementById('allIssuedOrdersBtn').addEventListener('click',openAllIssuedOrders);
 
     updateStats();

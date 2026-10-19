@@ -888,8 +888,9 @@
   .line-row .line-sum{
     font-family:'JetBrains Mono', monospace; font-size:13px; color:var(--text-secondary); text-align:right; padding-right:4px;
   }
+  .line-row.part-name-row{ grid-template-columns:1fr; margin-bottom:6px; }
   .line-row.part-line-row{
-    grid-template-columns:minmax(105px,1fr) 50px 104px 120px 72px;
+    grid-template-columns:50px 104px 120px minmax(72px,1fr);
   }
   .line-row.part-line-row .part-cost-input,
   .line-row.part-line-row .part-sell-input{
@@ -897,11 +898,10 @@
     font-variant-numeric:tabular-nums;
   }
   @media (max-width:760px){
-    .line-row.part-line-row{ grid-template-columns:minmax(150px,1fr) 64px 118px 132px 90px; }
+    .line-row.part-line-row{ grid-template-columns:64px 118px 132px minmax(90px,1fr); }
   }
   @media (max-width:640px){
     .line-row.part-line-row{ grid-template-columns:1fr 1fr; }
-    .line-row.part-line-row input[data-field="name"]{ grid-column:1 / -1; }
     .line-row.part-line-row .line-sum{ grid-column:1 / -1; text-align:right; }
   }
   .line-remove{
@@ -6383,9 +6383,11 @@
             '<span></span>' +
             '<button type="button" class="line-remove" title="Удалить запчасть">&times;</button>' +
           '</div>' +
-          '<div class="line-row part-line-row">' +
+          '<div class="line-row part-name-row">' +
             '<input type="text" placeholder="Например: Масляный фильтр" value="' + escapeHtml(line.name) + '" data-field="name" list="' + nameDatalistId + '" autocomplete="off">' +
             '<datalist id="' + nameDatalistId + '">' + nameOptions + '</datalist>' +
+          '</div>' +
+          '<div class="line-row part-line-row">' +
             '<input type="number" min="0" step="1" value="' + (line.qty||1) + '" data-field="qty" title="Количество">' +
             '<input class="part-cost-input" type="number" min="0" step="0.1" value="' + priceInputValue(line.costPrice||0) + '" data-field="costPrice" placeholder="Закупка" title="' + (line.stockItemId ? 'Закупочная цена со склада' : 'Закупочная цена; после изменения цена продажи пересчитается с +45%') + '"' + (line.stockItemId ? ' readonly' : '') + '>' +
             '<input class="part-sell-input" type="number" min="0" step="0.1" value="' + priceInputValue(line.price||0) + '" data-field="price" placeholder="После наценки" title="Цена продажи после наценки — можно изменить вручную">' +

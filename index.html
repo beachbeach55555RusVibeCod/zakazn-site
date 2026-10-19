@@ -3405,15 +3405,41 @@
 
     wrap.innerHTML = '';
     var boardTools=document.createElement('div');
-    boardTools.style.cssText='display:flex;justify-content:flex-end;margin:0 0 12px;';
-    boardTools.innerHTML='<button type="button" class="btn btn-ghost btn-sm" id="allIssuedOrdersBtn">Все заказ-наряды</button>';
+    boardTools.style.cssText='display:flex;justify-content:flex-end;gap:8px;margin:0 0 12px;flex-wrap:wrap;';
+    boardTools.innerHTML='<button type="button" class="btn btn-ghost btn-sm" id="workCatalogBtn">Каталог работ</button><button type="button" class="btn btn-ghost btn-sm" id="allIssuedOrdersBtn">Все заказ-наряды</button>';
     wrap.appendChild(boardTools);
     wrap.appendChild(board);
+    document.getElementById('workCatalogBtn').addEventListener('click',openWorkCatalog);
     document.getElementById('allIssuedOrdersBtn').addEventListener('click',openAllIssuedOrders);
 
     updateStats();
   }
 
+
+  function openWorkCatalog(){
+    document.getElementById('modalRoot').innerHTML=
+      '<div class="modal-overlay" id="workCatalogOverlay">' +
+        '<div class="modal" style="max-width:1280px;width:calc(100vw - 32px);height:min(90vh,900px);display:flex;flex-direction:column;">' +
+          '<div class="modal-head"><div><h2 style="margin:0;">Каталог работ</h2><div style="font-size:12px;color:var(--text-subtle);margin-top:3px;">Ориентировочные цены ремонта по маркам и моделям автомобилей</div></div><button class="modal-close" id="workCatalogClose">&times;</button></div>' +
+          '<div class="modal-body" style="overflow:auto;flex:1;">' +
+            '<div style="display:grid;grid-template-columns:minmax(180px,1fr) minmax(180px,1fr) minmax(240px,1.6fr);gap:10px;margin-bottom:18px;">' +
+              '<div class="field" style="margin:0;"><label>Марка</label><select id="workCatalogMake"><option value="">Выберите марку</option>' + CAR_MAKES.map(function(m){return '<option value="'+escapeHtml(m)+'">'+escapeHtml(m)+'</option>';}).join('') + '</select></div>' +
+              '<div class="field" style="margin:0;"><label>Модель</label><select id="workCatalogModel" disabled><option value="">Сначала выберите марку</option></select></div>' +
+              '<div class="field" style="margin:0;"><label>Поиск работы</label><input id="workCatalogSearch" type="text" placeholder="Например: замена ступицы, масло, тормоза..."></div>' +
+            '</div>' +
+            '<div id="workCatalogResults" style="border:1px solid var(--border);border-radius:12px;background:var(--bg-panel-2);padding:36px 20px;text-align:center;color:var(--text-muted);">Выберите марку и модель автомобиля. Здесь будут отображаться работы и цены из каталога.</div>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    var overlay=document.getElementById('workCatalogOverlay'), make=document.getElementById('workCatalogMake'), model=document.getElementById('workCatalogModel');
+    make.addEventListener('change',function(){
+      var models=CAR_DB[make.value]||[];
+      model.disabled=!make.value;
+      model.innerHTML=make.value ? '<option value="">Выберите модель</option>'+models.map(function(m){return '<option value="'+escapeHtml(m)+'">'+escapeHtml(m)+'</option>';}).join('') : '<option value="">Сначала выберите марку</option>';
+    });
+    document.getElementById('workCatalogClose').onclick=closeModal;
+    overlay.addEventListener('mousedown',function(e){if(e.target===overlay)closeModal();});
+  }
 
   function openAllIssuedOrders(){
     var orders=state.orders.filter(function(o){ return o.status==='done'; }).slice().sort(function(a,b){

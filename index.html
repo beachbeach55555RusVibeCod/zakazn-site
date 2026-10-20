@@ -1489,6 +1489,11 @@
   .sticker-text{ white-space:pre-wrap; overflow-wrap:anywhere; font-size:13px; line-height:1.38; }
   .sticker-date{ margin-top:7px; font:10px 'JetBrains Mono',monospace; color:#716B55; }
   .sticker-delete{ position:absolute; top:5px; right:6px; width:22px; height:22px; padding:0; border:0; background:transparent; color:#716B55; cursor:pointer; font-size:17px; line-height:1; }
+  .sticker-edit{ position:absolute; top:6px; right:30px; width:22px; height:22px; padding:0; border:0; background:transparent; color:#716B55; cursor:pointer; font-size:13px; line-height:1; }
+  .sticker-card.editing{ transform:none; padding-right:12px; }
+  .sticker-edit-area{ width:100%; min-height:86px; resize:vertical; border:1px solid rgba(70,65,48,.28); border-radius:6px; background:rgba(255,255,255,.42); color:#332F22; padding:8px; font:13px/1.4 inherit; }
+  .sticker-edit-actions{ display:flex; gap:6px; margin-top:7px; }
+  .sticker-mini-btn{ border:1px solid rgba(70,65,48,.25); border-radius:6px; background:rgba(255,255,255,.38); color:#332F22; padding:5px 8px; font:600 11px inherit; cursor:pointer; }
   .stickers-empty{ padding:12px 8px; border:1px dashed var(--border); border-radius:9px; color:var(--text-subtle); font-size:12px; line-height:1.4; }
 
   @media(max-width:760px){
@@ -2649,7 +2654,7 @@
     root.innerHTML = state.stickers.map(function(s){
       var d = new Date(s.createdAt||Date.now());
       var stamp = d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'}) + ' ' + d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
-      return '<div class="sticker-card" data-sticker-id="' + escapeAttr(s.id) + '"><button class="sticker-delete" type="button" title="Удалить">×</button><div class="sticker-text">' + escapeHtml(s.text||'') + '</div><div class="sticker-date">' + escapeHtml(stamp) + '</div></div>';
+      return '<div class="sticker-card" data-sticker-id="' + escapeAttr(s.id) + '"><button class="sticker-edit" type="button" title="Редактировать">✎</button><button class="sticker-delete" type="button" title="Удалить">×</button><div class="sticker-text">' + escapeHtml(s.text||'') + '</div><div class="sticker-date">' + escapeHtml(stamp) + '</div></div>';
     }).join('');
   }
 
@@ -2665,6 +2670,23 @@
   async function deleteSticker(id){
     try{ await localStore.delete('sticker:' + id); state.stickers = state.stickers.filter(function(s){ return s.id !== id; }); renderStickers(); }
     catch(e){ console.error(e); showToast('Не удалось удалить стикер'); }
+  }
+
+  function beginEditSticker(card, id){
+    var sticker = state.stickers.find(function(s){ return s.id === id; });
+    if(!sticker) return;
+    card.classList.add('editing');
+    card.innerHTML = '<textarea class="sticker-edit-area" maxlength="1000"></textarea><div class="sticker-edit-actions"><button class="sticker-mini-btn sticker-save" type="button">Сохранить</button><button class="sticker-mini-btn sticker-cancel" type="button">Отмена</button></div>';
+    var area = card.querySelector('.sticker-edit-area'); area.value = sticker.text || ''; area.focus(); area.setSelectionRange(area.value.length, area.value.length);
+  }
+
+  async function updateSticker(id, text){
+    var sticker = state.stickers.find(function(s){ return s.id === id; });
+    text = (text||'').trim();
+    if(!sticker || !text) return false;
+    var updated = Object.assign({}, sticker, { text:text, updatedAt:Date.now() });
+    try{ await saveSticker(updated); var idx=state.stickers.findIndex(function(s){return s.id===id;}); if(idx!==-1) state.stickers[idx]=updated; renderStickers(); return true; }
+    catch(e){ console.error(e); showToast('Не удалось сохранить изменения'); return false; }
   }
 
   async function loadOrders(){
@@ -6829,6 +6851,7 @@
             '<div class="client-row-name">' + escapeHtml(displayClientName(c)) + '</div>' +
             '<div class="client-row-meta">' + escapeHtml(meta) + '</div>' +
           '</div>' +
+          '<div class="client-row-cars">' + (carsOfClient(c.id).length ? carsOfClient(c.id).map(function(car){ return escapeHtml([car.carMake,car.carModel].filter(Boolean).join(' ') || car.plate || 'Автомобиль'); }).join('<br>') : '<span style="color:var(--text-subtle)">Авто не закреплено</span>') + '</div>' +
           '<div class="client-row-stats">' +
             '<div class="client-stat"><div class="num">' + stats.carsCount + '</div><div class="lbl">авто</div></div>' +
             '<div class="client-stat"><div class="num">' + stats.visitsCount + '</div><div class="lbl">визитов</div></div>' +
@@ -9143,8 +9166,12 @@
   document.getElementById('btnAddSticker').addEventListener('click', addSticker);
   document.getElementById('stickerInput').addEventListener('keydown', function(e){ if((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); addSticker(); } });
   document.getElementById('stickersList').addEventListener('click', function(e){
-    var btn = e.target.closest('.sticker-delete'); if(!btn) return;
-    var card = btn.closest('[data-sticker-id]'); if(card) deleteSticker(card.getAttribute('data-sticker-id'));
+    var card = e.target.closest('[data-sticker-id]'); if(!card) return;
+    var id = card.getAttribute('data-sticker-id');
+    if(e.target.closest('.sticker-delete')){ deleteSticker(id); return; }
+    if(e.target.closest('.sticker-edit')){ beginEditSticker(card, id); return; }
+    if(e.target.closest('.sticker-cancel')){ renderStickers(); return; }
+    if(e.target.closest('.sticker-save')){ var area=card.querySelector('.sticker-edit-area'); if(area) updateSticker(id, area.value); }
   });
   document.getElementById('btnTheme').addEventListener('click', toggleTheme);
     var btnExportCSV = document.getElementById('btnExportCSV'); if(btnExportCSV) btnExportCSV.addEventListener('click', exportOrdersCSV);

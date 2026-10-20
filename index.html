@@ -6072,19 +6072,28 @@
         e.preventDefault();
         document.getElementById('f_clientName').value = match.name||'';
         hintBox.innerHTML = '';
+        order.clientId = match.id;
         var clientCars = carsOfClient(match.id);
-        if(clientCars.length === 1 && !document.getElementById('f_plate').value.trim()){
+        if(clientCars.length === 1){
           applyVehicleData(clientCars[0]);
+        } else if(clientCars.length > 1){
+          showVehiclePickerPopup(clientCars, applyVehicleData);
         }
       };
     }
 
     function applyVehicleData(car){
-      document.getElementById('f_carMake').value = car.carMake||'';
+      if(!car) return;
+      order.vehicleId = car.id || null;
+      order.carMake = car.carMake||'';
+      order.carModel = car.carModel||'';
+      order.vin = car.vin||'';
+      order.plate = car.plate||'';
+      document.getElementById('f_carMake').value = order.carMake;
       updateModelList();
-      document.getElementById('f_carModel').value = car.carModel||'';
-      document.getElementById('f_vin').value = car.vin||'';
-      document.getElementById('f_plate').value = car.plate||'';
+      document.getElementById('f_carModel').value = order.carModel;
+      document.getElementById('f_vin').value = order.vin;
+      document.getElementById('f_plate').value = order.plate;
       document.getElementById('vehicleAutofillHint').innerHTML = '';
     }
 
@@ -6133,6 +6142,8 @@
         '</div>';
         document.getElementById('clearPickedClient').onclick = function(){
           order.clientId = null;
+          order.vehicleId = null;
+          order.carMake = ''; order.carModel = ''; order.plate = ''; order.vin = '';
           badge.style.display = 'none';
           badge.innerHTML = '';
           document.getElementById('f_clientName').value  = '';

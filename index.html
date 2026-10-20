@@ -3779,7 +3779,7 @@
     function staffItems(slot, activeId){
       var html = '<div class="assign-popup-item' + (!activeId ? ' active' : '') + '" data-slot="' + slot + '" data-sid="">— Не назначен</div>';
       state.staff.forEach(function(s){
-        html += '<div class="assign-popup-item' + (activeId === s.id ? ' active' : '') + '" data-slot="' + slot + '" data-sid="' + s.id + '">' + escapeHtml(s.name) + '</div>';
+        html += '<div class="assign-popup-item' + (activeId === s.id ? ' active' : '') + '" data-slot="' + slot + '" data-sid="' + escapeAttr(s.id) + '">' + escapeHtml(s.name) + '</div>';
       });
       return html;
     }
@@ -4032,7 +4032,7 @@
       '</div>' +
       '<div class="mds-list">' +
         rows.map(function(r){
-          return '<div class="mds-card mds-staff-card" data-staffid="' + r.staffId + '" title="' + escapeHtml(r.name) + '">' +
+          return '<div class="mds-card mds-staff-card" data-staffid="' + escapeAttr(r.staffId) + '" title="' + escapeHtml(r.name) + '">' +
             '<div class="mds-name">' + escapeHtml(r.name) + '</div>' +
             '<div class="mds-amount">' + fmtMoney(r.amount) + '</div>' +
             periodButtons() +
@@ -4120,7 +4120,7 @@
       var firstName = escapeHtml(r.name.split(' ')[0]);
       var todayRec = todayMap[r.staffId];
       var todayAmount = todayRec ? todayRec.amount : 0;
-      return '<div class="salary-widget" data-staffid="' + r.staffId + '" title="' + escapeHtml(r.name) + '">' +
+      return '<div class="salary-widget" data-staffid="' + escapeAttr(r.staffId) + '" title="' + escapeHtml(r.name) + '">' +
         '<div class="sw-name">' + firstName + '</div>' +
         '<div class="sw-amount">' + fmtMoney(r.amount) + '</div>' +
         '<div class="sw-today">' +
@@ -4761,8 +4761,8 @@
       }).join('');
     }
 
-    var sigBlock = o.signature
-      ? '<div class="p-sig-block has-sig"><img class="p-sig-img" src="' + o.signature + '"><div class="p-sig-line">Подпись клиента</div></div>'
+    var sigBlock = safeSignatureSrc(o.signature)
+      ? '<div class="p-sig-block has-sig"><img class="p-sig-img" src="' + escapeAttr(safeSignatureSrc(o.signature)) + '"><div class="p-sig-line">Подпись клиента</div></div>'
       : '<div class="p-sig-block"><div class="p-sig-line">Подпись клиента</div></div>';
 
     var compRight = '';
@@ -4916,7 +4916,7 @@
         '.print-doc{display:flow-root;}' +
         '@media print{@page{size:A4;margin:10mm;}body{width:190mm;margin:0;padding:0;}}';
     }
-    var docHtml = '<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><title>' + title + '</title>' +
+    var docHtml = '<!DOCTYPE html><html lang="ru"><head><meta charset="UTF-8"><title>' + escapeHtml(title) + '</title>' +
       '<style>' + css + '</style></head><body>' + bodyHtml + '</body></html>';
     var w = window.open('', '_blank', 'width=900,height=1000');
     if(!w){ showToast('Браузер заблокировал окно печати. Разрешите всплывающие окна.'); return; }
@@ -5616,17 +5616,17 @@
           return '<option value="' + escapeHtml(s.id) + '"' + ((line.assignees||[])[0] === s.id ? ' selected' : '') + '>' + escapeHtml(s.name) + '</option>';
         }).join('') : '';
         var quickPriceFields = type === 'part'
-          ? '<input class="q-cost" data-key="' + line._key + '" data-f="costPrice" type="number" min="0" step="0.1" value="' + (line.costPrice ? priceInputValue(line.costPrice) : '') + '" placeholder="Закупка" title="' + (line.stockItemId ? 'Закупочная цена со склада' : 'Закупочная цена; после изменения цена продажи пересчитается с +45%') + '"' + (line.stockItemId ? ' readonly' : '') + ' style="' + fi + 'padding:8px 6px;">' +
-            '<input class="q-price" data-key="' + line._key + '" data-f="price" type="number" min="0" step="0.1" value="' + (line.price ? priceInputValue(line.price) : '') + '" placeholder="После наценки" title="Цена продажи после наценки — можно изменить вручную" style="' + fi + 'padding:8px 6px;">'
-          : '<input class="q-price" data-key="' + line._key + '" data-f="price" type="number" min="0" step="0.01" value="' + (line.price||'') + '" placeholder="Цена" title="Цена" style="' + fi + 'padding:8px 6px;">';
+          ? '<input class="q-cost" data-key="' + escapeAttr(line._key) + '" data-f="costPrice" type="number" min="0" step="0.1" value="' + (line.costPrice ? priceInputValue(line.costPrice) : '') + '" placeholder="Закупка" title="' + (line.stockItemId ? 'Закупочная цена со склада' : 'Закупочная цена; после изменения цена продажи пересчитается с +45%') + '"' + (line.stockItemId ? ' readonly' : '') + ' style="' + fi + 'padding:8px 6px;">' +
+            '<input class="q-price" data-key="' + escapeAttr(line._key) + '" data-f="price" type="number" min="0" step="0.1" value="' + (line.price ? priceInputValue(line.price) : '') + '" placeholder="После наценки" title="Цена продажи после наценки — можно изменить вручную" style="' + fi + 'padding:8px 6px;">'
+          : '<input class="q-price" data-key="' + escapeAttr(line._key) + '" data-f="price" type="number" min="0" step="0.01" value="' + (line.price||'') + '" placeholder="Цена" title="Цена" style="' + fi + 'padding:8px 6px;">';
         row.innerHTML =
-          '<input class="q-name" data-key="' + line._key + '" data-f="name" value="' + escapeHtml(line.name) + '" placeholder="' + (type === 'work' ? 'Работа' : 'Запчасть') + '"' + (type === 'part' ? ' list="' + quickStockListId + '"' : '') + ' autocomplete="off" style="' + fi + 'padding:8px 10px;">' +
+          '<input class="q-name" data-key="' + escapeAttr(line._key) + '" data-f="name" value="' + escapeHtml(line.name) + '" placeholder="' + (type === 'work' ? 'Работа' : 'Запчасть') + '"' + (type === 'part' ? ' list="' + quickStockListId + '"' : '') + ' autocomplete="off" style="' + fi + 'padding:8px 10px;">' +
           (type === 'part' ? '<datalist id="' + quickStockListId + '">' + quickStockOptions + '</datalist>' : '') +
-          '<input class="q-qty" data-key="' + line._key + '" data-f="qty" type="number" min="1" value="' + line.qty + '" placeholder="Кол" style="' + fi + 'padding:8px 6px;text-align:center;">' +
-          (type === 'work' ? '<input class="q-hours" data-key="' + line._key + '" data-f="normHours" type="number" min="0" step="0.01" value="' + (line.normHours===undefined?'':line.normHours) + '" placeholder="Н/ч" title="Время: цена работы ÷ ставка нормо-часа" readonly style="' + fi + 'padding:8px 6px;">' : '') +
+          '<input class="q-qty" data-key="' + escapeAttr(line._key) + '" data-f="qty" type="number" min="1" value="' + line.qty + '" placeholder="Кол" style="' + fi + 'padding:8px 6px;text-align:center;">' +
+          (type === 'work' ? '<input class="q-hours" data-key="' + escapeAttr(line._key) + '" data-f="normHours" type="number" min="0" step="0.01" value="' + (line.normHours===undefined?'':line.normHours) + '" placeholder="Н/ч" title="Время: цена работы ÷ ставка нормо-часа" readonly style="' + fi + 'padding:8px 6px;">' : '') +
           quickPriceFields +
-          '<button class="q-remove" data-key="' + line._key + '" data-f="remove" style="background:none;border:none;color:var(--text-subtle);cursor:pointer;font-size:18px;padding:0 4px;line-height:1;">×</button>' +
-          (type === 'work' ? '<select class="q-assignee" data-key="' + line._key + '" style="' + fi + 'padding:8px 8px;"><option value="">Исполнитель</option>' + quickStaffOptions + '</select>' : '');
+          '<button class="q-remove" data-key="' + escapeAttr(line._key) + '" data-f="remove" style="background:none;border:none;color:var(--text-subtle);cursor:pointer;font-size:18px;padding:0 4px;line-height:1;">×</button>' +
+          (type === 'work' ? '<select class="q-assignee" data-key="' + escapeAttr(line._key) + '" style="' + fi + 'padding:8px 8px;"><option value="">Исполнитель</option>' + quickStaffOptions + '</select>' : '');
         wrap.appendChild(row);
       });
 

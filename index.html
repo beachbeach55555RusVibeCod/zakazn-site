@@ -5180,8 +5180,8 @@
       partyDetail('Корр. счёт', client.corraccount) +
       partyDetail('Договор №', client.contractNumber);
 
-    var customerSignature = o.signature
-      ? '<img class="act-sig-img" src="' + o.signature + '" alt="Подпись заказчика">'
+    var customerSignature = safeSignatureSrc(o.signature)
+      ? '<img class="act-sig-img" src="' + escapeAttr(safeSignatureSrc(o.signature)) + '" alt="Подпись заказчика">'
       : '';
 
     var compRight = '';

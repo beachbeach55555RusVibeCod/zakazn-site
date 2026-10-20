@@ -6857,139 +6857,96 @@
   }
 
   function openNewClientForm(){
-    var formDiv = document.createElement('div');
-    formDiv.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px);';
-
-    var fi = 'width:100%;padding:11px 14px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg-panel-2);color:var(--text-main);font-family:inherit;font-size:14px;box-sizing:border-box;outline:none;transition:border-color .15s;';
-    var fl = 'display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-subtle);margin-bottom:6px;';
-    var fg = 'display:flex;flex-direction:column;';
-    var divider = '<div style="display:flex;align-items:center;gap:10px;margin:4px 0;">' +
-      '<div style="flex:1;height:1px;background:var(--border);"></div>' +
-      '<span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;color:var(--text-subtle);">Реквизиты организации</span>' +
-      '<div style="flex:1;height:1px;background:var(--border);"></div>' +
-    '</div>';
-
-    formDiv.innerHTML =
-      '<div style="background:var(--bg-panel);border-radius:18px;padding:0;width:100%;max-width:500px;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.5);">' +
-
-        /* Шапка */
-        '<div style="display:flex;justify-content:space-between;align-items:center;padding:20px 22px 0;">' +
-          '<div>' +
-            '<div style="font-size:17px;font-weight:700;color:var(--text-main);">Новый клиент</div>' +
-            '<div style="font-size:12px;color:var(--text-subtle);margin-top:2px;">Заполните основные данные</div>' +
-          '</div>' +
-          '<button id="fNewClientCancel" style="background:var(--bg-panel-2);border:none;border-radius:50%;width:32px;height:32px;cursor:pointer;font-size:16px;color:var(--text-subtle);display:flex;align-items:center;justify-content:center;flex-shrink:0;">✕</button>' +
+    var formDiv=document.createElement('div');
+    formDiv.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:350;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px);';
+    var fi='width:100%;padding:11px 13px;border-radius:9px;border:1px solid var(--border);background:var(--bg-panel-2);color:var(--text-main);font:inherit;box-sizing:border-box;outline:none;';
+    var fl='display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text-subtle);margin-bottom:6px;';
+    var fg='display:flex;flex-direction:column;min-width:0;';
+    formDiv.innerHTML=
+      '<div style="background:var(--bg-panel);border:1px solid var(--border);border-radius:16px;width:100%;max-width:650px;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.45);">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:20px 22px 0;">' +
+          '<div><div style="font-size:18px;font-weight:700;">Новый клиент</div><div style="font-size:12px;color:var(--text-subtle);margin-top:3px;">Клиент и автомобиль сохранятся вместе</div></div>' +
+          '<button type="button" class="btn btn-ghost btn-sm" id="fNewClientCancel">✕</button>' +
         '</div>' +
-
-        /* Тип клиента — переключатель */
-        '<div style="padding:16px 22px 0;">' +
-          '<div style="display:grid;grid-template-columns:1fr 1fr;border-radius:10px;overflow:hidden;border:1.5px solid var(--border);">' +
-            '<label style="display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;font-size:13.5px;color:var(--text-secondary);">' +
-              '<input type="radio" name="fNewClientTypeR" id="fNewClientTypePerson" value="person" checked style="accent-color:var(--accent);">Физ. лицо</label>' +
-            '<label style="display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;font-size:13.5px;color:var(--text-secondary);border-left:1.5px solid var(--border);">' +
-              '<input type="radio" name="fNewClientTypeR" id="fNewClientTypeOrg" value="org" style="accent-color:var(--accent);">Юр. лицо / ИП</label>' +
+        '<div style="padding:18px 22px;display:flex;flex-direction:column;gap:14px;">' +
+          '<div style="display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--border);border-radius:9px;overflow:hidden;">' +
+            '<label style="padding:10px 12px;"><input type="radio" name="fNewClientTypeR" value="person" checked> Физ. лицо</label>' +
+            '<label style="padding:10px 12px;border-left:1px solid var(--border);"><input type="radio" name="fNewClientTypeR" value="org"> Юр. лицо / ИП</label>' +
           '</div>' +
-        '</div>' +
-
-        /* Поля */
-        '<div style="padding:16px 22px;display:flex;flex-direction:column;gap:14px;">' +
-
-          '<div style="' + fg + '">' +
-            '<label style="' + fl + '">Имя / ФИО <span style="color:var(--accent);">*</span></label>' +
-            '<input id="fNewClientName" style="' + fi + '" placeholder="Иванов Иван Иванович">' +
-          '</div>' +
-
+          '<select id="fNewClientType" style="display:none"><option value="person">person</option><option value="org">org</option></select>' +
+          '<div style="' + fg + '"><label style="' + fl + '">ФИО <span style="color:var(--accent)">*</span></label><input id="fNewClientName" style="' + fi + '" placeholder="Иванов Иван Иванович"></div>' +
           '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
-            '<div style="' + fg + '"><label style="' + fl + '">Телефон</label>' +
-              '<input id="fNewClientPhone" style="' + fi + '" placeholder="+7 (999) 000-00-00"></div>' +
-            '<div style="' + fg + '"><label style="' + fl + '">Email</label>' +
-              '<input id="fNewClientEmail" style="' + fi + '" placeholder="mail@example.com"></div>' +
+            '<div style="' + fg + '"><label style="' + fl + '">Телефон</label><input id="fNewClientPhone" style="' + fi + '" placeholder="+7 (999) 000-00-00"></div>' +
+            '<div style="' + fg + '"><label style="' + fl + '">Email</label><input id="fNewClientEmail" style="' + fi + '" placeholder="mail@example.com"></div>' +
           '</div>' +
-
-          /* Скрытый select для совместимости с JS */
-          '<select id="fNewClientType" style="display:none;">' +
-            '<option value="person">person</option>' +
-            '<option value="org">org</option>' +
-          '</select>' +
-
-          '<div id="fNewOrgFields" style="display:none;flex-direction:column;gap:14px;">' +
-            divider +
-            '<div style="' + fg + '"><label style="' + fl + '">Название организации</label>' +
-              '<input id="fNewOrgName" style="' + fi + '" placeholder="ООО «Компания»"></div>' +
+          '<div id="fNewOrgFields" style="display:none;flex-direction:column;gap:12px;border-top:1px solid var(--border);padding-top:14px;">' +
+            '<div style="' + fg + '"><label style="' + fl + '">Название организации</label><input id="fNewOrgName" style="' + fi + '"></div>' +
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div style="' + fg + '"><label style="' + fl + '">ИНН</label><input id="fNewOrgInn" style="' + fi + '"></div><div style="' + fg + '"><label style="' + fl + '">КПП</label><input id="fNewOrgKpp" style="' + fi + '"></div></div>' +
+            '<div style="' + fg + '"><label style="' + fl + '">Юридический адрес</label><input id="fNewOrgAddr" style="' + fi + '"></div>' +
+            '<div style="' + fg + '"><label style="' + fl + '">Банк</label><input id="fNewOrgBank" style="' + fi + '"></div>' +
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;"><div style="' + fg + '"><label style="' + fl + '">БИК</label><input id="fNewOrgBik" style="' + fi + '"></div><div style="' + fg + '"><label style="' + fl + '">Расчётный счёт</label><input id="fNewOrgAccount" style="' + fi + '"></div></div>' +
+            '<div style="' + fg + '"><label style="' + fl + '">Корр. счёт</label><input id="fNewOrgCorraccount" style="' + fi + '"></div>' +
+          '</div>' +
+          '<div style="border-top:1px solid var(--border);padding-top:14px;"><div style="font-size:13px;font-weight:700;margin-bottom:12px;">Автомобиль</div>' +
             '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
-              '<div style="' + fg + '"><label style="' + fl + '">ИНН</label>' +
-                '<input id="fNewOrgInn" style="' + fi + '" placeholder="1234567890"></div>' +
-              '<div style="' + fg + '"><label style="' + fl + '">КПП</label>' +
-                '<input id="fNewOrgKpp" style="' + fi + '" placeholder="123456789"></div>' +
+              '<div style="' + fg + '"><label style="' + fl + '">Марка</label><select id="fNewCarMake" style="' + fi + '"><option value="">Выберите марку</option>' + CAR_MAKES.map(function(m){return '<option value="'+escapeHtml(m)+'">'+escapeHtml(m)+'</option>';}).join('') + '</select></div>' +
+              '<div style="' + fg + '"><label style="' + fl + '">Модель</label><select id="fNewCarModel" style="' + fi + '" disabled><option value="">Сначала выберите марку</option></select></div>' +
+              '<div style="' + fg + '"><label style="' + fl + '">Год</label><input id="fNewCarYear" type="number" min="1900" max="2100" style="' + fi + '" placeholder="2020"></div>' +
+              '<div style="' + fg + '"><label style="' + fl + '">Гос. номер</label><input id="fNewCarPlate" style="' + fi + '" placeholder="А123ВС777"></div>' +
             '</div>' +
-            '<div style="' + fg + '"><label style="' + fl + '">Юридический адрес</label>' +
-              '<input id="fNewOrgAddr" style="' + fi + '" placeholder="г. Москва, ул. Примерная, 1"></div>' +
-            '<div style="' + fg + '"><label style="' + fl + '">Банк</label>' +
-              '<input id="fNewOrgBank" style="' + fi + '" placeholder="ПАО «Сбербанк»"></div>' +
-            '<div style="' + fg + '"><label style="' + fl + '">БИК</label>' +
-              '<input id="fNewOrgBik" style="' + fi + '" placeholder="044525225" inputmode="numeric" maxlength="9"></div>' +
-            '<div style="' + fg + '"><label style="' + fl + '">Расчётный счёт</label>' +
-              '<input id="fNewOrgAccount" style="' + fi + '" placeholder="40702810000000000000" inputmode="numeric" maxlength="20"></div>' +
-            '<div style="' + fg + '"><label style="' + fl + '">Корреспондентский счёт</label>' +
-              '<input id="fNewOrgCorraccount" style="' + fi + '" placeholder="30101810400000000225" inputmode="numeric" maxlength="20"></div>' +
-          '</div>'
-
-          '<div style="' + fg + '"><label style="' + fl + '">Примечание</label>' +
-            '<input id="fNewClientNote" style="' + fi + '" placeholder="Любые заметки..."></div>' +
-
+            '<div style="' + fg + ';margin-top:12px;"><label style="' + fl + '">VIN</label><input id="fNewCarVin" maxlength="17" style="' + fi + '" placeholder="17 символов"></div>' +
+          '</div>' +
+          '<div style="' + fg + '"><label style="' + fl + '">Примечание</label><input id="fNewClientNote" style="' + fi + '" placeholder="Заметки о клиенте"></div>' +
         '</div>' +
-
-        /* Кнопки */
-        '<div style="padding:0 22px 22px;">' +
-          '<button id="fNewClientSave" style="width:100%;padding:13px;border-radius:10px;border:none;background:var(--accent);color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:background .12s;">Сохранить клиента</button>' +
+        '<div style="position:sticky;bottom:0;background:var(--bg-panel);border-top:1px solid var(--border);padding:14px 22px;display:flex;justify-content:flex-end;gap:10px;">' +
+          '<button type="button" class="btn btn-ghost" id="fNewClientCancelBottom">Отмена</button><button type="button" class="btn btn-primary" id="fNewClientSave">Сохранить</button>' +
         '</div>' +
-
       '</div>';
     document.body.appendChild(formDiv);
-
+    var make=formDiv.querySelector('#fNewCarMake'), model=formDiv.querySelector('#fNewCarModel');
+    make.addEventListener('change',function(){
+      var models=CAR_DB[make.value]||[];
+      model.disabled=!make.value;
+      model.innerHTML=make.value?'<option value="">Выберите модель</option>'+models.map(function(m){return '<option value="'+escapeHtml(m)+'">'+escapeHtml(m)+'</option>';}).join(''):'<option value="">Сначала выберите марку</option>';
+    });
     formDiv.querySelectorAll('input[name="fNewClientTypeR"]').forEach(function(radio){
-      radio.addEventListener('change', function(){
-        formDiv.querySelector('#fNewClientType').value = this.value;
-        formDiv.querySelector('#fNewOrgFields').style.display = this.value === 'org' ? 'flex' : 'none';
+      radio.addEventListener('change',function(){
+        formDiv.querySelector('#fNewClientType').value=this.value;
+        formDiv.querySelector('#fNewOrgFields').style.display=this.value==='org'?'flex':'none';
       });
     });
-
-    formDiv.querySelectorAll('input, select').forEach(function(el){
-      el.addEventListener('focus', function(){ el.style.borderColor = 'var(--accent)'; });
-      el.addEventListener('blur',  function(){ el.style.borderColor = 'var(--border)'; });
-    });
-    formDiv.querySelector('#fNewClientCancel').addEventListener('click', function(){
-      formDiv.remove();
-    });
-    formDiv.querySelector('#fNewClientSave').addEventListener('click', async function(){
-      var name = formDiv.querySelector('#fNewClientName').value.trim();
-      if(!name){ formDiv.querySelector('#fNewClientName').focus(); return; }
-      var type = formDiv.querySelector('#fNewClientType').value;
-      var client = {
-        id: clientUid(),
-        name: name,
-        phone: formDiv.querySelector('#fNewClientPhone').value.trim(),
-        email: formDiv.querySelector('#fNewClientEmail').value.trim(),
-        note:  formDiv.querySelector('#fNewClientNote').value.trim(),
-        type:  type,
-        createdAt: Date.now()
-      };
-      if(type === 'org'){
-        client.orgName      = formDiv.querySelector('#fNewOrgName').value.trim();
-        client.inn          = formDiv.querySelector('#fNewOrgInn').value.trim();
-        client.kpp          = formDiv.querySelector('#fNewOrgKpp').value.trim();
-        client.legalAddress = formDiv.querySelector('#fNewOrgAddr').value.trim();
-        client.bank          = formDiv.querySelector('#fNewOrgBank').value.trim();
-        client.bik           = formDiv.querySelector('#fNewOrgBik').value.trim();
-        client.account       = formDiv.querySelector('#fNewOrgAccount').value.trim();
-        client.corraccount   = formDiv.querySelector('#fNewOrgCorraccount').value.trim();
+    function close(){formDiv.remove();}
+    formDiv.querySelector('#fNewClientCancel').onclick=close;
+    formDiv.querySelector('#fNewClientCancelBottom').onclick=close;
+    formDiv.addEventListener('mousedown',function(e){if(e.target===formDiv)close();});
+    formDiv.querySelector('#fNewClientSave').addEventListener('click',async function(){
+      var name=formDiv.querySelector('#fNewClientName').value.trim();
+      if(!name){showToast('Укажите ФИО клиента');formDiv.querySelector('#fNewClientName').focus();return;}
+      var year=Number(formDiv.querySelector('#fNewCarYear').value)||null;
+      if(year&&(year<1900||year>2100)){showToast('Проверьте год автомобиля');return;}
+      var plate=formDiv.querySelector('#fNewCarPlate').value.trim().toUpperCase(), vin=formDiv.querySelector('#fNewCarVin').value.trim().toUpperCase();
+      if(vin&&vin.length!==17){showToast('VIN должен содержать 17 символов');return;}
+      var duplicate=findCarByPlateOrVin(plate,vin);
+      if(duplicate){showToast('Автомобиль с таким госномером или VIN уже существует');return;}
+      var type=formDiv.querySelector('#fNewClientType').value;
+      var client={id:clientUid(),name:name,phone:formDiv.querySelector('#fNewClientPhone').value.trim(),email:formDiv.querySelector('#fNewClientEmail').value.trim(),note:formDiv.querySelector('#fNewClientNote').value.trim(),type:type,createdAt:Date.now()};
+      if(type==='org'){
+        client.orgName=formDiv.querySelector('#fNewOrgName').value.trim();client.inn=formDiv.querySelector('#fNewOrgInn').value.trim();client.kpp=formDiv.querySelector('#fNewOrgKpp').value.trim();client.legalAddress=formDiv.querySelector('#fNewOrgAddr').value.trim();client.bank=formDiv.querySelector('#fNewOrgBank').value.trim();client.bik=formDiv.querySelector('#fNewOrgBik').value.trim();client.account=formDiv.querySelector('#fNewOrgAccount').value.trim();client.corraccount=formDiv.querySelector('#fNewOrgCorraccount').value.trim();
       }
-      await saveClient(client);
+      var carMake=make.value,carModel=model.value;
+      var hasCar=carMake||carModel||year||plate||vin;
+      if(hasCar&&!carMake){showToast('Выберите марку автомобиля');make.focus();return;}
+      if(hasCar&&!carModel){showToast('Выберите модель автомобиля');model.focus();return;}
+      var saveBtn=formDiv.querySelector('#fNewClientSave');saveBtn.disabled=true;saveBtn.textContent='Сохранение…';
+      var ok=await saveClient(client);
+      if(!ok){saveBtn.disabled=false;saveBtn.textContent='Сохранить';showToast('Не удалось сохранить клиента');return;}
       state.clients.push(client);
-      formDiv.remove();
-      state.clientTypeFilter = type === 'org' ? 'org' : 'person';
-      state.openClientId = client.id;
-      renderClientsTab();
+      if(hasCar){
+        var car={id:carUid(),clientId:client.id,carMake:carMake,carModel:carModel,carYear:year||'',year:year||'',plate:plate,vin:vin,createdAt:Date.now()};
+        var carOk=await saveCar(car);
+        if(carOk) state.cars.push(car); else showToast('Клиент сохранён, но автомобиль сохранить не удалось');
+      }
+      close();state.clientTypeFilter=type==='org'?'org':'person';state.openClientId=client.id;renderClientsTab();showToast(hasCar?'Клиент и автомобиль сохранены':'Клиент сохранён');
     });
   }
 

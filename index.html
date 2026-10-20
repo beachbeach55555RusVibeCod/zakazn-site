@@ -1478,6 +1478,19 @@
   .export-btn:hover{ border-color:var(--accent); background:var(--bg-panel); }
   [data-theme="light"] .export-btn{ color:#111827; }
 
+  /* ===== Free notes / stickers ===== */
+  .sticker-compose{ display:flex; flex-direction:column; gap:7px; margin-bottom:12px; }
+  .sticker-input{ width:100%; min-height:72px; resize:vertical; padding:9px 10px; border-radius:9px; border:1px solid var(--border); background:var(--bg-panel-2); color:var(--text-main); font:13px/1.4 inherit; }
+  .sticker-input:focus{ outline:none; border-color:var(--accent); }
+  .sticker-add{ width:100%; justify-content:center; }
+  .stickers-list{ display:flex; flex-direction:column; gap:9px; }
+  .sticker-card{ position:relative; background:#F7E8A4; color:#332F22; border-radius:4px 4px 10px 4px; padding:12px 30px 12px 12px; box-shadow:0 3px 10px rgba(0,0,0,.14); transform:rotate(-.35deg); }
+  .sticker-card:nth-child(even){ background:#D9F0C8; transform:rotate(.35deg); }
+  .sticker-text{ white-space:pre-wrap; overflow-wrap:anywhere; font-size:13px; line-height:1.38; }
+  .sticker-date{ margin-top:7px; font:10px 'JetBrains Mono',monospace; color:#716B55; }
+  .sticker-delete{ position:absolute; top:5px; right:6px; width:22px; height:22px; padding:0; border:0; background:transparent; color:#716B55; cursor:pointer; font-size:17px; line-height:1; }
+  .stickers-empty{ padding:12px 8px; border:1px dashed var(--border); border-radius:9px; color:var(--text-subtle); font-size:12px; line-height:1.4; }
+
   @media(max-width:760px){
     .app-body{ flex-direction:column; }
     .sidebar{ width:100%; min-width:0; border-right:none; border-bottom:1px solid var(--border); padding:0 0 16px; margin-right:0; margin-bottom:20px; position:static; }
@@ -2060,26 +2073,15 @@
   </div>
 
   <div class="app-body">
-    <!-- ===== SIDEBAR DASHBOARD ===== -->
+    <!-- ===== SIDEBAR STICKERS ===== -->
     <aside class="sidebar" id="dashSidebar">
       <div class="sidebar-section">
-        <span class="sidebar-label">Сегодня</span>
-        <div class="dash-stat"><div class="ds-label">Выручка</div><div class="ds-value" id="dTodayRev">—</div></div>
-        <div class="dash-stat"><div class="ds-label">Выдано ЗН</div><div class="ds-value" id="dTodayDone">—</div></div>
-      </div>
-      <div class="sidebar-section">
-        <span class="sidebar-label">Этот месяц</span>
-        <div class="dash-stat"><div class="ds-label">Выручка</div><div class="ds-value" id="dMonthRev">—</div></div>
-        <div class="dash-stat"><div class="ds-label">Выдано ЗН</div><div class="ds-value" id="dMonthDone">—</div></div>
-      </div>
-      <div class="sidebar-section">
-        <span class="sidebar-label">Открытые наряды</span>
-        <div class="status-pill-row" id="dStatusRow"></div>
-      </div>
-      <div class="sidebar-section">
-        <span class="sidebar-label">Экспорт</span>
-        <button class="export-btn" id="btnExportCSV">📄 Наряды (CSV)</button>
-        <button class="export-btn" id="btnExportPayroll">💰 Зарплата (CSV)</button>
+        <span class="sidebar-label">Свободная запись</span>
+        <div class="sticker-compose">
+          <textarea class="sticker-input" id="stickerInput" maxlength="1000" placeholder="Записать заметку…"></textarea>
+          <button class="btn btn-primary btn-sm sticker-add" id="btnAddSticker" type="button">+ Добавить стикер</button>
+        </div>
+        <div class="stickers-list" id="stickersList"></div>
       </div>
     </aside>
     <!-- ===== MAIN CONTENT ===== -->
@@ -2293,6 +2295,7 @@
     cars: [],
     priceList: [],
     stockItems: [],
+    stickers: [],
     stockMarkupPct: DEFAULT_STOCK_MARKUP_PCT,
     loaded: false,
     staffLoaded: false,
@@ -2533,6 +2536,11 @@
     } else if(key.indexOf('priceitem:') === 0){
       if(isDelete) removeStateItem('priceList', id);
       else upsertStateItem('priceList', parseStoredJson(row.value));
+    } else if(key.indexOf('sticker:') === 0){
+      if(isDelete) removeStateItem('stickers', id);
+      else upsertStateItem('stickers', parseStoredJson(row.value));
+      state.stickers.sort(function(a,b){ return (b.createdAt||0) - (a.createdAt||0); });
+      renderStickers();
     } else if(key.indexOf('stockitem:') === 0){
       if(isDelete) removeStateItem('stockItems', id);
       else upsertStateItem('stockItems', parseStoredJson(row.value));
@@ -2558,6 +2566,7 @@
       await loadPriceList();
       await loadStockItems();
       await loadStockMarkup();
+      await loadStickers();
       await loadOrders();
       renderCurrentView();
     }catch(e){
@@ -2615,6 +2624,48 @@
   });
 
   // ---------- Storage ----------
+
+  async function loadStickers(){
+    try{
+      var res = await localStore.list('sticker:');
+      var items = [];
+      for(var i=0; res && res.keys && i<res.keys.length; i++){
+        try{ var item = await localStore.get(res.keys[i]); if(item && item.value) items.push(JSON.parse(item.value)); }catch(e){}
+      }
+      items.sort(function(a,b){ return (b.createdAt||0) - (a.createdAt||0); });
+      state.stickers = items;
+    }catch(e){ console.error('Ошибка загрузки стикеров', e); state.stickers = []; }
+    renderStickers();
+  }
+
+  async function saveSticker(sticker){
+    await localStore.set('sticker:' + sticker.id, JSON.stringify(sticker));
+  }
+
+  function renderStickers(){
+    var root = document.getElementById('stickersList');
+    if(!root) return;
+    if(!state.stickers.length){ root.innerHTML = '<div class="stickers-empty">Здесь можно оставить свободную запись: звонок, напоминание, клиента без наряда или любую заметку.</div>'; return; }
+    root.innerHTML = state.stickers.map(function(s){
+      var d = new Date(s.createdAt||Date.now());
+      var stamp = d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'}) + ' ' + d.toLocaleTimeString('ru-RU',{hour:'2-digit',minute:'2-digit'});
+      return '<div class="sticker-card" data-sticker-id="' + escapeAttr(s.id) + '"><button class="sticker-delete" type="button" title="Удалить">×</button><div class="sticker-text">' + escapeHtml(s.text||'') + '</div><div class="sticker-date">' + escapeHtml(stamp) + '</div></div>';
+    }).join('');
+  }
+
+  async function addSticker(){
+    var input = document.getElementById('stickerInput');
+    var text = (input.value||'').trim();
+    if(!text) return;
+    var sticker = { id:'st_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2,8), text:text, createdAt:Date.now() };
+    try{ await saveSticker(sticker); state.stickers.unshift(sticker); input.value=''; renderStickers(); }
+    catch(e){ console.error(e); showToast('Не удалось сохранить стикер'); }
+  }
+
+  async function deleteSticker(id){
+    try{ await localStore.delete('sticker:' + id); state.stickers = state.stickers.filter(function(s){ return s.id !== id; }); renderStickers(); }
+    catch(e){ console.error(e); showToast('Не удалось удалить стикер'); }
+  }
 
   async function loadOrders(){
     try{
@@ -9045,6 +9096,7 @@
     await seedDefaultPriceListIfNeeded();
     await loadStockItems();
     await loadStockMarkup();
+    await loadStickers();
     if(state.activeTab === 'clients'){ renderClientsTab(); }
     if(state.activeTab === 'pricelist'){ renderPriceListTab(); }
     if(state.activeTab === 'stock'){ renderStockTab(); }
@@ -9088,9 +9140,15 @@
     if(e.key === 'Enter') document.getElementById('authSubmit').click();
   });
 
+  document.getElementById('btnAddSticker').addEventListener('click', addSticker);
+  document.getElementById('stickerInput').addEventListener('keydown', function(e){ if((e.ctrlKey || e.metaKey) && e.key === 'Enter'){ e.preventDefault(); addSticker(); } });
+  document.getElementById('stickersList').addEventListener('click', function(e){
+    var btn = e.target.closest('.sticker-delete'); if(!btn) return;
+    var card = btn.closest('[data-sticker-id]'); if(card) deleteSticker(card.getAttribute('data-sticker-id'));
+  });
   document.getElementById('btnTheme').addEventListener('click', toggleTheme);
-    document.getElementById('btnExportCSV').addEventListener('click', exportOrdersCSV);
-    document.getElementById('btnExportPayroll').addEventListener('click', exportPayrollCSV);
+    var btnExportCSV = document.getElementById('btnExportCSV'); if(btnExportCSV) btnExportCSV.addEventListener('click', exportOrdersCSV);
+    var btnExportPayroll = document.getElementById('btnExportPayroll'); if(btnExportPayroll) btnExportPayroll.addEventListener('click', exportPayrollCSV);
     initTheme();
     initRadio();
     updateHeaderClock();

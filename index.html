@@ -2632,14 +2632,21 @@
 
   async function loadStickers(){
     try{
-      var res = await localStore.list('sticker:');
+      // Load sticker values in one request. This avoids partial/empty sidebar state when
+      // a refresh happens while several per-key requests are still in flight.
+      var r = await getSB().from('kv_store').select('key,value').like('key', 'sticker:%');
+      if(r.error) throw r.error;
       var items = [];
-      for(var i=0; res && res.keys && i<res.keys.length; i++){
-        try{ var item = await localStore.get(res.keys[i]); if(item && item.value) items.push(JSON.parse(item.value)); }catch(e){}
-      }
+      (r.data||[]).forEach(function(row){
+        try{ var item = JSON.parse(row.value); if(item && item.id) items.push(item); }catch(e){}
+      });
       items.sort(function(a,b){ return (b.createdAt||0) - (a.createdAt||0); });
       state.stickers = items;
-    }catch(e){ console.error('Ошибка загрузки стикеров', e); state.stickers = []; }
+    }catch(e){
+      console.error('Ошибка загрузки стикеров', e);
+      // Do not erase already visible notes on a temporary network/database error.
+      state.stickers = state.stickers || [];
+    }
     renderStickers();
   }
 

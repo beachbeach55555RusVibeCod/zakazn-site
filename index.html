@@ -768,14 +768,14 @@
   .client-row-stats{ display:flex; gap:18px; align-items:center; }
   .client-row-cars{ margin-left:auto; min-width:210px; max-width:320px; display:flex; flex-direction:column; gap:6px; align-items:stretch; }
   .client-car-mini{ display:flex; align-items:center; gap:9px; min-width:0; padding:7px 9px; border:1px solid var(--border); border-radius:9px; background:var(--bg-panel-2); }
-  .client-car-icon{ width:28px; height:28px; flex:0 0 28px; border-radius:8px; display:flex; align-items:center; justify-content:center; background:rgba(20,184,166,.10); font-size:16px; }
+  .client-car-icon,.car-brand-logo{ min-width:42px; height:28px; flex:0 0 auto; border-radius:7px; padding:0 6px; display:inline-flex; align-items:center; justify-content:center; background:rgba(20,184,166,.10); border:1px solid rgba(20,184,166,.22); color:var(--text-main); font:800 8px/1 'JetBrains Mono',monospace; letter-spacing:-.35px; text-align:center; }
   .client-car-info{ min-width:0; text-align:left; }
   .client-car-name{ font-size:12.5px; font-weight:650; color:var(--text-main); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .client-car-plate{ margin-top:1px; font:10.5px 'JetBrains Mono',monospace; color:var(--accent); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .client-car-empty{ font-size:12px; color:var(--text-subtle); text-align:left; padding:7px 9px; }
   .vehicle-picker-card{ display:flex; align-items:center; gap:11px; padding:12px 18px; cursor:pointer; border-bottom:1px solid var(--border); }
   .vehicle-picker-card:hover{ background:var(--bg-panel-2); }
-  .vehicle-picker-icon{ width:36px; height:36px; flex:0 0 36px; border-radius:10px; display:flex; align-items:center; justify-content:center; background:rgba(20,184,166,.10); font-size:20px; }
+  .vehicle-picker-icon{ min-width:54px; height:36px; flex:0 0 auto; border-radius:9px; padding:0 7px; display:flex; align-items:center; justify-content:center; background:rgba(20,184,166,.10); border:1px solid rgba(20,184,166,.22); color:var(--text-main); font:800 9px/1 'JetBrains Mono',monospace; letter-spacing:-.4px; text-align:center; }
   .selected-vehicle-mini{ display:flex;align-items:center;gap:9px;margin-top:8px;padding:8px 10px;border:1px solid var(--border);border-radius:9px;background:var(--bg-panel-2); }
   @media(max-width:900px){ .client-row-cars{ min-width:160px; max-width:240px; } }
   .client-stat{ text-align:right; }
@@ -2289,6 +2289,19 @@
   "Другое": []
   };
   var CAR_MAKES = Object.keys(CAR_DB).sort(function(a,b){ return a.localeCompare(b,'ru'); });
+
+  // Brand badge used everywhere a vehicle is shown. Text marks keep all CAR_DB brands
+  // available without loading third-party images and remain readable in dark/light themes.
+  var CAR_BRAND_MARKS = {
+    'Toyota':'TOYOTA','BMW':'BMW','Mercedes-Benz':'M-B','Audi':'AUDI','Volkswagen':'VW','Skoda':'ŠKODA','Kia':'KIA','Hyundai':'HYUNDAI','Honda':'HONDA','Nissan':'NISSAN','Lexus':'LEXUS','Mazda':'MAZDA','Mitsubishi':'MITSUBISHI','Subaru':'SUBARU','Suzuki':'SUZUKI','Renault':'RENAULT','Peugeot':'PEUGEOT','Citroen':'CITROËN','Ford':'FORD','Chevrolet':'CHEVROLET','Opel':'OPEL','Volvo':'VOLVO','Porsche':'PORSCHE','Land Rover':'LAND ROVER','Jaguar':'JAGUAR','Jeep':'JEEP','Fiat':'FIAT','Mini':'MINI','Tesla':'TESLA','Lada (ВАЗ)':'LADA','Haval':'HAVAL','Geely':'GEELY','Chery':'CHERY','Exeed':'EXEED','Omoda':'OMODA','Changan':'CHANGAN','BYD':'BYD','Zeekr':'ZEEKR','Voyah':'VOYAH','GAC':'GAC','JAC':'JAC','Great Wall':'GWM','Cadillac':'CADILLAC','Infiniti':'INFINITI','Acura':'ACURA','Genesis':'GENESIS','Bentley':'BENTLEY','Ferrari':'FERRARI','Lamborghini':'LAMBORGHINI','Maserati':'MASERATI','Rolls-Royce':'ROLLS-ROYCE'
+  };
+  function carBrandMark(make){
+    make = String(make||'').trim();
+    return CAR_BRAND_MARKS[make] || (make ? make.toUpperCase().slice(0,10) : 'AUTO');
+  }
+  function carBrandBadge(make, className){
+    return '<span class="' + (className||'car-brand-logo') + '" title="' + escapeAttr(make||'Автомобиль') + '">' + escapeHtml(carBrandMark(make)) + '</span>';
+  }
 
   var STATUSES = [
     { key:'new', label:'Новый', dot:'dot-new' },
@@ -5467,7 +5480,7 @@
         '<div>' + cars.map(function(c){
           var label = [c.carMake, c.carModel].filter(Boolean).join(' ') || 'Автомобиль';
           return '<div class="vehicle-picker-card" data-car-id="' + escapeAttr(c.id) + '">' +
-            '<div class="vehicle-picker-icon">🚗</div>' +
+            carBrandBadge(c.carMake, 'vehicle-picker-icon') +
             '<div style="min-width:0;"><div style="font-weight:650;font-size:14px;">' + escapeHtml(label) + '</div>' +
             '<div style="font-size:12.5px;color:var(--text-subtle);margin-top:2px;">' + escapeHtml(c.plate||'без госномера') + (c.vin ? ' · ' + escapeHtml(c.vin) : '') + '</div></div>' +
           '</div>';
@@ -6872,7 +6885,7 @@
             '<div class="client-row-name">' + escapeHtml(displayClientName(c)) + '</div>' +
             '<div class="client-row-meta">' + escapeHtml(meta) + '</div>' +
           '</div>' +
-          '<div class="client-row-cars">' + (carsOfClient(c.id).length ? carsOfClient(c.id).map(function(car){ var carName=[car.carMake,car.carModel].filter(Boolean).join(' ')||'Автомобиль'; return '<div class="client-car-mini"><span class="client-car-icon">🚗</span><div class="client-car-info"><div class="client-car-name">' + escapeHtml(carName) + '</div><div class="client-car-plate">' + escapeHtml(car.plate||'без госномера') + '</div></div></div>'; }).join('') : '<div class="client-car-empty">🚗 Авто не закреплено</div>') + '</div>' +
+          '<div class="client-row-cars">' + (carsOfClient(c.id).length ? carsOfClient(c.id).map(function(car){ var carName=[car.carMake,car.carModel].filter(Boolean).join(' ')||'Автомобиль'; return '<div class="client-car-mini">' + carBrandBadge(car.carMake, 'client-car-icon') + '<div class="client-car-info"><div class="client-car-name">' + escapeHtml(carName) + '</div><div class="client-car-plate">' + escapeHtml(car.plate||'без госномера') + '</div></div></div>'; }).join('') : '<div class="client-car-empty">AUTO · Авто не закреплено</div>') + '</div>' +
           '<div class="client-row-stats">' +
             '<div class="client-stat"><div class="num">' + stats.carsCount + '</div><div class="lbl">авто</div></div>' +
             '<div class="client-stat"><div class="num">' + stats.visitsCount + '</div><div class="lbl">визитов</div></div>' +

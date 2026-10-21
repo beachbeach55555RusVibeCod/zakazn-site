@@ -2731,26 +2731,26 @@
 
   async function loadOrders(){
     try{
-      var res = await localStore.list('order:');
+      // Load every order with its value in one request. Per-key loading could silently
+      // skip individual orders on a transient request failure, making saved cards disappear.
+      var r = await getSB().from('kv_store').select('key,value').like('key', 'order:%');
+      if(r.error) throw r.error;
       var orders = [];
-      if(res && res.keys && res.keys.length){
-        for(var i=0;i<res.keys.length;i++){
-          try{
-            var item = await localStore.get(res.keys[i]);
-            if(item && item.value){
-              orders.push(JSON.parse(item.value));
-            }
-          }catch(e){}
-        }
-      }
+      (r.data||[]).forEach(function(row){
+        try{
+          var order = JSON.parse(row.value);
+          if(order && order.id) orders.push(order);
+        }catch(e){ console.error('Поврежденный заказ-наряд', row.key, e); }
+      });
       orders.sort(function(a,b){ return (b.createdAt||0) - (a.createdAt||0); });
       state.orders = orders;
       state.loaded = true;
     }catch(e){
       console.error('Ошибка загрузки', e);
-      state.orders = [];
+      // Keep already loaded orders visible if the database/network temporarily fails.
+      state.orders = state.orders || [];
       state.loaded = true;
-      showToast('Не удалось загрузить данные. Попробуйте обновить.');
+      showToast('Не удалось обновить заказ-наряды. Показаны ранее загруженные данные.');
     }
     render();
   }

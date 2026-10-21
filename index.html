@@ -2997,7 +2997,7 @@
       if(flagRes && flagRes.value === '1') return;
     }catch(e){ /* not migrated yet */ }
 
-    var ordersNeedingMigration = state.orders.filter(function(o){ return !o.clientId && !o.vehicleId && (o.clientName || o.clientPhone || o.carMake || o.plate || o.vin); });
+    var ordersNeedingMigration = state.orders.filter(function(o){ return o.editorMode !== 'quick' && !o.clientId && !o.vehicleId && (o.clientName || o.clientPhone || o.carMake || o.plate || o.vin); });
 
     for(var i=0;i<ordersNeedingMigration.length;i++){
       var o = ordersNeedingMigration[i];
@@ -5953,9 +5953,12 @@
         return;
       }
 
-      var linkResult = await upsertClientAndVehicle(order);
-      order.clientId  = linkResult.clientId;
-      order.vehicleId = linkResult.vehicleId;
+      // Quick orders are intentionally standalone: do not create/update CRM clients or vehicles.
+      // Keep only links that already existed on an order created from the full form.
+      if(!existingOrder){
+        order.clientId = null;
+        order.vehicleId = null;
+      }
 
       var ok = await saveOrder(order);
       if(ok){

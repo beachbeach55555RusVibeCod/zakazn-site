@@ -347,6 +347,13 @@
   }
   .assign-popup-item:hover{ background:var(--bg-panel-2); }
   .assign-popup-item.active{ color:var(--accent); font-weight:600; }
+  .assign-radial{position:fixed;z-index:260;width:1px;height:1px;pointer-events:none;}
+  .assign-radial button{position:absolute;width:42px;height:42px;border-radius:50%;border:1px solid var(--border);background:var(--bg-panel);color:var(--text-main);box-shadow:0 6px 20px rgba(0,0,0,.32);cursor:pointer;display:flex;align-items:center;justify-content:center;font:700 12px inherit;pointer-events:auto;transition:transform .12s,border-color .12s,background .12s;}
+  .assign-radial button:hover{transform:scale(1.08);border-color:var(--accent);background:var(--bg-panel-2);}
+  .assign-radial .radial-slot{background:var(--bg-panel-2);color:var(--accent);}
+  .assign-radial .radial-person{font-size:10px;line-height:1.05;text-align:center;padding:3px;overflow:hidden;}
+  .assign-radial .radial-person.active{border:2px solid var(--accent);color:var(--accent);}
+  .assign-radial .radial-clear{color:var(--text-subtle);font-size:18px;}
 
   .issued-pin-overlay{
     position:fixed; inset:0; z-index:500; display:flex; align-items:center; justify-content:center;
@@ -1452,6 +1459,10 @@
     padding:0 16px 32px 0;
     margin-right:24px;
     position:sticky; top:28px;
+    max-height:calc(100vh - 56px);
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    scrollbar-gutter:stable;
   }
   .main-content{ flex:1; min-width:0; }
 
@@ -1513,7 +1524,7 @@
 
   @media(max-width:760px){
     .app-body{ flex-direction:column; }
-    .sidebar{ width:100%; min-width:0; border-right:none; border-bottom:1px solid var(--border); padding:0 0 16px; margin-right:0; margin-bottom:20px; position:static; }
+    .sidebar{ width:100%; min-width:0; border-right:none; border-bottom:1px solid var(--border); padding:0 0 16px; margin-right:0; margin-bottom:20px; position:static; max-height:none; overflow:visible; }
   }
 
   /* Быстрый ЗН: работа отдельно, ниже кол-во и цена, затем исполнитель */
@@ -3959,80 +3970,89 @@
   }
 
   function showAssignPopup(e, order){
-    var existing = document.querySelector('.assign-popup');
-    if(existing) existing.remove();
+    document.querySelectorAll('.assign-radial').forEach(function(x){ x.remove(); });
+    var oldPopup=document.querySelector('.assign-popup'); if(oldPopup) oldPopup.remove();
 
     if(state.staff.length === 0){
       showToast('Сначала добавьте сотрудников во вкладке «Сотрудники»');
       return;
     }
+    var workLines=(order.lines||[]).filter(function(l){ return l.type==='work'; });
+    if(workLines.length===0){ showToast('В наряде нет работ'); return; }
 
-    var workLines = (order.lines||[]).filter(function(l){ return l.type === 'work'; });
-    var firstLine = workLines[0] || null;
-    var currentId1 = firstLine && firstLine.assignees && firstLine.assignees[0] ? firstLine.assignees[0] : null;
-    var currentId2 = firstLine && firstLine.assignees && firstLine.assignees[1] ? firstLine.assignees[1] : null;
-    var currentId3 = firstLine && firstLine.assignees && firstLine.assignees[2] ? firstLine.assignees[2] : null;
+    var btn=e.currentTarget, rect=btn.getBoundingClientRect();
+    var cx=rect.left+rect.width/2, cy=rect.top+rect.height/2;
+    var radial=document.createElement('div');
+    radial.className='assign-radial';
+    radial.style.left=cx+'px'; radial.style.top=cy+'px';
+    document.body.appendChild(radial);
 
-    var popup = document.createElement('div');
-    popup.className = 'assign-popup';
-
-    function staffItems(slot, activeId){
-      var html = '<div class="assign-popup-item' + (!activeId ? ' active' : '') + '" data-slot="' + slot + '" data-sid="">— Не назначен</div>';
-      state.staff.forEach(function(s){
-        html += '<div class="assign-popup-item' + (activeId === s.id ? ' active' : '') + '" data-slot="' + slot + '" data-sid="' + escapeAttr(s.id) + '">' + escapeHtml(s.name) + '</div>';
-      });
-      return html;
+    function initials(name){
+      var p=String(name||'?').trim().split(/\s+/).filter(Boolean);
+      return (p.slice(0,2).map(function(x){return x.charAt(0).toUpperCase();}).join('')||'?');
     }
+    function place(el, angle, radius){
+      var a=angle*Math.PI/180;
+      el.style.left=(Math.cos(a)*radius-21)+'px';
+      el.style.top=(Math.sin(a)*radius-21)+'px';
+    }
+    function clearRadial(){ if(radial.parentNode) radial.remove(); }
 
-    popup.innerHTML =
-      '<div class="assign-popup-label">Исполнитель 1</div>' + staffItems(1, currentId1) +
-      '<div style="height:1px;background:var(--border);margin:6px 0;"></div>' +
-      '<div class="assign-popup-label">Исполнитель 2</div>' + staffItems(2, currentId2) +
-      '<div style="height:1px;background:var(--border);margin:6px 0;"></div>' +
-      '<div class="assign-popup-label">Исполнитель 3</div>' + staffItems(3, currentId3);
-
-    document.body.appendChild(popup);
-
-    var btn = e.currentTarget;
-    var rect = btn.getBoundingClientRect();
-    var left = rect.left;
-    var top = rect.bottom + 6;
-    if(left + 190 > window.innerWidth) left = window.innerWidth - 196;
-    if(top + 320 > window.innerHeight) top = rect.top - 6 - popup.offsetHeight;
-    popup.style.left = left + 'px';
-    popup.style.top = top + 'px';
-
-    popup.querySelectorAll('.assign-popup-item').forEach(function(item){
-      item.addEventListener('click', async function(ev){
+    [1,2,3].forEach(function(slot,idx){
+      var b=document.createElement('button');
+      b.className='radial-slot';
+      b.textContent=String(slot);
+      b.title='Исполнитель '+slot;
+      place(b, -150 + idx*60, 58);
+      b.addEventListener('click',function(ev){
         ev.stopPropagation();
-        popup.remove();
-        var sid = item.dataset.sid;
-        var slot = Number(item.dataset.slot);
-        if(workLines.length === 0){ showToast('В наряде нет работ'); return; }
-        workLines.forEach(function(l){
-          var a = (l.assignees||[]).slice();
-          var assigneeIndex = Math.max(0, Math.min(2, slot - 1));
-          a[assigneeIndex] = sid || null;
-          while(a.length && !a[a.length-1]) a.pop();
-          l.assignees = a;
+        radial.querySelectorAll('.radial-person,.radial-clear').forEach(function(x){x.remove();});
+        var current=(workLines[0].assignees||[])[slot-1]||null;
+        var count=state.staff.length+1;
+        var spread=Math.min(220, Math.max(100,(count-1)*34));
+        var startAngle=-90-spread/2;
+        var clear=document.createElement('button');
+        clear.className='radial-clear'; clear.textContent='×'; clear.title='Снять исполнителя '+slot;
+        place(clear,startAngle,112); radial.appendChild(clear);
+        clear.addEventListener('click',function(evt){evt.stopPropagation();saveSlot(slot,'');});
+        state.staff.forEach(function(s,i){
+          var p=document.createElement('button');
+          p.className='radial-person'+(current===s.id?' active':'');
+          p.textContent=initials(s.name);
+          p.title=s.name;
+          place(p,startAngle+((i+1)*spread/Math.max(1,count-1)),112);
+          radial.appendChild(p);
+          p.addEventListener('click',function(evt){evt.stopPropagation();saveSlot(slot,s.id);});
         });
-        var ok = await saveOrder(order);
-        if(ok){
-          var idx = state.orders.findIndex(function(x){ return x.id === order.id; });
-          if(idx !== -1) state.orders[idx] = order;
-          render();
-          showToast(sid ? 'Исполнитель ' + slot + ': ' + ((getStaffById(sid)||{}).name||'') : 'Исполнитель ' + slot + ' снят');
-        }
       });
+      radial.appendChild(b);
     });
 
-    setTimeout(function(){
-      document.addEventListener('click', function close(){
-        var p = document.querySelector('.assign-popup');
-        if(p) p.remove();
-        document.removeEventListener('click', close);
+    async function saveSlot(slot,sid){
+      workLines.forEach(function(l){
+        var a=(l.assignees||[]).slice();
+        a[slot-1]=sid||null;
+        while(a.length&&!a[a.length-1]) a.pop();
+        l.assignees=a;
       });
-    }, 0);
+      clearRadial();
+      var ok=await saveOrder(order);
+      if(ok){
+        var idx=state.orders.findIndex(function(x){return x.id===order.id;});
+        if(idx!==-1) state.orders[idx]=order;
+        render();
+        showToast(sid?'Исполнитель '+slot+': '+((getStaffById(sid)||{}).name||''):'Исполнитель '+slot+' снят');
+      }
+    }
+
+    setTimeout(function(){
+      function close(ev){
+        if(radial.contains(ev.target)) return;
+        clearRadial();
+        document.removeEventListener('click',close);
+      }
+      document.addEventListener('click',close);
+    },0);
   }
 
   function renderCard(o, statusKey){
@@ -5826,9 +5846,9 @@
           (type === 'work' ? '<input class="q-hours" data-key="' + escapeAttr(line._key) + '" data-f="normHours" type="number" min="0" step="0.01" value="' + (line.normHours===undefined?'':line.normHours) + '" placeholder="Н/ч" title="Время: цена работы ÷ ставка нормо-часа" readonly style="' + fi + 'padding:8px 6px;">' : '') +
           quickPriceFields +
           '<button class="q-remove" data-key="' + escapeAttr(line._key) + '" data-f="remove" style="background:none;border:none;color:var(--text-subtle);cursor:pointer;font-size:18px;padding:0 4px;line-height:1;">×</button>' +
-          (type === 'work' ? '<select class="q-assignee" data-key="' + escapeAttr(line._key) + '" data-assignee-idx="0" style="' + fi + 'padding:8px 8px;"><option value="">Исполнитель 1</option>' + quickStaffOptionsFor(0) + '</select>' +
-            '<select class="q-assignee" data-key="' + escapeAttr(line._key) + '" data-assignee-idx="1" style="' + fi + 'padding:8px 8px;"><option value="">Исполнитель 2</option>' + quickStaffOptionsFor(1) + '</select>' +
-            '<select class="q-assignee" data-key="' + escapeAttr(line._key) + '" data-assignee-idx="2" style="' + fi + 'padding:8px 8px;"><option value="">Исполнитель 3</option>' + quickStaffOptionsFor(2) + '</select>' : '');
+          (type === 'work' ? '<select class="q-assignee" data-key="' + escapeAttr(line._key) + '" data-assignee-idx="0" style="' + fi + 'padding:8px 8px;"><option value="">Исп. 1</option>' + quickStaffOptionsFor(0) + '</select>' +
+            '<select class="q-assignee" data-key="' + escapeAttr(line._key) + '" data-assignee-idx="1" style="' + fi + 'padding:8px 8px;"><option value="">Исп. 2</option>' + quickStaffOptionsFor(1) + '</select>' +
+            '<select class="q-assignee" data-key="' + escapeAttr(line._key) + '" data-assignee-idx="2" style="' + fi + 'padding:8px 8px;"><option value="">Исп. 3</option>' + quickStaffOptionsFor(2) + '</select>' : '');
         wrap.appendChild(row);
       });
 

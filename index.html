@@ -6305,6 +6305,8 @@
         document.getElementById('f_clientName').value = match.name||'';
         hintBox.innerHTML = '';
         order.clientId = match.id;
+        applyClientHourRateToEditableOrder(order, true);
+        renderAllLines();
         var clientCars = carsOfClient(match.id);
         if(clientCars.length === 1){
           applyVehicleData(clientCars[0]);
@@ -6347,9 +6349,12 @@
       document.getElementById('applyVehicleHint').onclick = function(e){
         e.preventDefault();
         applyVehicleData(match);
-        if(owner && !document.getElementById('f_clientName').value.trim()){
-          document.getElementById('f_clientName').value = owner.name||'';
+        if(owner){
+          order.clientId = owner.id;
+          document.getElementById('f_clientName').value = displayClientName(owner);
           document.getElementById('f_clientPhone').value = owner.phone||'';
+          applyClientHourRateToEditableOrder(order, true);
+          renderAllLines();
         }
       };
     }
@@ -6437,7 +6442,9 @@
       showToast('Пресет ТО добавлен');
     };
     document.getElementById('addWorkLineBtn').onclick = function(){
-      order.lines.push({ name:'', qty:1, price:0, type:'work', assignees:[], _key:lineId() });
+      var line={ name:'', qty:1, price:0, type:'work', assignees:[], _key:lineId() };
+      applyHourRate(line,getClientById(order.clientId),false);
+      order.lines.push(line);
       renderAllLines();
     };
     document.getElementById('addPartLineBtn').onclick = function(){
@@ -6565,8 +6572,11 @@
               var workMatch = findPriceItemByName(inp.value);
               if(workMatch){
                 line.price = workMatch.price;
+                applyHourRate(line,getClientById(order.clientId),false);
                 var priceInput = block.querySelector('.line-row input[data-field="price"]');
                 if(priceInput){ priceInput.value = workMatch.price; }
+                var normInput = block.querySelector('.line-row input[data-field="normHours"]');
+                if(normInput) normInput.value = (line.normHours===null || line.normHours===undefined) ? '' : line.normHours;
               }
             }
             block.querySelector('.line-sum').textContent = fmtMoney(lineTotal(line));
@@ -7569,21 +7579,8 @@
       });
     }
     document.getElementById('btnCreateOrderForVehicle').addEventListener('click', function(){
-      openOrderForm(null);
-      setTimeout(function(){
-        var makeEl=document.getElementById('f_carMake'), modelEl=document.getElementById('f_carModel');
-        var plateEl=document.getElementById('f_plate'), vinEl=document.getElementById('f_vin');
-        if(makeEl){ makeEl.value=car.carMake||''; makeEl.dispatchEvent(new Event('input',{bubbles:true})); }
-        if(modelEl) modelEl.value=car.carModel||'';
-        if(plateEl) plateEl.value=car.plate||'';
-        if(vinEl) vinEl.value=car.vin||'';
-        if(owner){
-          var nameEl=document.getElementById('f_clientName'), phoneEl=document.getElementById('f_clientPhone');
-          if(nameEl) nameEl.value=displayClientName(owner);
-          if(phoneEl) phoneEl.value=owner.phone||'';
-        }
-        showToast('Автомобиль заполнен — добавьте работы и сохраните наряд');
-      },0);
+      openOrderForm(null, { client: owner || null, car: car });
+      showToast('Автомобиль заполнен — добавьте работы и сохраните наряд');
     });
     document.getElementById('btnEditVehicle').addEventListener('click', function(){
       openVehicleForm(car.id, car.clientId || null, sourceTab);

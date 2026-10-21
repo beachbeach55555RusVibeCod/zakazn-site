@@ -3891,6 +3891,7 @@
     var firstLine = workLines[0] || null;
     var currentId1 = firstLine && firstLine.assignees && firstLine.assignees[0] ? firstLine.assignees[0] : null;
     var currentId2 = firstLine && firstLine.assignees && firstLine.assignees[1] ? firstLine.assignees[1] : null;
+    var currentId3 = firstLine && firstLine.assignees && firstLine.assignees[2] ? firstLine.assignees[2] : null;
 
     var popup = document.createElement('div');
     popup.className = 'assign-popup';
@@ -3906,7 +3907,9 @@
     popup.innerHTML =
       '<div class="assign-popup-label">Исполнитель 1</div>' + staffItems(1, currentId1) +
       '<div style="height:1px;background:var(--border);margin:6px 0;"></div>' +
-      '<div class="assign-popup-label">Исполнитель 2</div>' + staffItems(2, currentId2);
+      '<div class="assign-popup-label">Исполнитель 2</div>' + staffItems(2, currentId2) +
+      '<div style="height:1px;background:var(--border);margin:6px 0;"></div>' +
+      '<div class="assign-popup-label">Исполнитель 3</div>' + staffItems(3, currentId3);
 
     document.body.appendChild(popup);
 
@@ -3928,13 +3931,8 @@
         if(workLines.length === 0){ showToast('В наряде нет работ'); return; }
         workLines.forEach(function(l){
           var a = (l.assignees||[]).slice();
-          if(slot === 1){
-            a[0] = sid || null;
-            if(!sid) a = [];
-          } else {
-            if(sid){ a[1] = sid; }
-            else { a = a[0] ? [a[0]] : []; }
-          }
+          var assigneeIndex = Math.max(0, Math.min(2, slot - 1));
+          a[assigneeIndex] = sid || null;
           while(a.length && !a[a.length-1]) a.pop();
           l.assignees = a;
         });

@@ -5725,9 +5725,12 @@
         var quickStockOptions = type === 'part' ? state.stockItems.map(function(s){
           return '<option value="' + escapeHtml(s.name) + '"' + (s.sku ? ' label="арт. ' + escapeHtml(s.sku) + '"' : '') + '></option>';
         }).join('') : '';
-        var quickStaffOptions = type === 'work' ? state.staff.map(function(s){
-          return '<option value="' + escapeHtml(s.id) + '"' + ((line.assignees||[])[0] === s.id ? ' selected' : '') + '>' + escapeHtml(s.name) + '</option>';
-        }).join('') : '';
+        function quickStaffOptionsFor(idx){
+          if(type !== 'work') return '';
+          return state.staff.map(function(s){
+            return '<option value="' + escapeHtml(s.id) + '"' + ((line.assignees||[])[idx] === s.id ? ' selected' : '') + '>' + escapeHtml(s.name) + '</option>';
+          }).join('');
+        }
         var quickPriceFields = type === 'part'
           ? '<input class="q-cost" data-key="' + escapeAttr(line._key) + '" data-f="costPrice" type="number" min="0" step="0.1" value="' + (line.costPrice ? priceInputValue(line.costPrice) : '') + '" placeholder="Закупка" title="' + (line.stockItemId ? 'Закупочная цена со склада' : 'Закупочная цена; после изменения цена продажи пересчитается с +45%') + '"' + (line.stockItemId ? ' readonly' : '') + ' style="' + fi + 'padding:8px 6px;">' +
             '<input class="q-price" data-key="' + escapeAttr(line._key) + '" data-f="price" type="number" min="0" step="0.1" value="' + (line.price ? priceInputValue(line.price) : '') + '" placeholder="После наценки" title="Цена продажи после наценки — можно изменить вручную" style="' + fi + 'padding:8px 6px;">'
@@ -5739,7 +5742,9 @@
           (type === 'work' ? '<input class="q-hours" data-key="' + escapeAttr(line._key) + '" data-f="normHours" type="number" min="0" step="0.01" value="' + (line.normHours===undefined?'':line.normHours) + '" placeholder="Н/ч" title="Время: цена работы ÷ ставка нормо-часа" readonly style="' + fi + 'padding:8px 6px;">' : '') +
           quickPriceFields +
           '<button class="q-remove" data-key="' + escapeAttr(line._key) + '" data-f="remove" style="background:none;border:none;color:var(--text-subtle);cursor:pointer;font-size:18px;padding:0 4px;line-height:1;">×</button>' +
-          (type === 'work' ? '<select class="q-assignee" data-key="' + escapeAttr(line._key) + '" style="' + fi + 'padding:8px 8px;"><option value="">Исполнитель</option>' + quickStaffOptions + '</select>' : '');
+          (type === 'work' ? '<select class="q-assignee" data-key="' + escapeAttr(line._key) + '" data-assignee-idx="0" style="' + fi + 'padding:8px 8px;"><option value="">Исполнитель 1</option>' + quickStaffOptionsFor(0) + '</select>' +
+            '<select class="q-assignee" data-key="' + escapeAttr(line._key) + '" data-assignee-idx="1" style="' + fi + 'padding:8px 8px;"><option value="">Исполнитель 2</option>' + quickStaffOptionsFor(1) + '</select>' +
+            '<select class="q-assignee" data-key="' + escapeAttr(line._key) + '" data-assignee-idx="2" style="' + fi + 'padding:8px 8px;"><option value="">Исполнитель 3</option>' + quickStaffOptionsFor(2) + '</select>' : '');
         wrap.appendChild(row);
       });
 
@@ -5823,7 +5828,10 @@
         sel.addEventListener('change', function(){
           var line = qOrder.lines.find(function(l){ return l._key === sel.dataset.key; });
           if(!line) return;
-          line.assignees = sel.value ? [sel.value] : [];
+          if(!line.assignees) line.assignees = [];
+          var assigneeIdx = Number(sel.dataset.assigneeIdx)||0;
+          line.assignees[assigneeIdx] = sel.value || null;
+          while(line.assignees.length && !line.assignees[line.assignees.length-1]){ line.assignees.pop(); }
         });
       });
       wrap.querySelectorAll('[data-f="remove"]').forEach(function(btn){
@@ -6444,6 +6452,7 @@
           '<div class="line-assignees">' +
             '<select class="assignee-select" data-assignee-idx="0"><option value="">Исполнитель 1</option>' + staffOptions + '</select>' +
             '<select class="assignee-select" data-assignee-idx="1"><option value="">Исполнитель 2</option>' + staffOptions + '</select>' +
+            '<select class="assignee-select" data-assignee-idx="2"><option value="">Исполнитель 3</option>' + staffOptions + '</select>' +
             '<span class="line-commission-hint" data-commission-hint></span>' +
           '</div>';
 

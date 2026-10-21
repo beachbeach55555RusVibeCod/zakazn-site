@@ -3434,23 +3434,8 @@
   }
 
   function fillFullOrderFromSearch(client, car){
-    openOrderForm(null);
-    setTimeout(function(){
-      var nameEl=document.getElementById('f_clientName'), phoneEl=document.getElementById('f_clientPhone');
-      if(client){
-        if(nameEl) nameEl.value=displayClientName(client);
-        if(phoneEl) phoneEl.value=client.phone||'';
-      }
-      if(car){
-        var makeEl=document.getElementById('f_carMake'), modelEl=document.getElementById('f_carModel');
-        var plateEl=document.getElementById('f_plate'), vinEl=document.getElementById('f_vin');
-        if(makeEl){ makeEl.value=car.carMake||''; makeEl.dispatchEvent(new Event('input',{bubbles:true})); }
-        if(modelEl) modelEl.value=car.carModel||'';
-        if(plateEl) plateEl.value=car.plate||'';
-        if(vinEl) vinEl.value=car.vin||'';
-      }
-      showToast(car ? 'Клиент и автомобиль заполнены — добавьте работы' : 'Клиент заполнен — выберите автомобиль и добавьте работы');
-    },0);
+    openOrderForm(null, { client: client || null, car: car || null });
+    showToast(car ? 'Клиент и автомобиль заполнены — добавьте работы' : 'Клиент заполнен — выберите автомобиль и добавьте работы');
   }
 
   function renderGlobalSearchDropdown(){
@@ -6091,7 +6076,7 @@
     }
   }
 
-  function openOrderForm(editId){
+  function openOrderForm(editId, preset){
     var order;
     if(editId){
       var existing = state.orders.find(function(o){ return o.id === editId; });
@@ -6106,6 +6091,20 @@
       order = JSON.parse(JSON.stringify(existing));
     } else {
       order = emptyOrder();
+      if(preset){
+        if(preset.client){
+          order.clientId = preset.client.id || null;
+          order.clientName = displayClientName(preset.client);
+          order.clientPhone = preset.client.phone || '';
+        }
+        if(preset.car){
+          order.vehicleId = preset.car.id || null;
+          order.carMake = preset.car.carMake || '';
+          order.carModel = preset.car.carModel || '';
+          order.plate = preset.car.plate || '';
+          order.vin = preset.car.vin || '';
+        }
+      }
     }
     order.lines = (order.lines||[]).map(function(l){
       l._key = l._key || lineId();
@@ -6132,7 +6131,7 @@
     if(order.lines.length === 0){
       order.lines.push({ name:'', qty:1, price:0, type:'work', assignees:[], _key:lineId() });
     }
-    if(editId) applyClientHourRateToEditableOrder(order, false);
+    if(editId || (preset && preset.client)) applyClientHourRateToEditableOrder(order, !!(!editId && preset && preset.client));
     state.editingId = editId || null;
 
     var statusChips = STATUSES.map(function(s){

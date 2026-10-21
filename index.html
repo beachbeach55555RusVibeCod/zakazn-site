@@ -3489,6 +3489,26 @@
     });
     drop.innerHTML=html;
     drop.style.display='block';
+    drop.querySelectorAll('.global-search-result').forEach(function(row){
+      row.style.cursor='pointer';
+      row.addEventListener('mouseenter',function(){ row.style.background='var(--bg-panel-2)'; });
+      row.addEventListener('mouseleave',function(){ row.style.background='transparent'; });
+      row.addEventListener('click',function(){
+        drop.style.display='none';
+        if(row.dataset.kind==='car'){
+          state.openClientId=null;
+          state.openVehicleId=row.dataset.id;
+          switchTab('cars',true);
+        }else{
+          var client=getClientById(row.dataset.id);
+          if(!client) return;
+          state.openVehicleId=null;
+          state.openClientId=client.id;
+          state.clientTypeFilter=client.type==='org'?'org':'person';
+          switchTab('clients',true);
+        }
+      });
+    });
     drop.querySelectorAll('.global-search-create').forEach(function(btn){
       btn.addEventListener('click',function(e){
         e.stopPropagation();

@@ -2306,7 +2306,7 @@
     var slug=CAR_LOGO_SLUGS[key];
     var src=slug ? 'https://cdn.jsdelivr.net/gh/tipstrade/node-vehicle-logos@main/assets/' + encodeURIComponent(slug) + '.svg' : '';
     if(!src && CAR_LOGO_EXTRA[key]) src='https://cdn.jsdelivr.net/gh/vehiclespecs/brand-logos@v1.0.0/' + encodeURIComponent(CAR_LOGO_EXTRA[key]);
-    if(src) return '<span class="' + cls + '" title="' + escapeAttr(key) + '"><img src="' + escapeAttr(src) + '" alt="' + escapeAttr(key + ' logo') + '" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display=\\'none\\';this.nextElementSibling.style.display=\\'inline-flex\\';"><span class="brand-logo-text-fallback" style="display:none">' + escapeHtml(key.slice(0,3).toUpperCase()) + '</span></span>';
+    if(src) return '<span class="' + cls + '" title="' + escapeAttr(key) + '"><img src="' + escapeAttr(src) + '" alt="' + escapeAttr(key + ' logo') + '" loading="lazy" referrerpolicy="no-referrer" onerror="this.style.display=&quot;none&quot;;this.nextElementSibling.style.display=&quot;inline-flex&quot;;"><span class="brand-logo-text-fallback" style="display:none">' + escapeHtml(key.slice(0,3).toUpperCase()) + '</span></span>';
     var initials=key ? key.split(/\\s+/).map(function(x){return x.charAt(0);}).join('').slice(0,3).toUpperCase() : 'A';
     return '<span class="' + cls + ' car-brand-fallback" title="' + escapeAttr(key||'Автомобиль') + '">' + escapeHtml(initials) + '</span>';
   }

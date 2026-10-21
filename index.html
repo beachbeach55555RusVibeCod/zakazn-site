@@ -2125,9 +2125,10 @@
   </div>
 
   <div class="toolbar" id="boardToolbar">
-    <div class="search-wrap">
+    <div class="search-wrap" id="globalSearchWrap" style="position:relative;">
       <span class="search-icon">⌕</span>
-      <input type="text" id="searchInput" placeholder="Поиск: клиент, номер, VIN, авто...">
+      <input type="text" id="searchInput" placeholder="Поиск: клиент, номер, VIN, авто..." autocomplete="off">
+      <div id="globalSearchDropdown" style="display:none;position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:1200;background:var(--bg-panel);border:1px solid var(--border);border-radius:12px;box-shadow:0 16px 40px rgba(0,0,0,.28);max-height:420px;overflow:auto;padding:6px;"></div>
     </div>
     <button class="btn btn-ghost btn-sm" id="btnQuickOrder">⚡ Быстрый</button>
     <button class="btn btn-primary" id="btnNewOrder">+ Новый наряд</button>
@@ -3430,6 +3431,80 @@
       return String(b.order.dateOut||'').localeCompare(String(a.order.dateOut||''));
     });
     return rows;
+  }
+
+  function fillFullOrderFromSearch(client, car){
+    openOrderForm(null);
+    setTimeout(function(){
+      var nameEl=document.getElementById('f_clientName'), phoneEl=document.getElementById('f_clientPhone');
+      if(client){
+        if(nameEl) nameEl.value=displayClientName(client);
+        if(phoneEl) phoneEl.value=client.phone||'';
+      }
+      if(car){
+        var makeEl=document.getElementById('f_carMake'), modelEl=document.getElementById('f_carModel');
+        var plateEl=document.getElementById('f_plate'), vinEl=document.getElementById('f_vin');
+        if(makeEl){ makeEl.value=car.carMake||''; makeEl.dispatchEvent(new Event('input',{bubbles:true})); }
+        if(modelEl) modelEl.value=car.carModel||'';
+        if(plateEl) plateEl.value=car.plate||'';
+        if(vinEl) vinEl.value=car.vin||'';
+      }
+      showToast(car ? 'Клиент и автомобиль заполнены — добавьте работы' : 'Клиент заполнен — выберите автомобиль и добавьте работы');
+    },0);
+  }
+
+  function renderGlobalSearchDropdown(){
+    var input=document.getElementById('searchInput');
+    var drop=document.getElementById('globalSearchDropdown');
+    if(!input || !drop) return;
+    var q=(input.value||'').trim().toLowerCase();
+    if(!q){ drop.style.display='none'; drop.innerHTML=''; return; }
+
+    var clients=state.clients.filter(function(c){
+      return [displayClientName(c),c.phone,c.inn,c.orgName].map(function(x){return String(x||'').toLowerCase();}).join(' ').indexOf(q)!==-1;
+    }).slice(0,6);
+    var cars=state.cars.filter(function(c){
+      var owner=getClientById(c.clientId);
+      return [c.carMake,c.carModel,c.plate,c.vin,owner?displayClientName(owner):''].map(function(x){return String(x||'').toLowerCase();}).join(' ').indexOf(q)!==-1;
+    }).slice(0,6);
+
+    if(!clients.length && !cars.length){
+      drop.innerHTML='<div style="padding:10px;color:var(--text-subtle);font-size:12px;">Клиенты и автомобили не найдены</div>';
+      drop.style.display='block';
+      return;
+    }
+    var html='';
+    clients.forEach(function(c){
+      var cc=carsOfClient(c.id);
+      html+='<div class="global-search-result" data-kind="client" data-id="'+escapeAttr(c.id)+'" style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:9px;">' +
+        '<div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:13px;">👤 '+escapeHtml(displayClientName(c))+'</div><div style="font-size:11px;color:var(--text-subtle);margin-top:2px;">Клиент'+(c.phone?' · '+escapeHtml(c.phone):'')+(cc.length?' · авто: '+cc.length:'')+'</div></div>' +
+        '<button type="button" class="btn btn-primary btn-sm global-search-create" data-kind="client" data-id="'+escapeAttr(c.id)+'">+ Полный ЗН</button></div>';
+    });
+    cars.forEach(function(c){
+      var owner=getClientById(c.clientId);
+      var carTitle=[c.carMake,c.carModel].filter(Boolean).join(' ')||'Автомобиль';
+      html+='<div class="global-search-result" data-kind="car" data-id="'+escapeAttr(c.id)+'" style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:9px;">' +
+        '<div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:13px;">🚗 '+escapeHtml(carTitle)+(c.plate?' · '+escapeHtml(c.plate):'')+'</div><div style="font-size:11px;color:var(--text-subtle);margin-top:2px;">Автомобиль'+(owner?' · '+escapeHtml(displayClientName(owner)):'')+(c.vin?' · VIN '+escapeHtml(c.vin):'')+'</div></div>' +
+        '<button type="button" class="btn btn-primary btn-sm global-search-create" data-kind="car" data-id="'+escapeAttr(c.id)+'">+ Полный ЗН</button></div>';
+    });
+    drop.innerHTML=html;
+    drop.style.display='block';
+    drop.querySelectorAll('.global-search-create').forEach(function(btn){
+      btn.addEventListener('click',function(e){
+        e.stopPropagation();
+        var kind=btn.dataset.kind, id=btn.dataset.id;
+        drop.style.display='none';
+        if(kind==='car'){
+          var car=getCarById(id);
+          if(car) fillFullOrderFromSearch(getClientById(car.clientId),car);
+        }else{
+          var client=getClientById(id);
+          if(!client) return;
+          var cc=carsOfClient(client.id);
+          fillFullOrderFromSearch(client,cc.length===1?cc[0]:null);
+        }
+      });
+    });
   }
 
   function filteredOrders(){
@@ -8917,6 +8992,13 @@
   });
   document.getElementById('searchInput').addEventListener('input', function(){
     render();
+    renderGlobalSearchDropdown();
+  });
+  document.getElementById('searchInput').addEventListener('focus', renderGlobalSearchDropdown);
+  document.addEventListener('click', function(e){
+    var searchWrap=document.getElementById('globalSearchWrap');
+    var drop=document.getElementById('globalSearchDropdown');
+    if(searchWrap && drop && !searchWrap.contains(e.target)) drop.style.display='none';
   });
   document.querySelectorAll('#mainTabs .tab-btn').forEach(function(btn){
     btn.addEventListener('click', function(){ switchTab(btn.dataset.tab); });

@@ -2005,10 +2005,16 @@
   #qForm .q-line-row:not(.q-part-line) .q-price{grid-column:2 !important;grid-row:2;}
   #qForm .q-line-row:not(.q-part-line) .q-hours{grid-column:3 !important;grid-row:2;min-width:0;}
   #qForm .q-line-row:not(.q-part-line) .q-remove{grid-column:4 !important;grid-row:2;}
-  #qForm .q-line-row:not(.q-part-line) .q-assignee{grid-column:1/-1 !important;grid-row:3;}
+  #qForm .q-line-row:not(.q-part-line) .q-assignee{min-width:0;}
+  #qForm .q-line-row:not(.q-part-line) .q-assignee[data-assignee-idx="0"]{grid-column:1 !important;grid-row:3;}
+  #qForm .q-line-row:not(.q-part-line) .q-assignee[data-assignee-idx="1"]{grid-column:2 !important;grid-row:3;}
+  #qForm .q-line-row:not(.q-part-line) .q-assignee[data-assignee-idx="2"]{grid-column:3 !important;grid-row:3;}
   @media(max-width:560px){
     .line-row:not(.part-line-row){grid-template-columns:minmax(0,1fr) minmax(0,1fr) minmax(0,1fr);}
     .line-row:not(.part-line-row) .line-sum{grid-column:1/-1;grid-row:3;text-align:right;overflow:visible;}
+    #qForm .q-line-row:not(.q-part-line) .q-assignee[data-assignee-idx="0"]{grid-column:1/-1 !important;grid-row:3;}
+    #qForm .q-line-row:not(.q-part-line) .q-assignee[data-assignee-idx="1"]{grid-column:1/-1 !important;grid-row:4;}
+    #qForm .q-line-row:not(.q-part-line) .q-assignee[data-assignee-idx="2"]{grid-column:1/-1 !important;grid-row:5;}
   }
 </style>
 

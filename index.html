@@ -639,15 +639,15 @@
   }
   .stock-table{ width:100%; border-collapse:collapse; }
   .stock-table th{ text-align:left; font-size:11.5px; text-transform:uppercase; letter-spacing:0.03em; color:var(--text-subtle); padding:8px 10px; border-bottom:1px solid var(--border); }
-  .stock-table td{ padding:11px 10px; border-bottom:1px solid var(--border); font-size:14px; }
+  .stock-table td{ padding:15px 10px; border-bottom:1px solid var(--border); font-size:14px; vertical-align:middle; }
   .stock-table tr:last-child td{ border-bottom:none; }
   .stock-table tr.low-stock{ background: rgba(245,158,11,0.06); }
   .stock-table tr.zero-stock{ background: rgba(229,72,77,0.07); }
   .stock-mobile-qty{ display:none; }
-  .stock-name{ font-weight:600; }
-  .stock-sku{ font-size:11.5px; color:var(--text-subtle); font-family:'JetBrains Mono', monospace; margin-top:2px; }
-  .stock-num{ font-family:'JetBrains Mono', monospace; text-align:right; }
-  .stock-qty{ font-family:'JetBrains Mono', monospace; text-align:right; font-weight:600; }
+  .stock-name{ font-size:14px; line-height:1.35; font-weight:500; letter-spacing:0; }
+  .stock-sku{ font-size:11px; line-height:1.35; color:var(--text-subtle); font-family:'JetBrains Mono', monospace; font-weight:400; margin-top:5px; letter-spacing:0.01em; }
+  .stock-num{ font-family:'JetBrains Mono', monospace; text-align:right; font-size:13px; font-weight:400; white-space:nowrap; }
+  .stock-qty{ font-family:'JetBrains Mono', monospace; text-align:right; font-size:15px; font-weight:600; white-space:nowrap; }
   .stock-qty.zero{ color: var(--danger); }
   .stock-qty.low{ color: var(--status-progress); }
   .stock-badge{ font-size:10.5px; padding:2px 7px; border-radius:10px; margin-left:6px; vertical-align:middle; }
@@ -7914,7 +7914,7 @@
         var qtyClass = qty <= 0 ? 'zero' : (minQty > 0 && qty <= minQty ? 'low' : '');
         var badge = qty <= 0 ? '<span class="stock-badge zero">нет в наличии</span>' : (minQty > 0 && qty <= minQty ? '<span class="stock-badge low">заканчивается</span>' : '');
         html += '<tr class="' + rowClass + '">' +
-          '<td><div class="stock-name">' + escapeHtml(s.name) + badge + '</div>' + (s.sku ? '<div class="stock-sku">арт. ' + escapeHtml(s.sku) + '</div>' : '') + '</td>' +
+          '<td><div class="stock-name">' + escapeHtml(s.name) + badge + '</div>' + ((s.brand||s.sku) ? '<div class="stock-sku">' + (s.brand ? escapeHtml(s.brand) : '') + (s.brand&&s.sku ? ' · ' : '') + (s.sku ? 'арт. ' + escapeHtml(s.sku) : '') + '</div>' : '') + '</td>' +
           '<td class="stock-qty ' + qtyClass + '">' + qty + '</td>' +
           '<td class="stock-num stock-cost-col">' + fmtMoney(s.costPrice) + '</td>' +
           '<td class="stock-num stock-sale-col">' + fmtMoney(stockSellPrice(s)) + '</td>' +

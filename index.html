@@ -3218,6 +3218,8 @@
     return state.stockItems.find(function(s){ return (s.name||'').trim().toLowerCase() === norm; }) || null;
   }
 
+
+  function stockOrderPartName(item){ var brand=String(item&&item.brand||'').trim(), name=String(item&&item.name||'').trim(); return brand ? brand+' · '+name : name; }
   function roundPriceToTenth(value){
     var n = Number(value) || 0;
     return Math.round((n + Number.EPSILON) * 10) / 10;
@@ -7993,10 +7995,10 @@
     var qty=Number(x.quantity)||0, status=String(x.status||'').toLowerCase();
     if(qty<=0 || /отказ|отмен|возврат/.test(status)){ showToast('Эту позицию нельзя оприходовать'); return; }
     var key=partkomReceiptKey(x), item=findStockItemForPartkom(x);
-    if(!item){ item={id:stockItemUid(),name:x.name||x.sku||'Запчасть',sku:x.sku||'',costPrice:Number(x.costPrice)||0,quantity:0,minQuantity:0,partkomReceipts:[]}; state.stockItems.push(item); }
+    if(!item){ item={id:stockItemUid(),name:x.name||x.sku||'Запчасть',brand:x.brand||'',sku:x.sku||'',costPrice:Number(x.costPrice)||0,quantity:0,minQuantity:0,partkomReceipts:[]}; state.stockItems.push(item); }
     item.partkomReceipts=Array.isArray(item.partkomReceipts)?item.partkomReceipts:[];
     if(item.partkomReceipts.indexOf(key)!==-1){ showToast('Эта позиция уже оприходована'); return; }
-    item.quantity=(Number(item.quantity)||0)+qty; if(Number(x.costPrice)>0)item.costPrice=Number(x.costPrice); if(!item.sku&&x.sku)item.sku=x.sku;
+    item.quantity=(Number(item.quantity)||0)+qty; if(Number(x.costPrice)>0)item.costPrice=Number(x.costPrice); if(!item.sku&&x.sku)item.sku=x.sku; if(!item.brand&&x.brand)item.brand=x.brand;
     item.partkomReceipts.push(key); item.partkomLastComment=g.comment||''; item.partkomUpdatedAt=Date.now();
     if(await saveStockItem(item)){ state.stockItems.sort(function(a,b){return (a.name||'').localeCompare(b.name||'','ru');}); renderStockTab(); showToast('Оприходовано: '+(x.name||x.sku||'позиция')+' · '+qty+' шт.'); }
   }

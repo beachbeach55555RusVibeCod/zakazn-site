@@ -6227,8 +6227,7 @@
 
                 '<div class="form-section lines-column">' +
                   '<div class="form-section-title">Запчасти</div>' +
-                  '<div class="line-commission-hint" style="margin:-4px 0 9px;">Ручная запчасть: закупка → +45%. Цену после наценки можно изменить вручную. Для склада подставляется текущая цена продажи.</div>' +
-                  '<div class="lines" id="partLinesWrap"></div>' +
+                          '<div class="lines" id="partLinesWrap"></div>' +
                   '<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;">' +
                     '<button type="button" class="add-line-btn" id="pastePartLineBtn" style="border-style:solid;">📋 Вставить из буфера</button>' +
                     '<button type="button" class="add-line-btn" id="addPartLineBtn">+ Добавить запчасть</button>' +
@@ -6643,9 +6642,6 @@
       wrap.innerHTML = '';
       var partLines = order.lines.filter(function(l){ return l.type === 'part'; });
 
-      if(partLines.length === 0){
-        wrap.innerHTML = '<div class="stock-empty" style="padding:18px 0;">Пока нет ни одной запчасти</div>';
-      }
 
       partLines.forEach(function(line){
         var block = document.createElement('div');

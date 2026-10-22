@@ -7963,7 +7963,7 @@
       var data={};
       try{ data=await res.json(); }catch(_e){}
       if(data && data.ok){
-        showToast('История Part-kom обновлена');
+        showToast('Part-kom: выгрузка получена' + (data.bytes ? ' (' + Math.round(data.bytes/1024) + ' КБ)' : ''));
       }else if(data && data.error==='partkom_credentials_not_configured'){
         showToast('Part-kom: сначала настройте серверный логин и пароль');
       }else if(data && data.error==='partkom_login_flow_not_configured'){

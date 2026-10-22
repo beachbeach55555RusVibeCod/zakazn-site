@@ -7883,6 +7883,7 @@
       '<div class="stock-search"><span class="search-icon">⌕</span><input type="text" id="stockSearchInput" placeholder="Поиск по названию или артикулу..."></div>' +
       '<div class="stock-actions-right">' +
         '<div class="stock-markup-pill" id="stockMarkupPill">Наценка: <b>' + state.stockMarkupPct + '%</b> ✎</div>' +
+        '<button class="btn btn-ghost btn-sm" id="btnPartkomSync">↻ Обновить Part-kom</button>' +
         '<button class="btn btn-ghost btn-sm" id="btnStockPhoto">📷 OCR по фото</button>' +
         '<button class="btn btn-primary btn-sm" id="btnAddStockItem">+ Добавить запчасть</button>' +
       '</div>' +
@@ -7933,6 +7934,7 @@
     document.getElementById('btnAddStockItem').addEventListener('click', function(){
       openStockItemForm(null);
     });
+    document.getElementById('btnPartkomSync').addEventListener('click', syncPartkomHistory);
     document.getElementById('btnStockPhoto').addEventListener('click', function(){
       openStockPhotoPicker();
     });
@@ -7947,6 +7949,35 @@
     });
   }
 
+
+  async function syncPartkomHistory(){
+    var btn=document.getElementById('btnPartkomSync');
+    if(!btn) return;
+    var old=btn.textContent;
+    btn.disabled=true; btn.textContent='Обновляю…';
+    try{
+      var res=await fetch(SUPABASE_URL + '/functions/v1/partkom-history',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','apikey':SUPABASE_ANON_KEY}
+      });
+      var data={};
+      try{ data=await res.json(); }catch(_e){}
+      if(data && data.ok){
+        showToast('История Part-kom обновлена');
+      }else if(data && data.error==='partkom_credentials_not_configured'){
+        showToast('Part-kom: сначала настройте серверный логин и пароль');
+      }else if(data && data.error==='partkom_login_flow_not_configured'){
+        showToast('Part-kom подключён. Осталось настроить автоматический вход');
+      }else{
+        showToast('Part-kom: не удалось обновить историю');
+      }
+    }catch(e){
+      console.error(e);
+      showToast('Part-kom: ошибка соединения');
+    }finally{
+      btn.disabled=false; btn.textContent=old;
+    }
+  }
 
   function openStockPhotoPicker(){
     var input = document.createElement('input');

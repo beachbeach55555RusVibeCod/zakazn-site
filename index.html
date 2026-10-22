@@ -7901,7 +7901,7 @@
     }
 
     var pg=state.partkomHistoryGroups||[];
-    if(pg.length){ html += '<div style="margin:14px 0 18px"><div style="font-weight:700;margin-bottom:8px">Part-kom · группы по комментарию</div>'; pg.forEach(function(g,gi){ var arr=g.items||[]; html += '<details style="border:1px solid var(--border);border-radius:10px;margin:7px 0;padding:10px 12px"><summary style="cursor:pointer;font-weight:600">'+escapeHtml(g.comment||'Без комментария')+' · '+arr.length+' поз.</summary><div style="margin-top:9px">'; arr.forEach(function(x,xi){ var canReceive=(Number(x.quantity)||0)>0&&!/отказ|отмен|возврат/.test(String(x.status||'').toLowerCase()); html += '<div style="display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--border)"><div><b>'+escapeHtml(x.name||x.sku||'Запчасть')+'</b><div class="stock-sku">'+escapeHtml((x.brand?x.brand+' · ':'')+(x.sku||'')+(x.status?' · '+x.status:''))+'</div></div><div style="text-align:right;white-space:nowrap">'+(Number(x.quantity)||0)+' шт. · '+fmtMoney(x.costPrice)+'</div><button class="btn btn-primary btn-sm" data-partkom-receive-item="'+gi+':'+xi+'" '+(canReceive?'':'disabled')+'>Оприходовать</button></div>'; }); html += '</div></details>'; }); html += '</div>'; }
+    if(pg.length){ html += '<div style="margin:14px 0 18px"><div style="font-weight:700;margin-bottom:8px">Part-kom · группы по комментарию</div>'; pg.forEach(function(g,gi){ var arr=g.items||[]; html += '<details style="border:1px solid var(--border);border-radius:10px;margin:7px 0;padding:10px 12px"><summary style="cursor:pointer;font-weight:600">'+escapeHtml(g.comment||'Без комментария')+' · '+arr.length+' поз.</summary><div style="margin-top:9px">'; arr.forEach(function(x,xi){ var canReceive=(Number(x.quantity)||0)>0; html += '<div style="display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--border)"><div><b>'+escapeHtml(x.name||x.sku||'Запчасть')+'</b><div class="stock-sku">'+escapeHtml((x.brand?x.brand+' · ':'')+(x.sku||''))+'</div></div><div style="text-align:right;white-space:nowrap">'+(Number(x.quantity)||0)+' шт. · '+fmtMoney(x.costPrice)+'</div><button class="btn btn-primary btn-sm" data-partkom-receive-item="'+gi+':'+xi+'" '+(canReceive?'':'disabled')+'>Оприходовать</button></div>'; }); html += '</div></details>'; }); html += '</div>'; }
 
     if(items.length === 0){
       html += '<div class="stock-empty">' + (q ? 'Ничего не найдено' : 'Склад пуст. Добавьте первую запчасть.') + '</div>';
@@ -7992,8 +7992,8 @@
   function findStockItemForPartkom(x){ var sku=String(x.sku||'').trim().toLowerCase(); if(sku){ var bySku=state.stockItems.find(function(s){return String(s.sku||'').trim().toLowerCase()===sku;}); if(bySku)return bySku; } return findStockItemByName(x.name||''); }
   async function receivePartkomItem(groupIndex,itemIndex){
     var g=(state.partkomHistoryGroups||[])[groupIndex], x=g&&g.items&&g.items[itemIndex]; if(!g||!x)return;
-    var qty=Number(x.quantity)||0, status=String(x.status||'').toLowerCase();
-    if(qty<=0 || /отказ|отмен|возврат/.test(status)){ showToast('Эту позицию нельзя оприходовать'); return; }
+    var qty=Number(x.quantity)||0;
+    if(qty<=0){ showToast('У этой позиции количество 0'); return; }
     var key=partkomReceiptKey(x), item=findStockItemForPartkom(x);
     if(!item){ item={id:stockItemUid(),name:x.name||x.sku||'Запчасть',brand:x.brand||'',sku:x.sku||'',costPrice:Number(x.costPrice)||0,quantity:0,minQuantity:0,partkomReceipts:[]}; state.stockItems.push(item); }
     item.partkomReceipts=Array.isArray(item.partkomReceipts)?item.partkomReceipts:[];

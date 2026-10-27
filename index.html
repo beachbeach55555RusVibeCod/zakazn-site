@@ -2515,6 +2515,26 @@
     }
   };
 
+  // Fetch values in ordered pages instead of one HTTP request per record.
+  // Continue until an empty page, even if the server caps pages below 500 rows.
+  async function loadStoredItems(prefix){
+    var items = [], offset = 0;
+    while(true){
+      var r = await getSB().from('kv_store').select('key,value')
+        .like('key', prefix + '%').order('key').range(offset, offset + 499);
+      if(r.error) throw r.error;
+      var rows = r.data || [];
+      if(!rows.length) return items;
+      rows.forEach(function(row){
+        try{
+          var item = JSON.parse(row.value);
+          if(item && item.id) items.push(item);
+        }catch(e){ console.warn('Поврежденная запись', row.key); }
+      });
+      offset += rows.length;
+    }
+  }
+
   function storageAvailable(){ return true; }
 
   // ---------- Realtime sync (Supabase) ----------
@@ -2616,15 +2636,10 @@
   async function refreshAllFromServer(){
     if(!state.loaded) return;
     try{
-      await loadCompany();
-      await loadStaff();
-      await loadClients();
-      await loadCars();
-      await loadPriceList();
-      await loadStockItems();
-      await loadStockMarkup();
-      await loadStickers();
-      await loadOrders();
+      await Promise.all([
+        loadCompany(), loadStaff(), loadClients(), loadCars(), loadPriceList(),
+        loadStockItems(), loadStockMarkup(), loadStickers(), loadOrders()
+      ]);
       renderCurrentView();
     }catch(e){
       console.warn('Контрольная синхронизация не удалась', e);
@@ -2684,14 +2699,7 @@
 
   async function loadStickers(){
     try{
-      // Load sticker values in one request. This avoids partial/empty sidebar state when
-      // a refresh happens while several per-key requests are still in flight.
-      var r = await getSB().from('kv_store').select('key,value').like('key', 'sticker:%');
-      if(r.error) throw r.error;
-      var items = [];
-      (r.data||[]).forEach(function(row){
-        try{ var item = JSON.parse(row.value); if(item && item.id) items.push(item); }catch(e){}
-      });
+      var items = await loadStoredItems('sticker:');
       items.sort(function(a,b){ return (b.createdAt||0) - (a.createdAt||0); });
       state.stickers = items;
     }catch(e){
@@ -2749,29 +2757,22 @@
   }
 
   async function loadOrders(){
+    var failed = false;
     try{
-      // Load every order with its value in one request. Per-key loading could silently
-      // skip individual orders on a transient request failure, making saved cards disappear.
-      var r = await getSB().from('kv_store').select('key,value').like('key', 'order:%');
-      if(r.error) throw r.error;
-      var orders = [];
-      (r.data||[]).forEach(function(row){
-        try{
-          var order = JSON.parse(row.value);
-          if(order && order.id) orders.push(order);
-        }catch(e){ console.error('Поврежденный заказ-наряд', row.key, e); }
-      });
+      var orders = await loadStoredItems('order:');
       orders.sort(function(a,b){ return (b.createdAt||0) - (a.createdAt||0); });
       state.orders = orders;
       state.loaded = true;
     }catch(e){
+      failed = true;
       console.error('Ошибка загрузки', e);
       // Keep already loaded orders visible if the database/network temporarily fails.
       state.orders = state.orders || [];
       state.loaded = true;
       showToast('Не удалось обновить заказ-наряды. Показаны ранее загруженные данные.');
     }
-    render();
+    renderCurrentView();
+    return !failed;
   }
 
   async function saveOrder(order){
@@ -2799,26 +2800,17 @@
 
   async function loadStaff(){
     try{
-      var res = await localStore.list('staff:');
-      var staff = [];
-      if(res && res.keys && res.keys.length){
-        for(var i=0;i<res.keys.length;i++){
-          try{
-            var item = await localStore.get(res.keys[i]);
-            if(item && item.value){
-              staff.push(JSON.parse(item.value));
-            }
-          }catch(e){}
-        }
-      }
+      var staff = await loadStoredItems('staff:');
       staff.sort(function(a,b){ return (a.name||'').localeCompare(b.name||'', 'ru'); });
       state.staff = staff;
       state.staffLoaded = true;
+      return true;
     }catch(e){
       console.error('Ошибка загрузки сотрудников', e);
-      state.staff = [];
+      state.staff = state.staff || [];
       state.staffLoaded = true;
       showToast('Не удалось загрузить список сотрудников');
+      return false;
     }
   }
 
@@ -2871,39 +2863,25 @@
 
   async function loadClients(){
     try{
-      var res = await localStore.list('client:');
-      var clients = [];
-      if(res && res.keys && res.keys.length){
-        for(var i=0;i<res.keys.length;i++){
-          try{
-            var item = await localStore.get(res.keys[i]);
-            if(item && item.value){ clients.push(JSON.parse(item.value)); }
-          }catch(e){}
-        }
-      }
+      var clients = await loadStoredItems('client:');
       state.clients = clients;
+      return true;
     }catch(e){
       console.error('Ошибка загрузки клиентов', e);
-      state.clients = [];
+      state.clients = state.clients || [];
+      return false;
     }
   }
 
   async function loadCars(){
     try{
-      var res = await localStore.list('car:');
-      var cars = [];
-      if(res && res.keys && res.keys.length){
-        for(var i=0;i<res.keys.length;i++){
-          try{
-            var item = await localStore.get(res.keys[i]);
-            if(item && item.value){ cars.push(JSON.parse(item.value)); }
-          }catch(e){}
-        }
-      }
+      var cars = await loadStoredItems('car:');
       state.cars = cars;
+      return true;
     }catch(e){
       console.error('Ошибка загрузки автомобилей', e);
-      state.cars = [];
+      state.cars = state.cars || [];
+      return false;
     }
   }
 
@@ -3069,23 +3047,16 @@
 
   async function loadPriceList(){
     try{
-      var res = await localStore.list('priceitem:');
-      var items = [];
-      if(res && res.keys && res.keys.length){
-        for(var i=0;i<res.keys.length;i++){
-          try{
-            var item = await localStore.get(res.keys[i]);
-            if(item && item.value){ items.push(JSON.parse(item.value)); }
-          }catch(e){}
-        }
-      }
+      var items = await loadStoredItems('priceitem:');
       items.sort(function(a,b){ return (a.name||'').localeCompare(b.name||'', 'ru'); });
       state.priceList = items;
       state.priceListLoaded = true;
+      return true;
     }catch(e){
       console.error('Ошибка загрузки прайс-листа', e);
-      state.priceList = [];
+      state.priceList = state.priceList || [];
       state.priceListLoaded = true;
+      return false;
     }
   }
 
@@ -3145,23 +3116,16 @@
 
   async function loadStockItems(){
     try{
-      var res = await localStore.list('stockitem:');
-      var items = [];
-      if(res && res.keys && res.keys.length){
-        for(var i=0;i<res.keys.length;i++){
-          try{
-            var item = await localStore.get(res.keys[i]);
-            if(item && item.value){ items.push(JSON.parse(item.value)); }
-          }catch(e){}
-        }
-      }
+      var items = await loadStoredItems('stockitem:');
       items.sort(function(a,b){ return (a.name||'').localeCompare(b.name||'', 'ru'); });
       state.stockItems = items;
       state.stockLoaded = true;
+      return true;
     }catch(e){
       console.error('Ошибка загрузки склада', e);
-      state.stockItems = [];
+      state.stockItems = state.stockItems || [];
       state.stockLoaded = true;
+      return false;
     }
   }
 
@@ -9378,22 +9342,21 @@
   document.getElementById('aiAssistantInput').addEventListener('keydown',function(e){if(e.key==='Enter')aiSubmit();});
 
   async function init(){
-    await loadCompany();
-    await loadStaff();
-    await loadOrders();
-    await loadClients();
-    await loadCars();
-    await migrateLegacyOrdersToClients();
-    await loadClients();
-    await loadCars();
-    await loadPriceList();
-    await seedDefaultPriceListIfNeeded();
-    await loadStockItems();
-    await loadStockMarkup();
-    await loadStickers();
-    if(state.activeTab === 'clients'){ renderClientsTab(); }
-    if(state.activeTab === 'pricelist'){ renderPriceListTab(); }
-    if(state.activeTab === 'stock'){ renderStockTab(); }
+    // Each section becomes visible as soon as its own request completes.
+    function visible(promise){
+      return promise.then(function(result){ renderCurrentView(); return result; });
+    }
+    var results = await Promise.all([
+      visible(loadCompany()), visible(loadStaff()), visible(loadOrders()),
+      visible(loadClients()), visible(loadCars()), visible(loadPriceList()),
+      visible(loadStockItems()), visible(loadStockMarkup()), loadStickers()
+    ]);
+    // Migration depends on complete orders/clients/cars; seeding on a successful read.
+    if(results[2] && results[3] && results[4]){
+      await migrateLegacyOrdersToClients();
+    }
+    if(results[5]) await seedDefaultPriceListIfNeeded();
+    renderCurrentView();
     startRealtimeSync();
   }
 

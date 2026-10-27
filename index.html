@@ -4375,10 +4375,9 @@
       groupMap[key].works.push(d);
     });
 
-    var rows = grouped.map(function(g){
+    function salaryOrderCard(g){
       var o = g.order;
       var carLabel = [o.carMake, o.carModel].filter(Boolean).join(' ') || '—';
-      var issuedLabel = o.dateOut ? new Date(o.dateOut + 'T00:00:00').toLocaleDateString('ru-RU') : 'дата не указана';
       var worksHtml = g.works.map(function(d){
         var l = d.line;
         var workName = l.name || 'Работа без названия';
@@ -4398,11 +4397,56 @@
         '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">' +
           '<div style="min-width:0;">' +
             '<div style="font-size:14px;font-weight:700;">ЗН № ' + escapeHtml(o.orderNumber||'—') + '</div>' +
-            '<div style="font-size:11.5px;color:var(--text-muted);margin-top:3px;">' + escapeHtml(issuedLabel) + ' · ' + escapeHtml(o.clientName||'—') + ' · ' + escapeHtml(carLabel) + '</div>' +
+            '<div style="font-size:11.5px;color:var(--text-muted);margin-top:3px;">' + escapeHtml(o.clientName||'—') + ' · ' + escapeHtml(carLabel) + '</div>' +
           '</div>' +
           '<div style="font-family:\'JetBrains Mono\',monospace;font-size:14px;font-weight:700;color:var(--accent);white-space:nowrap;">' + fmtMoney(g.amount) + '</div>' +
         '</div>' +
         '<div style="margin-top:8px;">' + worksHtml + '</div>' +
+      '</div>';
+    }
+
+    var dayMap = {};
+    var dayGroups = [];
+    grouped.forEach(function(g){
+      var key = g.order.dateOut || 'unknown';
+      if(!dayMap[key]){
+        dayMap[key] = { key:key, amount:0, orders:[] };
+        dayGroups.push(dayMap[key]);
+      }
+      dayMap[key].amount += g.amount;
+      dayMap[key].orders.push(g);
+    });
+
+    dayGroups.sort(function(a,b){
+      if(a.key === 'unknown') return 1;
+      if(b.key === 'unknown') return -1;
+      return b.key.localeCompare(a.key);
+    });
+
+    var rows = dayGroups.map(function(day){
+      var dayLabel = 'Дата не указана';
+      if(day.key !== 'unknown'){
+        var dd = new Date(day.key + 'T00:00:00');
+        if(!isNaN(dd.getTime())){
+          dayLabel = dd.toLocaleDateString('ru-RU', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+          dayLabel = dayLabel.charAt(0).toUpperCase() + dayLabel.slice(1);
+        }
+      }
+      day.orders.sort(function(a,b){
+        return (Number(b.order.issuedAt)||Number(b.order.createdAt)||0) - (Number(a.order.issuedAt)||Number(a.order.createdAt)||0);
+      });
+      return '<div style="margin:0 0 18px;">' +
+        '<div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-end;padding:2px 2px 9px;border-bottom:1px solid var(--border);margin-bottom:10px;">' +
+          '<div>' +
+            '<div style="font-size:14px;font-weight:700;">' + escapeHtml(dayLabel) + '</div>' +
+            '<div style="font-size:11.5px;color:var(--text-subtle);margin-top:3px;">' + day.orders.length + ' ЗН за день</div>' +
+          '</div>' +
+          '<div style="text-align:right;">' +
+            '<div style="font-size:10.5px;color:var(--text-subtle);text-transform:uppercase;letter-spacing:.05em;">За день</div>' +
+            '<div style="font-family:\'JetBrains Mono\',monospace;font-size:17px;font-weight:700;color:var(--accent);">' + fmtMoney(day.amount) + '</div>' +
+          '</div>' +
+        '</div>' +
+        day.orders.map(salaryOrderCard).join('') +
       '</div>';
     }).join('');
 

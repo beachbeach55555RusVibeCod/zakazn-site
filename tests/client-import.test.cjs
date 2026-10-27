@@ -1,0 +1,16 @@
+const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
+const s=fs.readFileSync('index.html','utf8');
+const ctx={Date,normalizePhone:v=>String(v||'').replace(/\D/g,'').slice(-10),normalizePlate:v=>String(v||'').toUpperCase().replace(/[\s-]/g,''),normalizeVin:v=>String(v||'').toUpperCase().replace(/\s/g,''),aiDetectVehicleText:()=>({make:'Toyota',model:'Avensis'}),clientUid:()=> 'new-client',carUid:()=> 'new-car'};
+vm.createContext(ctx);vm.runInContext(s.slice(s.indexOf('  function aiParseClient('),s.indexOf('  var aiClientImportBusy=')),ctx);
+const d=ctx.aiParseClient('**Toyota Avensis**\n**Модификация**\n2.0 1AZ-FSE 147 л.с. 2003 - 2009\n**Гос. номер**\nO010OH18\n**VIN**\nSB1BJ56L20E010458\n**№ кузова**\nSB1BJ56L20E010458\n**Тип двигателя**\nБензиновый\n**Год**\n2003\n**Пробег**\n259000 км.\n**Цвет**\nзеленый\n**Владелец**\n. Михаил\n+7 (909) 052-99-00');
+assert.equal(d.name,'Михаил');assert.equal(d.year,'2003');assert.equal(d.mileage,'259000');assert.equal(d.phone,'+7 (909) 052-99-00');assert.equal(d.vin,'SB1BJ56L20E010458');
+const p=ctx.aiClientImportPlan(d,[],[]);assert.equal(p.rows.length,2);assert.equal(p.car.clientId,p.client.id);assert.match(p.client.note,/147 л.с./);
+assert.equal(ctx.aiClientImportPlan(d,[p.client],[p.car]).rows.length,0);
+const same=Object.assign({},p.car,{plate:'О010ОН18'});assert.equal(ctx.aiClientImportPlan(d,[p.client],[same]).rows.length,0);
+assert.throws(()=>ctx.aiClientImportPlan(d,[],[p.car]),/владельцем/);
+assert.throws(()=>ctx.aiClientImportPlan({...d,vin:'BAD'},[],[]),/VIN/);
+assert.throws(()=>ctx.aiClientImportPlan(d,[p.client,p.client],[]),/несколько/);
+const existing={id:'existing',name:'Михаил',phone:d.phone,note:'Старое примечание'};
+const add=ctx.aiClientImportPlan(d,[existing],[]);assert.equal(add.car.clientId,'existing');assert.match(add.client.note,/Старое примечание/);assert.equal(existing.note,'Старое примечание');
+assert.match(s,/upsert\(plan.rows/);assert.match(s,/e.ctrlKey\|\|e.metaKey/);
+console.log('PASS: copied card, fields, new records, existing client, duplicate, Cyrillic plate, conflict, validation');

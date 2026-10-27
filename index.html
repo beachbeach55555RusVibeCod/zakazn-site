@@ -2176,7 +2176,7 @@
 <div class="ai-panel" id="aiAssistantPanel">
   <div class="ai-head"><b>✦ ИИ-помощник</b><button class="ai-close" id="aiAssistantClose" type="button">&times;</button></div>
   <div class="ai-body" id="aiAssistantBody"><div class="ai-msg">Напишите задачу обычным текстом. Например:<br><b>Руслан, X-Ray, пробег 223500, замена масла 1200, фильтр 500</b></div></div>
-  <div class="ai-foot"><div class="ai-compose"><input class="ai-input" id="aiAssistantInput" placeholder="Клиент, машина, пробег, работы..."><button class="ai-send" id="aiAssistantSend" type="button">➜</button></div><div class="ai-hint">Пока это локальный помощник: он использует только данные вашего сайта и ничего не отправляет во внешний ИИ.</div></div>
+  <div class="ai-foot"><label for="aiAssistantMode">Что сделать</label><select class="ai-input" id="aiAssistantMode" style="width:100%;margin-bottom:8px"><option value="order">Создать заказ-наряд</option><option value="client">Добавить клиента + авто</option></select><div class="ai-compose"><textarea class="ai-input" id="aiAssistantInput" rows="4" placeholder="Задача или данные клиента и автомобиля…"></textarea><button class="ai-send" id="aiAssistantSend" type="button">➜</button></div><div class="ai-hint">Пока это локальный помощник: он использует только данные вашего сайта и ничего не отправляет во внешний ИИ.</div></div>
 </div>
 <div id="modalRoot"></div>
 <div id="toastRoot"></div>
@@ -9332,14 +9332,93 @@
       showToast('Черновик заполнен — проверьте и нажмите «Сохранить наряд»');
     },0);
   }
+  function aiParseClient(text){
+    var clean=String(text||'').replace(/\*\*/g,'').replace(/\u00a0/g,' ').trim();
+    var lines=clean.split(/\r?\n/).map(function(s){return s.trim();}).filter(Boolean);
+    var labels={'модификация':'modification','гос. номер':'plate','госномер':'plate','vin':'vin','№ кузова':'bodyNumber','тип двигателя':'engineType','год':'year','пробег':'mileage','цвет':'color','владелец':'name','клиент':'name','телефон':'phone','марка':'carMake','модель':'carModel'};
+    var d={}, pending='';
+    lines.forEach(function(line){
+      var match=line.match(/^([^:]+):\s*(.*)$/), label=(match?match[1]:line).toLowerCase().trim();
+      if(labels[label]){pending=labels[label];if(match&&match[2]){d[pending]=match[2];pending='';}return;}
+      if(pending){d[pending]=line;pending='';}
+    });
+    var phone=clean.match(/(?:\+7|8)[\s(.-]*\d{3}[\s).-]*\d{3}[\s.-]*\d{2}[\s.-]*\d{2}/);
+    if(!d.phone&&phone)d.phone=phone[0];
+    var vin=clean.toUpperCase().match(/\b[A-HJ-NPR-Z0-9]{17}\b/);if(!d.vin&&vin)d.vin=vin[0];
+    var plate=clean.toUpperCase().match(/[АВЕКМНОРСТУХABEKMHOPCTYX]\s*\d{3}\s*[АВЕКМНОРСТУХABEKMHOPCTYX]{2}\s*\d{2,3}/);if(!d.plate&&plate)d.plate=plate[0];
+    var detected=aiDetectVehicleText(lines[0]||'');
+    d.carMake=d.carMake||detected.make||'';d.carModel=d.carModel||detected.model||'';
+    d.name=(d.name||'').replace(/^[.\s]+/,'');
+    d.mileage=(d.mileage||'').replace(/[^0-9]/g,'');
+    return d;
+  }
+
+  function aiImportPlate(value){
+    var from='АВЕКМНОРСТУХ',to='ABEKMHOPCTYX';
+    return normalizePlate(value).replace(/[АВЕКМНОРСТУХ]/g,function(c){return to[from.indexOf(c)];});
+  }
+
+  function aiClientImportPlan(d,clients,cars){
+    if(!d.name.trim())throw new Error('Укажите имя клиента.');
+    if(normalizePhone(d.phone).length!==10)throw new Error('Проверьте телефон клиента: нужно 10 цифр без кода страны.');
+    if(!d.carMake.trim()||!d.carModel.trim())throw new Error('Укажите марку и модель автомобиля.');
+    if(d.vin&&!/^[A-HJ-NPR-Z0-9]{17}$/.test(d.vin))throw new Error('VIN должен содержать 17 латинских букв и цифр.');
+    if(!d.vin&&!d.plate)throw new Error('Укажите VIN или госномер для проверки дублей.');
+    if(d.year&&!/^(19|20)\d{2}$/.test(d.year))throw new Error('Проверьте год выпуска.');
+    if(d.mileage&&!/^\d+$/.test(d.mileage))throw new Error('Пробег должен содержать только цифры.');
+    var people=clients.filter(function(c){return normalizePhone(c.phone)===normalizePhone(d.phone);});
+    var vehicles=cars.filter(function(c){return (d.vin&&normalizeVin(c.vin)===d.vin)||(d.plate&&aiImportPlate(c.plate)===aiImportPlate(d.plate));});
+    if(people.length>1||vehicles.length>1)throw new Error('Найдено несколько совпадений в базе. Уточните данные в разделе клиентов или авто.');
+    var client=people[0],car=vehicles[0];
+    if(car&&(!client||car.clientId!==client.id))throw new Error('Этот автомобиль уже есть в базе с другим владельцем или без владельца. Проверьте его карточку.');
+    if(car&&((d.vin&&car.vin&&normalizeVin(car.vin)!==d.vin)||(d.plate&&car.plate&&aiImportPlate(car.plate)!==aiImportPlate(d.plate))))throw new Error('VIN и госномер не совпадают с карточкой автомобиля. Проверьте данные.');
+    var now=Date.now(), rows=[];
+    var detail=['Автомобиль: '+d.carMake+' '+d.carModel, 'Госномер: '+d.plate, 'VIN: '+d.vin];
+    [['modification','Модификация'],['bodyNumber','№ кузова'],['engineType','Тип двигателя'],['year','Год'],['mileage','Пробег, км'],['color','Цвет']].forEach(function(f){if(d[f[0]])detail.push(f[1]+': '+d[f[0]]);});
+    if(!client){client={id:clientUid(),type:'person',name:d.name,phone:d.phone,email:'',note:detail.join('\n'),createdAt:now};rows.push({key:'client:'+client.id,value:JSON.stringify(client)});}
+    if(!car){car={id:carUid(),clientId:client.id,carMake:d.carMake,carModel:d.carModel,plate:d.plate,vin:d.vin,year:d.year,carYear:d.year,mileage:d.mileage,color:d.color,modification:d.modification,bodyNumber:d.bodyNumber,engineType:d.engineType,createdAt:now};rows.push({key:'car:'+car.id,value:JSON.stringify(car)});
+      // Existing contact details stay intact; append vehicle details to their visible note.
+      if(people.length){client=Object.assign({},client,{note:[client.note,detail.join('\n')].filter(Boolean).join('\n\n'),updatedAt:now});rows.push({key:'client:'+client.id,value:JSON.stringify(client)});}
+    }
+    return {client:client,car:car,rows:rows,existingClient:!!people.length};
+  }
+
+  var aiClientImportBusy=false;
+  function aiShowClientDraft(d){
+    var body=document.getElementById('aiAssistantBody');
+    var form=document.createElement('form');form.className='ai-preview';
+    var fields=[['name','Имя клиента'],['phone','Телефон'],['carMake','Марка'],['carModel','Модель'],['plate','Госномер'],['vin','VIN'],['year','Год'],['mileage','Пробег, км'],['modification','Модификация'],['bodyNumber','№ кузова'],['engineType','Тип двигателя'],['color','Цвет']];
+    form.innerHTML='<h4>Новый клиент и автомобиль</h4><div class="ai-hint">Проверьте и исправьте данные. Существующего клиента найдём по телефону; владельца уже записанного авто не меняем.</div>'+fields.map(function(f){return '<label style="display:block;margin-top:8px">'+f[1]+'<input class="ai-input" style="display:block;width:100%;box-sizing:border-box" name="'+f[0]+'" value="'+aiEsc(d[f[0]]||'')+'"></label>';}).join('')+'<p class="ai-import-status" role="status"></p><button class="ai-confirm" type="submit">Сохранить клиента и авто</button>';
+    body.appendChild(form);body.scrollTop=form.offsetTop;
+    form.addEventListener('submit',async function(e){
+      e.preventDefault();if(aiClientImportBusy)return;
+      var status=form.querySelector('.ai-import-status'),button=form.querySelector('button');
+      var data={};fields.forEach(function(f){data[f[0]]=form.elements[f[0]].value.trim();});
+      data.vin=normalizeVin(data.vin);data.plate=normalizePlate(data.plate);
+      aiClientImportBusy=true;button.disabled=true;status.textContent='Проверяем базу…';
+      try{
+        // Fresh reads prevent duplicates from stale browser state. One batch writes both records.
+        var lists=await Promise.all([loadStoredItems('client:'),loadStoredItems('car:')]);
+        var plan=aiClientImportPlan(data,lists[0],lists[1]);
+        if(plan.rows.length){
+          var r=await getSB().from('kv_store').upsert(plan.rows,{onConflict:'key'});if(r.error)throw r.error;
+        }
+        upsertStateItem('clients',plan.client);upsertStateItem('cars',plan.car);renderCurrentView();
+        status.textContent=plan.rows.length?(plan.existingClient?'Автомобиль добавлен существующему клиенту.':'Клиент и автомобиль сохранены.'):'Этот клиент и автомобиль уже есть в базе. Дубликаты не созданы.';
+        button.textContent='Готово';Array.from(form.elements).forEach(function(el){el.disabled=true;});
+      }catch(err){status.textContent=err.message||'Не удалось сохранить. Попробуйте ещё раз.';button.disabled=false;}
+      finally{aiClientImportBusy=false;}
+    });
+  }
+
   function aiSubmit(){
     var inp=document.getElementById('aiAssistantInput'),text=inp.value.trim();if(!text)return;
-    document.getElementById('aiAssistantBody').insertAdjacentHTML('beforeend','<div class="ai-msg user">'+aiEsc(text)+'</div>');inp.value='';aiDraft=aiParseDraft(text);aiShowDraft(aiDraft);
+    document.getElementById('aiAssistantBody').insertAdjacentHTML('beforeend','<div class="ai-msg user">'+aiEsc(text)+'</div>');inp.value='';if(document.getElementById('aiAssistantMode').value==='client'||/добав[ьи][\s\S]{0,30}клиент/i.test(text)||(/владелец/i.test(text)&&/VIN/i.test(text))){aiShowClientDraft(aiParseClient(text));}else{aiDraft=aiParseDraft(text);aiShowDraft(aiDraft);}
   }
   document.getElementById('aiAssistantBtn').addEventListener('click',function(){document.getElementById('aiAssistantPanel').classList.add('open');});
   document.getElementById('aiAssistantClose').addEventListener('click',function(){document.getElementById('aiAssistantPanel').classList.remove('open');});
   document.getElementById('aiAssistantSend').addEventListener('click',aiSubmit);
-  document.getElementById('aiAssistantInput').addEventListener('keydown',function(e){if(e.key==='Enter')aiSubmit();});
+  document.getElementById('aiAssistantInput').addEventListener('keydown',function(e){if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();aiSubmit();}});
 
   async function init(){
     // Each section becomes visible as soon as its own request completes.
@@ -9435,3 +9514,4 @@
 </script>
 </body>
 </html>
+

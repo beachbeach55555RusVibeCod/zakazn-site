@@ -2968,6 +2968,7 @@
       var carChanged = false;
       if(order.carMake && existingCar.carMake !== order.carMake){ existingCar.carMake = order.carMake; carChanged = true; }
       if(order.carModel && existingCar.carModel !== order.carModel){ existingCar.carModel = order.carModel; carChanged = true; }
+      if(order.carYear && (existingCar.year !== order.carYear || existingCar.carYear !== order.carYear)){ existingCar.year = order.carYear; existingCar.carYear = order.carYear; carChanged = true; }
       if(order.vin && existingCar.vin !== order.vin){ existingCar.vin = order.vin; carChanged = true; }
       if(order.plate && existingCar.plate !== order.plate){ existingCar.plate = order.plate; carChanged = true; }
       if(clientId && existingCar.clientId !== clientId){ existingCar.clientId = clientId; carChanged = true; } // ownership transfer
@@ -2976,6 +2977,7 @@
       var newCar = {
         id: carUid(), clientId: clientId,
         carMake: order.carMake||'', carModel: order.carModel||'',
+        year: order.carYear||'', carYear: order.carYear||'',
         vin: order.vin||'', plate: order.plate||'',
         createdAt: Date.now()
       };
@@ -4341,7 +4343,7 @@
 
     function salaryOrderCard(g){
       var o = g.order;
-      var carLabel = [o.carMake, o.carModel].filter(Boolean).join(' ') || '—';
+      var carLabel = [o.carMake, o.carModel, o.carYear ? o.carYear + ' г.' : ''].filter(Boolean).join(' ') || '—';
       var worksHtml = g.works.map(function(d){
         var l = d.line;
         var workName = l.name || 'Работа без названия';
@@ -4692,7 +4694,7 @@
               '</div>' +
               '<div>' +
                 '<div class="detail-block-title">Автомобиль</div>' +
-                '<div class="detail-block-value">' + escapeHtml([o.carMake,o.carModel].filter(Boolean).join(' ')||'—') + '</div>' +
+                '<div class="detail-block-value">' + escapeHtml([o.carMake,o.carModel,o.carYear ? o.carYear + ' г.' : ''].filter(Boolean).join(' ')||'—') + '</div>' +
                 '<div class="detail-block-value" style="color:var(--text-muted); font-size:13px; margin-top:2px;">Гос.номер: ' + escapeHtml(o.plate||'—') + '</div>' +
               '</div>' +
               '<div>' +
@@ -4946,7 +4948,7 @@
 
   function printOrder(o){
     var total     = calcOrderTotal(o);
-    var carLine   = [o.carMake, o.carModel].filter(Boolean).join(' ') || '—';
+    var carLine   = [o.carMake, o.carModel, o.carYear ? o.carYear + ' г.' : ''].filter(Boolean).join(' ') || '—';
     var comp      = state.company || {};
     var client    = getClientById(o.clientId) || {};
     var contractTitle = client.contractNumber ? ' <span class="p-contract-title">по договору № ' + escapeHtml(client.contractNumber) + '</span>' : '';
@@ -5358,7 +5360,7 @@
     var partTotal = partLines.reduce(function(s,l){ return s + lineTotal(l); }, 0);
     var num   = o.orderNumber || '—';
     var date  = fmtDate(o.dateOut || o.dateIn || Date.now());
-    var carLine = [o.carMake, o.carModel].filter(Boolean).join(' ') || '—';
+    var carLine = [o.carMake, o.carModel, o.carYear ? o.carYear + ' г.' : ''].filter(Boolean).join(' ') || '—';
     var contractTitle = client.contractNumber ? ' <span class="p-contract-title">по договору № ' + escapeHtml(client.contractNumber) + '</span>' : '';
 
     var customerName = (client.type === 'org' && client.orgName) ? client.orgName : (o.clientName || '—');
@@ -5519,7 +5521,7 @@
       orderNumber: nextOrderNumber(),
       status: 'new',
       clientName: '', clientPhone: '+7 ',
-      carMake: '', carModel: '', vin: '', plate: '', mileage: '',
+      carMake: '', carModel: '', carYear: '', vin: '', plate: '', mileage: '',
       dateIn: todayStr(), dateOut: '',
       master: '', note: '',
       lines: [ { name:'', qty:1, price:0, type:'work', assignees:[] } ],
@@ -6132,10 +6134,15 @@
           order.vehicleId = preset.car.id || null;
           order.carMake = preset.car.carMake || '';
           order.carModel = preset.car.carModel || '';
+          order.carYear = preset.car.year || preset.car.carYear || '';
           order.plate = preset.car.plate || '';
           order.vin = preset.car.vin || '';
         }
       }
+    }
+    if(order.carYear == null){
+      var linkedCar = getCarById(order.vehicleId);
+      order.carYear = linkedCar ? (linkedCar.year || linkedCar.carYear || '') : '';
     }
     order.lines = (order.lines||[]).map(function(l){
       l._key = l._key || lineId();
@@ -6206,6 +6213,7 @@
               '<div class="grid2">' +
                 '<div class="field required"><label>Марка</label><input id="f_carMake" type="text" list="carMakeList" placeholder="Начните вводить или выберите" autocomplete="off" value="' + escapeHtml(order.carMake) + '"><datalist id="carMakeList">' + CAR_MAKES.map(function(m){ return '<option value="' + escapeHtml(m) + '">'; }).join('') + '</datalist></div>' +
                 '<div class="field"><label>Модель</label><input id="f_carModel" type="text" list="carModelList" placeholder="Сначала выберите марку" autocomplete="off" value="' + escapeHtml(order.carModel) + '"><datalist id="carModelList"></datalist></div>' +
+                '<div class="field"><label>Год выпуска</label><input id="f_carYear" type="number" min="1900" max="2100" step="1" inputmode="numeric" placeholder="2003" value="' + escapeHtml(order.carYear||'') + '"></div>' +
               '</div>' +
               '<div class="grid3">' +
                 '<div class="field"><label>VIN</label><input id="f_vin" type="text" placeholder="17 символов" maxlength="17" style="font-family:\'JetBrains Mono\',monospace;" value="' + escapeHtml(order.vin) + '"></div>' +
@@ -6351,11 +6359,13 @@
       order.vehicleId = car.id || null;
       order.carMake = car.carMake||'';
       order.carModel = car.carModel||'';
+      order.carYear = car.year || car.carYear || '';
       order.vin = car.vin||'';
       order.plate = car.plate||'';
       document.getElementById('f_carMake').value = order.carMake;
       updateModelList();
       document.getElementById('f_carModel').value = order.carModel;
+      document.getElementById('f_carYear').value = order.carYear;
       document.getElementById('f_vin').value = order.vin;
       document.getElementById('f_plate').value = order.plate;
       var vehicleHint = document.getElementById('vehicleAutofillHint');
@@ -6412,7 +6422,7 @@
         document.getElementById('clearPickedClient').onclick = function(){
           order.clientId = null;
           order.vehicleId = null;
-          order.carMake = ''; order.carModel = ''; order.plate = ''; order.vin = '';
+          order.carMake = ''; order.carModel = ''; order.carYear = ''; order.plate = ''; order.vin = '';
           badge.style.display = 'none';
           badge.innerHTML = '';
           document.getElementById('f_clientName').value  = '';
@@ -6420,6 +6430,7 @@
           document.getElementById('vehicleAutofillHint').innerHTML = '';
           document.getElementById('f_carMake').value = '';
           document.getElementById('f_carModel').value = '';
+          document.getElementById('f_carYear').value = '';
           document.getElementById('f_plate').value = '';
           document.getElementById('f_vin').value = '';
         };
@@ -6856,6 +6867,12 @@
       showToast('Нельзя редактировать выданный наряд. Сначала измените статус.');
       return;
     }
+    var yearInput = document.getElementById('f_carYear');
+    var carYear = yearInput.value.trim();
+    if(yearInput.validity.badInput || (carYear && (!/^\d{4}$/.test(carYear) || Number(carYear) < 1900 || Number(carYear) > 2100))){
+      showToast('Проверьте год выпуска'); yearInput.focus(); return;
+    }
+    order.carYear = carYear;
     order.editorMode = 'full';
     order.orderNumber = document.getElementById('f_orderNumber').value.trim();
     order.dateIn = document.getElementById('f_dateIn').value;
@@ -9324,7 +9341,7 @@
     openOrderForm(null);
     setTimeout(function(){
       if(d.client){document.getElementById('f_clientName').value=d.client.name||'';document.getElementById('f_clientPhone').value=d.client.phone||'';}
-      if(d.car){document.getElementById('f_carMake').value=d.car.carMake||'';document.getElementById('f_carModel').value=d.car.carModel||'';document.getElementById('f_plate').value=d.car.plate||'';document.getElementById('f_vin').value=d.car.vin||'';}else{if(d.detectedMake)document.getElementById('f_carMake').value=d.detectedMake;if(d.detectedModel)document.getElementById('f_carModel').value=d.detectedModel;}
+      if(d.car){document.getElementById('f_carMake').value=d.car.carMake||'';document.getElementById('f_carModel').value=d.car.carModel||'';document.getElementById('f_carYear').value=d.car.year||d.car.carYear||'';document.getElementById('f_plate').value=d.car.plate||'';document.getElementById('f_vin').value=d.car.vin||'';}else{if(d.detectedMake)document.getElementById('f_carMake').value=d.detectedMake;if(d.detectedModel)document.getElementById('f_carModel').value=d.detectedModel;}
       if(d.mileage) document.getElementById('f_mileage').value=d.mileage;
       if(d.master) document.getElementById('f_master').value=d.master;
       var addW=document.getElementById('addWorkLineBtn'),addP=document.getElementById('addPartLineBtn');

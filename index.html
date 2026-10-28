@@ -2862,6 +2862,79 @@
     return digits;
   }
 
+
+  function formatPhone(phone){
+    var raw = String(phone == null ? '' : phone).trim();
+    if(!raw || raw === '+7') return '';
+    var digits = raw.replace(/\D/g, '');
+    if(digits.length === 11 && /^[78]/.test(digits)) digits = digits.slice(1);
+    if(digits.length !== 10) return raw;
+    return '+7 (' + digits.slice(0,3) + ') ' + digits.slice(3,6) + '-' + digits.slice(6,8) + '-' + digits.slice(8,10);
+  }
+
+  function phoneMatchesQuery(phone, query){
+    if(!/^[+\d\s().-]+$/.test(query)) return false;
+    var digits=query.replace(/\D/g,'');
+    if(digits.length===11 && /^[78]/.test(digits)) digits=digits.slice(1);
+    return digits.length>0 && normalizePhone(phone).indexOf(digits)!==-1;
+  }
+
+  function phoneInputValue(phone){
+    var raw = String(phone || ''), digits = raw.replace(/\D/g, '');
+    if(raw.trim().indexOf('+7') === 0 || (digits.length === 11 && /^[78]/.test(digits))) digits = digits.slice(1);
+    digits = digits.slice(0,10);
+    if(!digits) return '+7 ';
+    return '+7 (' + digits.slice(0,3) +
+      (digits.length > 3 ? ') ' + digits.slice(3,6) : '') +
+      (digits.length > 6 ? '-' + digits.slice(6,8) : '') +
+      (digits.length > 8 ? '-' + digits.slice(8,10) : '');
+  }
+
+  function initPhoneInputs(){
+    var selector = '#f_clientPhone, #fNewClientPhone, #fClientPhone, #setCPhone, .ai-input[name="phone"]';
+    function prepare(input){
+      input.type = 'tel'; input.inputMode = 'tel'; input.autocomplete = 'tel';
+      input.placeholder = '+7 (999) 123-45-67';
+      input.value = input.value ? formatPhone(input.value) || '+7 ' : '+7 ';
+    }
+    function scan(root){
+      if(root.nodeType !== 1) return;
+      if(root.matches(selector)) prepare(root);
+      root.querySelectorAll(selector).forEach(prepare);
+    }
+    scan(document.body);
+    new MutationObserver(function(records){
+      records.forEach(function(record){record.addedNodes.forEach(scan);});
+    }).observe(document.body, {childList:true, subtree:true});
+    document.addEventListener('focusin', function(e){
+      if(e.target.matches(selector)) prepare(e.target);
+    });
+    document.addEventListener('input', function(e){
+      var input=e.target;if(!input.matches(selector)) return;
+      var position=input.selectionStart, before=input.value.slice(0,position).replace(/\D/g,'').length;
+      var value=phoneInputValue(input.value);
+      input.value=value;
+      var caret=value.length, count=0;
+      for(var i=0;i<value.length;i++){
+        if(/\d/.test(value[i])) count++;
+        if(count===before){caret=i+1;break;}
+      }
+      input.setSelectionRange(Math.max(3,caret),Math.max(3,caret));
+    });
+    document.addEventListener('keydown', function(e){
+      var input=e.target;
+      if(!input.matches(selector) || !['Backspace','Delete'].includes(e.key) || input.selectionStart!==input.selectionEnd) return;
+      var pos=input.selectionStart, index=e.key==='Backspace'?pos-1:pos, step=e.key==='Backspace'?-1:1;
+      while(index>=3 && index<input.value.length && !/\d/.test(input.value[index])) index+=step;
+      if(index<3){e.preventDefault();return;}
+      if(index>=input.value.length)return;
+      e.preventDefault();
+      input.value=input.value.slice(0,index)+input.value.slice(index+1);
+      input.setSelectionRange(index,index);
+      input.dispatchEvent(new Event('input',{bubbles:true}));
+    });
+  }
+
   function normalizePlate(plate){
     if(!plate) return '';
     return String(plate).toUpperCase().replace(/[\s\-]/g, '');
@@ -3437,7 +3510,7 @@
     if(!q){ drop.style.display='none'; drop.innerHTML=''; return; }
 
     var clients=state.clients.filter(function(c){
-      return [displayClientName(c),c.phone,c.inn,c.orgName].map(function(x){return String(x||'').toLowerCase();}).join(' ').indexOf(q)!==-1;
+      return [displayClientName(c),c.phone,c.inn,c.orgName].map(function(x){return String(x||'').toLowerCase();}).join(' ').indexOf(q)!==-1 || phoneMatchesQuery(c.phone,q);
     }).slice(0,6);
     var cars=state.cars.filter(function(c){
       var owner=getClientById(c.clientId);
@@ -3453,7 +3526,7 @@
     clients.forEach(function(c){
       var cc=carsOfClient(c.id);
       html+='<div class="global-search-result" data-kind="client" data-id="'+escapeAttr(c.id)+'" style="display:flex;align-items:center;gap:10px;padding:8px;border-radius:9px;">' +
-        '<div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:13px;">👤 '+escapeHtml(displayClientName(c))+'</div><div style="font-size:11px;color:var(--text-subtle);margin-top:2px;">Клиент'+(c.phone?' · '+escapeHtml(c.phone):'')+(cc.length?' · авто: '+cc.length:'')+'</div></div>' +
+        '<div style="flex:1;min-width:0;"><div style="font-weight:700;font-size:13px;">👤 '+escapeHtml(displayClientName(c))+'</div><div style="font-size:11px;color:var(--text-subtle);margin-top:2px;">Клиент'+(c.phone?' · '+escapeHtml(formatPhone(c.phone)):'')+(cc.length?' · авто: '+cc.length:'')+'</div></div>' +
         '<button type="button" class="btn btn-primary btn-sm global-search-create" data-kind="client" data-id="'+escapeAttr(c.id)+'">+ Полный ЗН</button></div>';
     });
     cars.forEach(function(c){
@@ -3509,7 +3582,7 @@
     return state.orders.filter(function(o){
       var hay = [o.clientName, o.clientPhone, o.carMake, o.carModel, o.plate, o.vin, o.master, o.orderNumber]
         .map(function(x){ return (x||'').toString().toLowerCase(); }).join(' ');
-      return hay.indexOf(q) !== -1;
+      return hay.indexOf(q) !== -1 || phoneMatchesQuery(o.clientPhone,q);
     });
   }
 
@@ -4562,7 +4635,7 @@
       var status = ({new:'Новый',progress:'В работе',ready:'Готово',done:'Выдан'})[o.status]||o.status;
       rows.push([
         o.orderNumber||'', o.createdAt ? new Date(o.createdAt).toLocaleString('ru-RU') : '',
-        o.clientName||'', o.clientPhone||'', car, o.plate||'', status, o.master||'',
+        o.clientName||'', formatPhone(o.clientPhone), car, o.plate||'', status, o.master||'',
         calcOrderTotal(o)
       ].map(function(v){ return '"'+String(v).replace(/"/g,'""')+'"'; }).join(';'));
     });
@@ -4701,7 +4774,7 @@
               '<div>' +
                 '<div class="detail-block-title">Клиент</div>' +
                 '<div class="detail-block-value">' + escapeHtml(o.clientName||'—') + '</div>' +
-                '<div class="detail-block-value" style="color:var(--text-muted); font-size:13px; margin-top:2px;">' + escapeHtml(o.clientPhone||'') + '</div>' +
+                '<div class="detail-block-value" style="color:var(--text-muted); font-size:13px; margin-top:2px;">' + escapeHtml(formatPhone(o.clientPhone)||'') + '</div>' +
               '</div>' +
               '<div>' +
                 '<div class="detail-block-title">Автомобиль</div>' +
@@ -5008,7 +5081,7 @@
 
     var compRight = '';
     if(comp.name)    compRight += '<div class="co-name">'    + escapeHtml(comp.name)    + '</div>';
-    if(comp.phone)   compRight += '<div class="co-detail">Тел.: ' + escapeHtml(comp.phone)   + '</div>';
+    if(comp.phone)   compRight += '<div class="co-detail">Тел.: ' + escapeHtml(formatPhone(comp.phone))   + '</div>';
     if(comp.address) compRight += '<div class="co-detail">'  + escapeHtml(comp.address) + '</div>';
     if(comp.inn)     compRight += '<div class="co-detail">ИНН: '  + escapeHtml(comp.inn)     + '</div>';
 
@@ -5029,7 +5102,7 @@
           '<div class="p-info-col">' +
             '<div class="p-section-title">Клиент</div>' +
             '<div class="p-row"><span class="p-lbl">ФИО</span><span class="p-val">' + escapeHtml(o.clientName||'—') + '</span></div>' +
-            '<div class="p-row"><span class="p-lbl">Телефон</span><span class="p-val">' + escapeHtml(o.clientPhone||'—') + '</span></div>' +
+            '<div class="p-row"><span class="p-lbl">Телефон</span><span class="p-val">' + escapeHtml(formatPhone(o.clientPhone)||'—') + '</span></div>' +
           '</div>' +
           '<div class="p-info-col">' +
             '<div class="p-section-title">Автомобиль</div>' +
@@ -5402,7 +5475,7 @@
       partyDetail('ИНН', comp.inn) +
       partyDetail('КПП', comp.kpp) +
       partyDetail('Адрес', comp.address) +
-      partyDetail('Телефон', comp.phone) +
+      partyDetail('Телефон', formatPhone(comp.phone)) +
       partyDetail('Банк', comp.bank) +
       partyDetail('БИК', comp.bik) +
       partyDetail('Расчётный счёт', comp.account) +
@@ -5413,7 +5486,7 @@
       partyDetail('ИНН', client.inn) +
       partyDetail('КПП', client.kpp) +
       partyDetail('Адрес', client.legalAddress || client.address) +
-      partyDetail('Телефон', customerPhone !== '—' ? customerPhone : '') +
+      partyDetail('Телефон', customerPhone !== '—' ? formatPhone(customerPhone) : '') +
       partyDetail('Email', client.email) +
       partyDetail('Банк', client.bank) +
       partyDetail('БИК', client.bik) +
@@ -5427,7 +5500,7 @@
 
     var compRight = '';
     if(comp.name)    compRight += '<div class="co-name">' + escapeHtml(comp.name) + '</div>';
-    if(comp.phone)   compRight += '<div class="co-detail">Тел.: ' + escapeHtml(comp.phone) + '</div>';
+    if(comp.phone)   compRight += '<div class="co-detail">Тел.: ' + escapeHtml(formatPhone(comp.phone)) + '</div>';
     if(comp.address) compRight += '<div class="co-detail">' + escapeHtml(comp.address) + '</div>';
     if(comp.inn)     compRight += '<div class="co-detail">ИНН: ' + escapeHtml(comp.inn) + '</div>';
 
@@ -5442,7 +5515,7 @@
           '<div class="p-info-col">' +
             '<div class="p-section-title">Заказчик</div>' +
             '<div class="p-row"><span class="p-lbl">Наименование</span><span class="p-val">' + escapeHtml(customerName) + '</span></div>' +
-            '<div class="p-row"><span class="p-lbl">Телефон</span><span class="p-val">' + escapeHtml(customerPhone) + '</span></div>' +
+            '<div class="p-row"><span class="p-lbl">Телефон</span><span class="p-val">' + escapeHtml(formatPhone(customerPhone)) + '</span></div>' +
             (client.type === 'org' && client.inn ? '<div class="p-row"><span class="p-lbl">ИНН</span><span class="p-val">' + escapeHtml(client.inn) + (client.kpp ? ' / КПП ' + escapeHtml(client.kpp) : '') + '</span></div>' : '') +
           '</div>' +
           '<div class="p-info-col">' +
@@ -5554,7 +5627,7 @@
     function renderList(q){
       var list = state.clients.slice().sort(function(a,b){ return (b.createdAt||0)-(a.createdAt||0); });
       if(q) list = list.filter(function(c){
-        return [c.name||'', c.phone||'', c.orgName||''].join(' ').toLowerCase().indexOf(q.toLowerCase()) !== -1;
+        return [c.name||'', c.phone||'', c.orgName||''].join(' ').toLowerCase().indexOf(q.toLowerCase()) !== -1 || phoneMatchesQuery(c.phone,q);
       });
       if(!list.length) return '<div style="padding:28px;text-align:center;color:var(--text-subtle);">Ничего не найдено</div>';
       return list.map(function(c){
@@ -5563,7 +5636,7 @@
         return '<div data-client-id="' + escapeAttr(c.id) + '" style="padding:12px 18px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s;"' +
           ' onmouseover="this.style.background=\'var(--bg-panel-2)\'" onmouseout="this.style.background=\'\'">' +
           '<div style="font-weight:600;font-size:14px;color:var(--text-main);">' + escapeHtml(c.name||'Без имени') + (c.orgName ? ' <span style="font-size:12px;color:var(--text-subtle);font-weight:400;">· ' + escapeHtml(c.orgName) + '</span>' : '') + '</div>' +
-          '<div style="font-size:12.5px;color:var(--text-subtle);margin-top:2px;">' + escapeHtml(c.phone||'телефон не указан') + (carText ? ' · ' + escapeHtml(carText) : '') + '</div>' +
+          '<div style="font-size:12.5px;color:var(--text-subtle);margin-top:2px;">' + escapeHtml(formatPhone(c.phone)||'телефон не указан') + (carText ? ' · ' + escapeHtml(carText) : '') + '</div>' +
         '</div>';
       }).join('');
     }
@@ -6215,7 +6288,7 @@
               '<div id="selectedClientBadge" style="display:none;"></div>' +
               '<div class="grid2">' +
                 '<div class="field required"><label>ФИО клиента</label><input id="f_clientName" type="text" placeholder="Иванов Иван Иванович" value="' + escapeHtml(order.clientName) + '"></div>' +
-                '<div class="field"><label>Телефон</label><input id="f_clientPhone" type="text" placeholder="+7 (999) 000-00-00" value="' + escapeHtml(order.clientPhone) + '"><div id="phoneAutofillHint"></div></div>' +
+                '<div class="field"><label>Телефон</label><input id="f_clientPhone" type="text" placeholder="+7 (999) 000-00-00" value="' + escapeHtml(formatPhone(order.clientPhone)) + '"><div id="phoneAutofillHint"></div></div>' +
               '</div>' +
             '</div>' +
 
@@ -6342,7 +6415,7 @@
 
     function showPhoneAutofillHint(){
       var hintBox = document.getElementById('phoneAutofillHint');
-      var phoneVal = document.getElementById('f_clientPhone').value.trim();
+      var phoneVal = formatPhone(document.getElementById('f_clientPhone').value.trim());
       var match = phoneVal ? findClientByPhone(phoneVal) : null;
       if(!match || (match.name === document.getElementById('f_clientName').value.trim())){
         hintBox.innerHTML = '';
@@ -6403,7 +6476,7 @@
         if(owner){
           order.clientId = owner.id;
           document.getElementById('f_clientName').value = displayClientName(owner);
-          document.getElementById('f_clientPhone').value = owner.phone||'';
+          document.getElementById('f_clientPhone').value = formatPhone(owner.phone||'') || '+7 ';
           applyClientHourRateToEditableOrder(order, true);
           renderAllLines();
         }
@@ -6417,7 +6490,7 @@
     document.getElementById('btnPickClient').addEventListener('click', function(){
       showClientPickerPopup(function(client){
         document.getElementById('f_clientName').value  = client.name  || '';
-        document.getElementById('f_clientPhone').value = client.phone || '';
+        document.getElementById('f_clientPhone').value = formatPhone(client.phone || '') || '+7 ';
         document.getElementById('phoneAutofillHint').innerHTML = '';
         order.clientId = client.id;
         applyClientHourRateToEditableOrder(order, true);
@@ -6427,7 +6500,7 @@
         badge.style.display = '';
         badge.innerHTML = '<div style="display:inline-flex;align-items:center;gap:8px;background:var(--bg-panel-2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;margin-bottom:10px;font-size:13px;">' +
           '<span style="color:var(--text-subtle);">Выбран:</span> <b>' + escapeHtml(client.name||'Без имени') + '</b>' +
-          (client.phone ? '<span style="color:var(--text-subtle);">· ' + escapeHtml(client.phone) + '</span>' : '') +
+          (client.phone ? '<span style="color:var(--text-subtle);">· ' + escapeHtml(formatPhone(client.phone)) + '</span>' : '') +
           '<button type="button" id="clearPickedClient" style="background:none;border:none;color:var(--text-subtle);cursor:pointer;padding:0 0 0 4px;font-size:14px;">✕</button>' +
         '</div>';
         document.getElementById('clearPickedClient').onclick = function(){
@@ -6889,7 +6962,7 @@
     order.dateIn = document.getElementById('f_dateIn').value;
     order.dateOut = document.getElementById('f_dateOut').value;
     order.clientName = document.getElementById('f_clientName').value.trim();
-    order.clientPhone = document.getElementById('f_clientPhone').value.trim();
+    order.clientPhone = formatPhone(document.getElementById('f_clientPhone').value.trim());
     order.carMake = document.getElementById('f_carMake').value.trim();
     order.carModel = document.getElementById('f_carModel').value.trim();
     order.vin = document.getElementById('f_vin').value.trim().toUpperCase();
@@ -7040,7 +7113,7 @@
         var hay = [c.name, c.orgName, c.phone, c.email, c.inn, c.kpp, c.legalAddress]
           .concat(cars.map(function(v){ return v.plate + ' ' + v.vin + ' ' + v.carMake + ' ' + v.carModel; }))
           .join(' ').toLowerCase();
-        return hay.indexOf(q) !== -1;
+        return hay.indexOf(q) !== -1 || phoneMatchesQuery(c.phone,q);
       });
     }
 
@@ -7061,8 +7134,8 @@
       clients.forEach(function(c){
         var stats = clientStats(c.id);
         var meta = c.type === 'org'
-          ? 'Юр. лицо / ИП' + (c.inn ? ' · ИНН ' + c.inn : '') + (c.phone ? ' · ' + c.phone : '')
-          : (c.phone || 'телефон не указан');
+          ? 'Юр. лицо / ИП' + (c.inn ? ' · ИНН ' + c.inn : '') + (c.phone ? ' · ' + formatPhone(c.phone) : '')
+          : (formatPhone(c.phone) || 'телефон не указан');
         html += '<div class="client-row" data-client-id="' + escapeAttr(c.id) + '">' +
           '<div class="client-row-main">' +
             '<div class="client-row-name">' + escapeHtml(displayClientName(c)) + '</div>' +
@@ -7241,7 +7314,7 @@
       var duplicate=findCarByPlateOrVin(plate,vin);
       if(duplicate){showToast('Автомобиль с таким госномером или VIN уже существует');return;}
       var type=formDiv.querySelector('#fNewClientType').value;
-      var client={id:clientUid(),name:name,phone:formDiv.querySelector('#fNewClientPhone').value.trim(),email:formDiv.querySelector('#fNewClientEmail').value.trim(),note:formDiv.querySelector('#fNewClientNote').value.trim(),type:type,createdAt:Date.now()};
+      var client={id:clientUid(),name:name,phone:formatPhone(formDiv.querySelector('#fNewClientPhone').value.trim()),email:formDiv.querySelector('#fNewClientEmail').value.trim(),note:formDiv.querySelector('#fNewClientNote').value.trim(),type:type,createdAt:Date.now()};
       if(type==='org'){
         client.orgName=formDiv.querySelector('#fNewOrgName').value.trim();client.inn=formDiv.querySelector('#fNewOrgInn').value.trim();client.kpp=formDiv.querySelector('#fNewOrgKpp').value.trim();client.legalAddress=formDiv.querySelector('#fNewOrgAddr').value.trim();client.bank=formDiv.querySelector('#fNewOrgBank').value.trim();client.bik=formDiv.querySelector('#fNewOrgBik').value.trim();client.account=formDiv.querySelector('#fNewOrgAccount').value.trim();client.corraccount=formDiv.querySelector('#fNewOrgCorraccount').value.trim();
       }
@@ -7278,7 +7351,7 @@
     '</div>';
 
     html += '<div class="payroll-summary">' +
-      '<div class="payroll-card"><div class="name">Телефон</div><div class="amount" style="font-size:16px;">' + escapeHtml(client.phone||'—') + '</div></div>' +
+      '<div class="payroll-card"><div class="name">Телефон</div><div class="amount" style="font-size:16px;">' + escapeHtml(formatPhone(client.phone)||'—') + '</div></div>' +
       '<div class="payroll-card"><div class="name">Визитов всего</div><div class="amount">' + stats.visitsCount + '</div></div>' +
       '<div class="payroll-card"><div class="name">Потрачено всего</div><div class="amount">' + fmtMoney(stats.totalSpent) + '</div></div>' +
     '</div>';
@@ -7439,7 +7512,7 @@
           '<div style="' + fg + '"><label style="' + fl + '">ФИО / контактное лицо</label>' +
             '<input id="fClientName" style="' + fi + '" value="' + escapeHtml(client.name||'') + '" placeholder="Иванов Иван Иванович"></div>' +
           '<div style="' + fg + '"><label style="' + fl + '">Телефон</label>' +
-            '<input id="fClientPhone" style="' + fi + '" value="' + escapeHtml(client.phone||'') + '" placeholder="+7 (999) 000-00-00"></div>' +
+            '<input id="fClientPhone" style="' + fi + '" value="' + escapeHtml(formatPhone(client.phone)||'') + '" placeholder="+7 (999) 000-00-00"></div>' +
           '<div style="' + fg + '"><label style="' + fl + '">Email</label>' +
             '<input id="fClientEmail" type="email" style="' + fi + '" value="' + escapeHtml(client.email||'') + '" placeholder="mail@example.com"></div>' +
           '<div style="' + fg + '"><label style="' + fl + '">Примечание</label>' +
@@ -7503,7 +7576,7 @@
       var updatedClient = Object.assign({}, client, {
         type:type,
         name:name,
-        phone:formDiv.querySelector('#fClientPhone').value.trim(),
+        phone:formatPhone(formDiv.querySelector('#fClientPhone').value.trim()),
         email:formDiv.querySelector('#fClientEmail').value.trim(),
         note:formDiv.querySelector('#fClientNote').value.trim(),
         updatedAt:Date.now()
@@ -7687,7 +7760,7 @@
     });
     var ownerOptions = '<option value="">— Без владельца —</option>' + owners.map(function(client){
       return '<option value="' + escapeHtml(client.id) + '"' + (client.id === currentOwnerId ? ' selected' : '') + '>' +
-        escapeHtml(displayClientName(client)) + (client.phone ? ' · ' + escapeHtml(client.phone) : '') + '</option>';
+        escapeHtml(displayClientName(client)) + (client.phone ? ' · ' + escapeHtml(formatPhone(client.phone)) : '') + '</option>';
     }).join('');
     var formDiv = document.createElement('div');
     formDiv.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:350;display:flex;align-items:center;justify-content:center;padding:16px;backdrop-filter:blur(2px);';
@@ -9154,7 +9227,7 @@
         '<div class="form-group"><label class="form-label">Название организации</label>' +
           '<input class="form-control" id="setCName" value="' + escapeHtml(c.name||'') + '" placeholder="ООО «Автосервис»"></div>' +
         '<div class="form-group"><label class="form-label">Телефон</label>' +
-          '<input class="form-control" id="setCPhone" value="' + escapeHtml(c.phone||'') + '" placeholder="+7 (999) 123-45-67"></div>' +
+          '<input class="form-control" id="setCPhone" value="' + escapeHtml(formatPhone(c.phone)||'') + '" placeholder="+7 (999) 123-45-67"></div>' +
         '<div class="form-group"><label class="form-label">Адрес</label>' +
           '<input class="form-control" id="setCAddress" value="' + escapeHtml(c.address||'') + '" placeholder="г. Москва, ул. Примерная, 1"></div>' +
         '<div class="grid2">' +
@@ -9204,7 +9277,7 @@
 
     document.getElementById('btnSaveCompany').addEventListener('click', async function(){
       state.company.name       = document.getElementById('setCName').value.trim();
-      state.company.phone      = document.getElementById('setCPhone').value.trim();
+      state.company.phone      = formatPhone(document.getElementById('setCPhone').value.trim());
       state.company.address    = document.getElementById('setCAddress').value.trim();
       state.company.inn        = document.getElementById('setCInn').value.trim();
       state.company.kpp        = document.getElementById('setCKpp').value.trim();
@@ -9351,7 +9424,7 @@
     document.getElementById('aiAssistantPanel').classList.remove('open');
     openOrderForm(null);
     setTimeout(function(){
-      if(d.client){document.getElementById('f_clientName').value=d.client.name||'';document.getElementById('f_clientPhone').value=d.client.phone||'';}
+      if(d.client){document.getElementById('f_clientName').value=d.client.name||'';document.getElementById('f_clientPhone').value=formatPhone(d.client.phone||'')||'+7 ';}
       if(d.car){document.getElementById('f_carMake').value=d.car.carMake||'';document.getElementById('f_carModel').value=d.car.carModel||'';document.getElementById('f_carYear').value=d.car.year||d.car.carYear||'';document.getElementById('f_plate').value=d.car.plate||'';document.getElementById('f_vin').value=d.car.vin||'';}else{if(d.detectedMake)document.getElementById('f_carMake').value=d.detectedMake;if(d.detectedModel)document.getElementById('f_carModel').value=d.detectedModel;}
       if(d.mileage) document.getElementById('f_mileage').value=d.mileage;
       if(d.master) document.getElementById('f_master').value=d.master;
@@ -9416,13 +9489,13 @@
     var body=document.getElementById('aiAssistantBody');
     var form=document.createElement('form');form.className='ai-preview';
     var fields=[['name','Имя клиента'],['phone','Телефон'],['carMake','Марка'],['carModel','Модель'],['plate','Госномер'],['vin','VIN'],['year','Год'],['mileage','Пробег, км'],['modification','Модификация'],['bodyNumber','№ кузова'],['engineType','Тип двигателя'],['color','Цвет']];
-    form.innerHTML='<h4>Новый клиент и автомобиль</h4><div class="ai-hint">Проверьте и исправьте данные. Существующего клиента найдём по телефону; владельца уже записанного авто не меняем.</div>'+fields.map(function(f){return '<label style="display:block;margin-top:8px">'+f[1]+'<input class="ai-input" style="display:block;width:100%;box-sizing:border-box" name="'+f[0]+'" value="'+aiEsc(d[f[0]]||'')+'"></label>';}).join('')+'<p class="ai-import-status" role="status"></p><button class="ai-confirm" type="submit">Сохранить клиента и авто</button>';
+    form.innerHTML='<h4>Новый клиент и автомобиль</h4><div class="ai-hint">Проверьте и исправьте данные. Существующего клиента найдём по телефону; владельца уже записанного авто не меняем.</div>'+fields.map(function(f){return '<label style="display:block;margin-top:8px">'+f[1]+'<input class="ai-input" style="display:block;width:100%;box-sizing:border-box" name="'+f[0]+'" value="'+aiEsc(f[0]==='phone' ? formatPhone(d[f[0]]) : (d[f[0]]||''))+'"></label>';}).join('')+'<p class="ai-import-status" role="status"></p><button class="ai-confirm" type="submit">Сохранить клиента и авто</button>';
     body.appendChild(form);body.scrollTop=form.offsetTop;
     form.addEventListener('submit',async function(e){
       e.preventDefault();if(aiClientImportBusy)return;
       var status=form.querySelector('.ai-import-status'),button=form.querySelector('button');
       var data={};fields.forEach(function(f){data[f[0]]=form.elements[f[0]].value.trim();});
-      data.vin=normalizeVin(data.vin);data.plate=normalizePlate(data.plate);
+      data.phone=formatPhone(data.phone);data.vin=normalizeVin(data.vin);data.plate=normalizePlate(data.plate);
       aiClientImportBusy=true;button.disabled=true;status.textContent='Проверяем базу…';
       try{
         // Fresh reads prevent duplicates from stale browser state. One batch writes both records.
@@ -9517,6 +9590,7 @@
   document.getElementById('btnTheme').addEventListener('click', toggleTheme);
     var btnExportCSV = document.getElementById('btnExportCSV'); if(btnExportCSV) btnExportCSV.addEventListener('click', exportOrdersCSV);
     var btnExportPayroll = document.getElementById('btnExportPayroll'); if(btnExportPayroll) btnExportPayroll.addEventListener('click', exportPayrollCSV);
+    initPhoneInputs();
     initTheme();
     initRadio();
     updateHeaderClock();

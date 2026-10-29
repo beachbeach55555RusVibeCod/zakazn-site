@@ -1109,7 +1109,7 @@
 
   .toast{
     position:fixed; bottom:24px; right:24px; background: var(--bg-panel-2); border:1px solid var(--border);
-    color:var(--text-main); padding:12px 18px; border-radius:8px; font-size:14px; z-index:200;
+    color:var(--text-main); padding:12px 18px; border-radius:8px; font-size:14px; z-index:10000;
     box-shadow: 0 4px 16px rgba(0,0,0,0.3);
     animation: toastIn .18s ease;
   }
@@ -2038,6 +2038,30 @@
     #qForm .q-line-row:not(.q-part-line) .q-assignee[data-assignee-idx="1"]{grid-column:1/-1 !important;grid-row:4;}
     #qForm .q-line-row:not(.q-part-line) .q-assignee[data-assignee-idx="2"]{grid-column:1/-1 !important;grid-row:5;}
   }
+
+  #toastRoot{position:fixed;inset:0;z-index:10000;pointer-events:none;}
+  .quick-order-overlay #qForm{transition:transform .28s ease;width:min(680px,calc(100vw - 32px)) !important;flex-shrink:0;}
+  .quick-order-overlay.q-stock-open #qForm{transform:translateX(-248px);}
+  .q-stock-panel{position:absolute;left:calc(50% + 108px);width:480px;max-height:92vh;height: min(760px,92vh);background:var(--bg-panel);border:1px solid var(--border);border-radius:18px;box-shadow:0 24px 64px #0006;display:flex;flex-direction:column;opacity:0;transform:translateX(24px);visibility:hidden;transition:opacity .28s ease,transform .28s ease,visibility .28s;}
+  .q-stock-open .q-stock-panel{opacity:1;transform:none;visibility:visible;}
+  .q-stock-head{display:flex;align-items:center;justify-content:space-between;padding:18px;border-bottom:1px solid var(--border);}
+  .q-stock-list{overflow:auto;min-height:0;padding:0 16px 16px;}
+  .q-stock-item{display:block;width:100%;text-align:left;padding:13px;margin:0 0 8px;border:1px solid var(--border);border-radius:10px;background:var(--bg-panel-2);color:var(--text-main);cursor:pointer;font:inherit;}
+  .q-stock-item:hover{border-color:var(--accent);}
+  .q-stock-meta{display:flex;justify-content:space-between;gap:8px;margin-top:7px;font-size:12px;color:var(--text-muted);}
+  .q-stock-name{font-size:14px;line-height:1.4;font-weight:500;}
+  .q-stock-brand{font-size:11px;color:var(--accent);margin-bottom:4px;}
+  #qFormError{margin:12px 18px 0;padding:12px;border:1px solid #ef4444;border-radius:9px;background:var(--bg-panel-2);color:var(--text-main);font-size:13px;}
+  @media(max-width:1200px){
+    .quick-order-overlay.q-stock-open #qForm{transform:translateX(-20px);}
+    .q-stock-panel{left:auto;right:16px;width:min(480px,calc(100vw - 32px));z-index:2;}
+  }
+  @media(max-width:760px){
+    .q-stock-panel{right:8px;bottom:8px;width:calc(100vw - 16px);height:calc(100dvh - 16px);max-height:calc(100dvh - 16px);}
+    .quick-order-overlay.q-stock-open #qForm{transform:translateX(-12px);}
+  }
+  @media(prefers-reduced-motion:reduce){.quick-order-overlay #qForm,.q-stock-panel{transition:none;}}
+
 </style>
 
 <style id="aiAssistantStyles">
@@ -5811,6 +5835,7 @@
         '</div>' +
 
         /* Подвал */
+        '<div id="qFormError" role="alert" hidden></div>' +
         '<div class="q-footer" style="padding:12px 18px 24px;border-top:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;gap:10px;">' +
           '<div style="flex:1;">' +
             '<div style="font-size:11px;color:var(--text-subtle);text-transform:uppercase;letter-spacing:0.05em;">Итого</div>' +
@@ -5823,6 +5848,56 @@
       '</div>';
 
     document.body.appendChild(overlay);
+    var stockPanel = document.createElement('section');
+    stockPanel.className = 'q-stock-panel';
+    stockPanel.setAttribute('aria-label','Склад — выбор запчастей');
+    stockPanel.inert = true;
+    stockPanel.innerHTML = '<div class="q-stock-head"><div><strong>Склад</strong><div style="font-size:12px;color:var(--text-muted);margin-top:4px">Выберите запчасть для добавления в ЗН</div></div><button type="button" id="qStockClose" class="btn btn-ghost" aria-label="Закрыть склад">✕</button></div><div style="padding:16px"><input id="qStockSearch" placeholder="Название, артикул или бренд" aria-label="Поиск на складе" style="' + fi + '"></div><div class="q-stock-list" id="qStockResults"></div>';
+    overlay.appendChild(stockPanel);
+    var stockButton = document.createElement('button');
+    stockButton.type='button'; stockButton.id='qOpenStock'; stockButton.className='btn btn-ghost';
+    stockButton.textContent='Выбрать со склада'; stockButton.style.cssText='width:100%;margin-top:8px;color:var(--accent);';
+    overlay.querySelector('#qAddPart').parentNode.after(stockButton);
+    function remainingStock(item){
+      var oldUsed=stockUsageMap(existingOrder)[item.id]||0;
+      var used=stockUsageMap(qOrder)[item.id]||0;
+      return Math.max(0,(Number(item.quantity)||0)+oldUsed-used);
+    }
+    function renderQuickStock(){
+      var term=overlay.querySelector('#qStockSearch').value.trim().toLowerCase();
+      var items=state.stockItems.filter(function(item){
+        return Number(item.quantity)>0 && remainingStock(item)>0 && [item.name,item.brand,item.sku].join(' ').toLowerCase().indexOf(term)!==-1;
+      });
+      var results=overlay.querySelector('#qStockResults');results.innerHTML='';
+      if(!items.length){results.textContent='Нет доступных запчастей'+(term?' по вашему запросу':' на складе');return;}
+      items.forEach(function(item){
+        var button=document.createElement('button');button.type='button';button.className='q-stock-item';
+        button.innerHTML='<div class="q-stock-brand">'+escapeHtml(item.brand||'Без бренда')+'</div><div class="q-stock-name">'+escapeHtml(item.name||'Запчасть')+'</div><div class="q-stock-meta"><span>'+escapeHtml(item.sku||'Без артикула')+'</span><span>Доступно: '+remainingStock(item)+'</span></div><div class="q-stock-meta"><strong>'+fmtMoney(stockSellPrice(item))+'</strong><span style="color:var(--accent)">+ В ЗН</span></div>';
+        button.onclick=function(){
+          var current=getStockItemById(item.id);
+          if(!current || !(Number(current.quantity)>0) || remainingStock(current)<1){showToast('Недостаточно остатка для добавления');renderQuickStock();return;}
+          var line=qOrder.lines.find(function(l){return l.type==='part' && l.stockItemId===current.id;});
+          if(line){line.qty=(Number(line.qty)||0)+1;}
+          else{
+            line=qOrder.lines.find(function(l){return l.type==='part' && !l.name && !l.stockItemId && !l.price && !l.costPrice;});
+            if(!line){line={_key:lineId(),type:'part',assignees:[]};qOrder.lines.push(line);}
+            Object.assign(line,{name:stockOrderPartName(current),stockItemId:current.id,qty:1,costPrice:Number(current.costPrice)||0,price:stockSellPrice(current)});
+          }
+          renderQLines();updateQTotal();renderQuickStock();showToast('Добавлено: '+stockOrderPartName(current));
+        };results.appendChild(button);
+      });
+    }
+    function toggleQuickStock(open){
+      overlay.classList.toggle('q-stock-open',open);stockPanel.inert=!open;
+      stockButton.setAttribute('aria-expanded',String(open));
+      if(open){renderQuickStock();overlay.querySelector('#qStockSearch').focus();}
+      else stockButton.focus();
+    }
+    stockButton.onclick=function(){toggleQuickStock(!overlay.classList.contains('q-stock-open'));};
+    overlay.querySelector('#qStockClose').onclick=function(){toggleQuickStock(false);};
+    overlay.querySelector('#qStockSearch').oninput=renderQuickStock;
+    stockPanel.addEventListener('keydown',function(e){if(e.key==='Escape'){e.stopPropagation();toggleQuickStock(false);}});
+
 
     /* Номер наряда */
     var orderNum = existingOrder ? existingOrder.orderNumber : nextOrderNumber();
@@ -5853,7 +5928,7 @@
       }
 
       line.name = name;
-      var stockMatch = findStockItemByName(name);
+      var stockMatch = null;
       line.stockItemId = stockMatch ? stockMatch.id : null;
       if(stockMatch){
         line.costPrice = roundPriceToTenth(stockMatch.costPrice);
@@ -5922,10 +5997,6 @@
         var row = document.createElement('div');
         row.className = 'q-line-row' + (type === 'part' ? ' q-part-line' : '');
         row.style.cssText = 'display:grid;gap:7px;align-items:center;';
-        var quickStockListId = 'qStockList_' + line._key;
-        var quickStockOptions = type === 'part' ? state.stockItems.map(function(s){
-          return '<option value="' + escapeHtml(s.name) + '"' + (s.sku ? ' label="арт. ' + escapeHtml(s.sku) + '"' : '') + '></option>';
-        }).join('') : '';
         function quickStaffOptionsFor(idx){
           if(type !== 'work') return '';
           return state.staff.map(function(s){
@@ -5937,8 +6008,7 @@
             '<input class="q-price" data-key="' + escapeAttr(line._key) + '" data-f="price" type="number" min="0" step="0.1" value="' + (line.price ? priceInputValue(line.price) : '') + '" placeholder="После наценки" title="Цена продажи после наценки — можно изменить вручную" style="' + fi + 'padding:8px 6px;">'
           : '<input class="q-price" data-key="' + escapeAttr(line._key) + '" data-f="price" type="number" min="0" step="0.01" value="' + (line.price||'') + '" placeholder="Цена" title="Цена" style="' + fi + 'padding:8px 6px;">';
         row.innerHTML =
-          '<input class="q-name" data-key="' + escapeAttr(line._key) + '" data-f="name" value="' + escapeHtml(line.name) + '" placeholder="' + (type === 'work' ? 'Работа' : 'Запчасть') + '"' + (type === 'part' ? ' list="' + quickStockListId + '"' : '') + ' autocomplete="off" style="' + fi + 'padding:8px 10px;">' +
-          (type === 'part' ? '<datalist id="' + quickStockListId + '">' + quickStockOptions + '</datalist>' : '') +
+          '<input class="q-name" data-key="' + escapeAttr(line._key) + '" data-f="name" value="' + escapeHtml(line.name) + '" placeholder="' + (type === 'work' ? 'Работа' : 'Запчасть') + '"' + ' autocomplete="off" style="' + fi + 'padding:8px 10px;">' +
           '<input class="q-qty" data-key="' + escapeAttr(line._key) + '" data-f="qty" type="number" min="1" value="' + line.qty + '" placeholder="Кол" style="' + fi + 'padding:8px 6px;text-align:center;">' +
           (type === 'work' ? '<input class="q-hours" data-key="' + escapeAttr(line._key) + '" data-f="normHours" type="number" min="0" step="0.01" value="' + (line.normHours===undefined?'':line.normHours) + '" placeholder="Н/ч" title="Время: цена работы ÷ ставка нормо-часа" readonly style="' + fi + 'padding:8px 6px;">' : '') +
           quickPriceFields +
@@ -5959,7 +6029,8 @@
             line.name = el.value;
             if(line.type === 'part'){
               var previousStockItemId = line.stockItemId;
-              var stockMatch = findStockItemByName(el.value);
+              var stockMatch = line.stockItemId ? getStockItemById(line.stockItemId) : null;
+              if(stockMatch && el.value !== stockOrderPartName(stockMatch)) stockMatch=null;
               line.stockItemId = stockMatch ? stockMatch.id : null;
               var costInput = currentRow.querySelector('.q-cost');
               var priceInput = currentRow.querySelector('.q-price');
@@ -6007,6 +6078,7 @@
             var hoursBox=currentRow.querySelector('.q-hours'); if(hoursBox) hoursBox.value=(line.normHours===null?'':line.normHours);
           }
           updateQTotal();
+          if(overlay.classList.contains('q-stock-open')) renderQuickStock();
         });
         el.addEventListener('focus', function(){ el.style.borderColor='var(--accent)'; });
         el.addEventListener('blur', function(){
@@ -6047,6 +6119,7 @@
     function renderQLines(){
       renderLineGroup('qWorkLines', 'work');
       renderLineGroup('qPartLines', 'part');
+      if(overlay.classList.contains('q-stock-open')) renderQuickStock();
     }
 
     function updateQTotal(){
@@ -6103,6 +6176,7 @@
         overlay.remove();
         return;
       }
+      var errorBox=overlay.querySelector('#qFormError');errorBox.hidden=true;
       var btn = document.getElementById('qSave');
       btn.disabled = true; btn.textContent = 'Сохранение…';
 
@@ -6156,7 +6230,9 @@
       var stockCheck = checkStockAvailability(existingOrder, order.lines);
       if(!stockCheck.ok){
         var itemName = stockCheck.item ? stockCheck.item.name : 'запчасть';
-        showToast('Недостаточно на складе «' + itemName + '»: нужно ' + stockCheck.needed + ', есть ' + stockCheck.available);
+        var stockError='Недостаточно на складе «' + itemName + '»: нужно ' + stockCheck.needed + ', есть ' + stockCheck.available;
+        errorBox.textContent=stockError;errorBox.hidden=false;showToast(stockError);
+        if(overlay.classList.contains('q-stock-open')) renderQuickStock();
         btn.disabled = false;
         btn.textContent = existingOrder ? 'Сохранить изменения' : 'Сохранить';
         return;
@@ -6754,7 +6830,7 @@
         block.className = 'line-block';
 
         var nameDatalistId = 'stockList_' + line._key;
-        var nameOptions = state.stockItems.map(function(s){ return '<option value="' + escapeHtml(s.name) + '">'; }).join('');
+        var nameOptions = state.stockItems.filter(function(s){ return Number(s.quantity)>0; }).map(function(s){ return '<option value="' + escapeHtml(s.name) + '">'; }).join('');
 
         block.innerHTML =
           '<div class="line-block-head">' +
@@ -9616,4 +9692,5 @@
 </script>
 </body>
 </html>
+
 

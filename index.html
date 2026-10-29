@@ -8126,6 +8126,11 @@
 
   function renderStockTab(){
     var wrap = document.getElementById('stockWrap');
+    // Keep expanded import groups when receiving parts or redrawing the stock list.
+    var expandedPartkomGroups = new Set();
+    wrap.querySelectorAll('details[data-partkom-group][open]').forEach(function(group){
+      expandedPartkomGroups.add(group.getAttribute('data-partkom-group'));
+    });
     var html = '<div class="stock-toolbar">' +
       '<div class="stock-search"><span class="search-icon">⌕</span><input type="text" id="stockSearchInput" placeholder="Поиск по названию или артикулу..."></div>' +
       '<div class="stock-actions-right">' +
@@ -8143,7 +8148,7 @@
     }
 
     var pg=state.partkomHistoryGroups||[];
-    if(pg.length){ html += '<div style="margin:14px 0 18px"><div style="font-weight:700;margin-bottom:8px">Part-kom · группы по комментарию</div>'; pg.forEach(function(g,gi){ var arr=g.items||[]; html += '<details style="border:1px solid var(--border);border-radius:10px;margin:7px 0;padding:10px 12px"><summary style="cursor:pointer;font-weight:600">'+escapeHtml(g.comment||'Без комментария')+' · '+arr.length+' поз.</summary><div style="margin-top:9px">'; arr.forEach(function(x,xi){ var canReceive=(Number(x.quantity)||0)>0; html += '<div style="display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--border)"><div><b>'+escapeHtml(x.name||x.sku||'Запчасть')+'</b><div class="stock-sku">'+escapeHtml((x.brand?x.brand+' · ':'')+(x.sku||''))+'</div></div><div style="text-align:right;white-space:nowrap">'+(Number(x.quantity)||0)+' шт. · '+fmtMoney(x.costPrice)+'</div><button class="btn btn-primary btn-sm" data-partkom-receive-item="'+gi+':'+xi+'" '+(canReceive?'':'disabled')+'>Оприходовать</button></div>'; }); html += '</div></details>'; }); html += '</div>'; }
+    if(pg.length){ html += '<div style="margin:14px 0 18px"><div style="font-weight:700;margin-bottom:8px">Part-kom · группы по комментарию</div>'; pg.forEach(function(g,gi){ var arr=g.items||[]; var groupKey=String(g.comment||''); html += '<details data-partkom-group="'+escapeAttr(groupKey)+'"'+(expandedPartkomGroups.has(groupKey)?' open':'')+' style="border:1px solid var(--border);border-radius:10px;margin:7px 0;padding:10px 12px"><summary style="cursor:pointer;font-weight:600">'+escapeHtml(g.comment||'Без комментария')+' · '+arr.length+' поз.</summary><div style="margin-top:9px">'; arr.forEach(function(x,xi){ var canReceive=(Number(x.quantity)||0)>0; html += '<div style="display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px;padding:7px 0;border-top:1px solid var(--border)"><div><b>'+escapeHtml(x.name||x.sku||'Запчасть')+'</b><div class="stock-sku">'+escapeHtml((x.brand?x.brand+' · ':'')+(x.sku||''))+'</div></div><div style="text-align:right;white-space:nowrap">'+(Number(x.quantity)||0)+' шт. · '+fmtMoney(x.costPrice)+'</div><button class="btn btn-primary btn-sm" data-partkom-receive-item="'+gi+':'+xi+'" '+(canReceive?'':'disabled')+'>Оприходовать</button></div>'; }); html += '</div></details>'; }); html += '</div>'; }
 
     if(items.length === 0){
       html += '<div class="stock-empty">' + (q ? 'Ничего не найдено' : 'Склад пуст. Добавьте первую запчасть.') + '</div>';

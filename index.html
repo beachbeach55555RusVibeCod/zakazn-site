@@ -1422,7 +1422,6 @@
   }
   [data-theme="light"] #qForm #qAddWork,
   [data-theme="light"] #qForm #qPresetTO,
-  [data-theme="light"] #qForm #qAddPart,
   [data-theme="light"] #qForm #qPastePart,
   [data-theme="light"] #qForm #qFullForm{
     color:#374151 !important;
@@ -1432,7 +1431,6 @@
   }
   [data-theme="light"] #qForm #qAddWork:hover,
   [data-theme="light"] #qForm #qPresetTO:hover,
-  [data-theme="light"] #qForm #qAddPart:hover,
   [data-theme="light"] #qForm #qPastePart:hover,
   [data-theme="light"] #qForm #qFullForm:hover{
     color:#111827 !important;
@@ -5826,7 +5824,6 @@
               '<div id="qPartLines" style="display:flex;flex-direction:column;gap:6px;"></div>' +
               '<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px;margin-top:8px;">' +
                 '<button type="button" id="qPastePart" style="width:100%;padding:9px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg-panel-2);color:var(--text-subtle);cursor:pointer;font-size:12px;font-family:inherit;">📋 Из буфера</button>' +
-                '<button type="button" id="qAddPart" style="width:100%;padding:9px;border-radius:9px;border:1.5px dashed var(--border);background:transparent;color:var(--text-subtle);cursor:pointer;font-size:13px;font-family:inherit;">+ Добавить запчасть</button>' +
               '</div>' +
               '<div class="q-section-total"><span class="q-section-total-label">Итого запчасти</span><span class="q-section-total-value" id="qPartTotal">0&nbsp;₽</span></div>' +
             '</div>' +
@@ -5856,8 +5853,8 @@
     overlay.appendChild(stockPanel);
     var stockButton = document.createElement('button');
     stockButton.type='button'; stockButton.id='qOpenStock'; stockButton.className='btn btn-ghost';
-    stockButton.textContent='Выбрать со склада'; stockButton.style.cssText='width:100%;margin-top:8px;color:var(--accent);';
-    overlay.querySelector('#qAddPart').parentNode.after(stockButton);
+    stockButton.textContent='Выбрать со склада'; stockButton.style.cssText='width:100%;color:var(--accent);';
+    overlay.querySelector('#qPastePart').parentNode.appendChild(stockButton);
     function remainingStock(item){
       var oldUsed=stockUsageMap(existingOrder)[item.id]||0;
       var used=stockUsageMap(qOrder)[item.id]||0;
@@ -6140,7 +6137,6 @@
 
     document.getElementById('qPresetTO').addEventListener('click', applyQuickPresetTO);
     document.getElementById('qAddWork').addEventListener('click', function(){ addLine('work'); });
-    document.getElementById('qAddPart').addEventListener('click', function(){ addLine('part'); });
     document.getElementById('qPastePart').addEventListener('click', async function(){
       try{
         var text = await readClipboardPartName();

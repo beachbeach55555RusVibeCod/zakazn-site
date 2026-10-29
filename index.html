@@ -2077,6 +2077,8 @@
   }
   @media(prefers-reduced-motion:reduce){#fullOrderModal{transition:none;}}
 
+  .part-picker-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+  .part-picker-actions > button{width:auto !important;flex:0 0 auto;padding:7px 9px !important;font-size:11px !important;line-height:1.25;white-space:nowrap;}
 </style>
 
 <style id="aiAssistantStyles">
@@ -5837,9 +5839,8 @@
             '</div>' +
             '<div class="q-section">' +
               '<label style="' + fl + '">🔩 Запчасти</label>' +
-              '<div style="font-size:10px;color:var(--text-subtle);margin:-2px 0 6px;">Закупка → автонаценка +45%. Поле «После наценки» можно изменить вручную. Для склада подставится текущая цена продажи.</div>' +
               '<div id="qPartLines" style="display:flex;flex-direction:column;gap:6px;"></div>' +
-              '<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:7px;margin-top:8px;">' +
+              '<div class="part-picker-actions" style="margin-top:8px;">' +
                 '<button type="button" id="qPastePart" style="width:100%;padding:9px;border-radius:9px;border:1.5px solid var(--border);background:var(--bg-panel-2);color:var(--text-subtle);cursor:pointer;font-size:12px;font-family:inherit;">📋 Из буфера</button>' +
               '</div>' +
               '<div class="q-section-total"><span class="q-section-total-label">Итого запчасти</span><span class="q-section-total-value" id="qPartTotal">0&nbsp;₽</span></div>' +
@@ -6420,8 +6421,8 @@
                 '<div class="form-section lines-column">' +
                   '<div class="form-section-title">Запчасти</div>' +
                           '<div class="lines" id="partLinesWrap"></div>' +
-                  '<div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;">' +
-                    '<button type="button" class="add-line-btn" id="pastePartLineBtn" style="border-style:solid;">📋 Вставить из буфера</button>' +
+                  '<div class="part-picker-actions">' +
+                    '<button type="button" class="add-line-btn" id="pastePartLineBtn" style="border-style:solid;">📋 Из буфера</button>' +
                     '<button type="button" class="add-line-btn" id="fullOpenStock" aria-expanded="false">Выбрать со склада</button>' +
                   '</div>' +
                   '<div class="total-row"><span class="label">Итого запчасти</span><span class="value" id="partLinesTotal">0&nbsp;₽</span></div>' +

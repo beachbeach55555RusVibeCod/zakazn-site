@@ -2079,6 +2079,9 @@
 
   .part-picker-actions{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
   .part-picker-actions > button{width:auto !important;flex:0 0 auto;padding:7px 9px !important;font-size:11px !important;line-height:1.25;white-space:nowrap;}
+  .order-first-work{font-size:12px;font-weight:500;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;margin:5px 0 8px;}
+  .order-card .order-first-work{color:var(--ink-soft);}
+  .mobile-order-card .order-first-work{color:var(--text-main);}
 </style>
 
 <style id="aiAssistantStyles">
@@ -3893,6 +3896,15 @@
     wrap.appendChild(board);
   }
 
+  function firstOrderWorkHtml(order){
+    var work = (order.lines || []).find(function(line){
+      return (!line.type || line.type === 'work') && String(line.name || '').trim();
+    });
+    if(!work) return '';
+    var name = String(work.name).trim();
+    return '<div class="order-first-work" title="' + escapeAttr(name) + '">' + escapeHtml(name) + '</div>';
+  }
+
   function renderMobileCard(o, statusInfo){
     var card = document.createElement('div');
     card.className = 'mobile-order-card status-' + o.status;
@@ -3915,6 +3927,7 @@
         '<span class="moc-car">' + escapeHtml(carLine || 'Авто не указано') + '</span>' +
         (o.plate ? '<span class="moc-plate">' + escapeHtml(o.plate) + '</span>' : '') +
       '</div>' +
+      firstOrderWorkHtml(o) +
       '<div class="moc-row3">' +
         '<span class="moc-meta">' + escapeHtml(metaLine) + '</span>' +
       '</div>' +
@@ -4169,6 +4182,7 @@
       '<div class="oc-client">' + escapeHtml(carLine || 'Авто не указано') +
         (o.plate ? ' · <span>' + escapeHtml(o.plate) + '</span>' : '') + '</div>' +
       '<div class="oc-car">' + escapeHtml(o.clientName || 'Без имени') + '</div>' +
+      firstOrderWorkHtml(o) +
       '<div class="oc-bottom">' +
         '<span class="oc-master">' + escapeHtml(masterLine) + '</span>' +
         '<div class="oc-actions">' +

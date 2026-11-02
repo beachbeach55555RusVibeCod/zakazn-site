@@ -2082,6 +2082,9 @@
   .order-first-work{font-size:12px;font-weight:500;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;margin:5px 0 8px;}
   .order-card .order-first-work{color:var(--ink-soft);}
   .mobile-order-card .order-first-work{color:var(--text-main);}
+  .pay-month-picker{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--text-muted);}
+  .pay-month-picker input{padding:9px 12px;border:1px solid var(--border);border-radius:9px;background:var(--bg-panel);color:var(--text-main);font:inherit;min-width:160px;color-scheme:dark;}
+  [data-theme="light"] .pay-month-picker input{color-scheme:light;}
 </style>
 
 <style id="aiAssistantStyles">
@@ -4477,7 +4480,7 @@
     };
   }
 
-  function openSalaryDetail(staffId, ordersOverride){
+  function openSalaryDetail(staffId, ordersOverride, periodLabel){
     var sourceOrders = Array.isArray(ordersOverride) ? ordersOverride : payrollOrdersForPeriod('month');
     var map = aggregateCommissionsByStaff(sourceOrders);
     var rec = map[staffId];
@@ -4578,7 +4581,7 @@
       '<div class="modal-overlay" id="salaryDetailOverlay">' +
         '<div class="modal" style="max-width:620px;">' +
           '<div class="modal-head">' +
-            '<h2>' + escapeHtml(rec.name) + ' · зарплата</h2>' +
+            '<h2>' + escapeHtml(rec.name) + ' · зарплата' + (periodLabel ? ' ' + escapeHtml(periodLabel) : '') + '</h2>' +
             '<button class="modal-close" id="salaryModalClose">&times;</button>' +
           '</div>' +
           '<div class="modal-body">' +
@@ -8876,28 +8879,45 @@
     if(!document.hidden) refreshSalaryCalendar();
   });
 
-  function payrollOrdersForPeriod(period){ return salaryPeriodOrders(period); }
+  function payrollMonthKey(){
+    return localDateKey(new Date()).slice(0,7);
+  }
+  function payrollMonthName(key){
+    var parts = key.split('-');
+    var names = ['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'];
+    return names[Number(parts[1])-1] + ' ' + parts[0];
+  }
+  function payrollOrdersForPeriod(period){
+    if(/^\d{4}-(0[1-9]|1[0-2])$/.test(period)){
+      var today = localDateKey(new Date());
+      return state.orders.filter(function(o){
+        var day = String(o.dateOut || '').slice(0,10);
+        return o.status === 'done' && day.slice(0,7) === period && day <= today;
+      });
+    }
+    return salaryPeriodOrders(period);
+  }
 
   function payrollPeriodLabel(period){
-    if(period === 'previousMonth') return 'за прошлый месяц';
-    return period === 'day' ? 'сегодня' :
-      (period === 'week' ? 'за 7 дней' :
-      (period === 'month' ? 'за ' + currentSalaryMonthName() :
-      (period === 'year' ? 'за год' : 'за всё время')));
+    if(period === 'month') return 'за ' + payrollMonthName(payrollMonthKey());
+    if(/^\d{4}-(0[1-9]|1[0-2])$/.test(period)) return 'за ' + payrollMonthName(period);
+    if(period === 'previousMonth'){
+      var now = new Date();
+      return 'за ' + payrollMonthName(localDateKey(new Date(now.getFullYear(), now.getMonth()-1, 1)).slice(0,7));
+    }
+    return period === 'day' ? 'сегодня' : period === 'week' ? 'за 7 дней' :
+      period === 'year' ? 'за ' + new Date().getFullYear() + ' год' : 'за всё время';
   }
 
   function payrollPeriodButtons(){
-    var periods = [
-      ['day','Сегодня'],
-      ['week','7 дней'],
-      ['month', currentSalaryMonthName().replace(/^./, function(c){ return c.toUpperCase(); })],
-      ['previousMonth','Прошлый месяц'],
-      ['year','Год'],
-      ['all','Всё время']
-    ];
-    return '<div class="pay-periods">' + periods.map(function(p){
-      return '<button class="pay-period-btn' + (payrollPeriod === p[0] ? ' active' : '') + '" data-pay-period="' + p[0] + '">' + p[1] + '</button>';
-    }).join('') + '</div>';
+    var key = /^\d{4}-(0[1-9]|1[0-2])$/.test(payrollPeriod) ? payrollPeriod : (payrollPeriod === 'month' ? payrollMonthKey() : '');
+    var label = key ? payrollMonthName(key) : 'Выберите месяц';
+    return '<div class="pay-periods"><label class="pay-month-picker"><span>Месяц начислений</span>' +
+      '<input type="month" id="payrollMonthPicker" aria-label="Выберите месяц начислений" value="' + key + '" max="' + payrollMonthKey() + '">' +
+      '<span>' + label.charAt(0).toUpperCase() + label.slice(1) + '</span></label>' +
+      [['day','Сегодня'],['week','7 дней'],['year',String(new Date().getFullYear())],['all','Всё время']].map(function(p){
+        return '<button class="pay-period-btn' + (payrollPeriod === p[0] ? ' active' : '') + '" data-pay-period="' + p[0] + '">' + p[1] + '</button>';
+      }).join('') + '</div>';
   }
 
   function payrollInitials(name){
@@ -8948,6 +8968,12 @@
 
     wrap.innerHTML = html;
 
+    document.getElementById('payrollMonthPicker').addEventListener('change', function(){
+      if(!/^\d{4}-(0[1-9]|1[0-2])$/.test(this.value) || this.value > payrollMonthKey()) return;
+      payrollPeriod = this.value;
+      renderPayrollTab();
+    });
+
     wrap.querySelectorAll('[data-pay-period]').forEach(function(btn){
       btn.addEventListener('click', function(){
         payrollPeriod = btn.dataset.payPeriod || 'month';
@@ -8957,7 +8983,7 @@
 
     wrap.querySelectorAll('[data-pay-staffid]').forEach(function(row){
       row.addEventListener('click', function(){
-        openSalaryDetail(row.dataset.payStaffid, periodOrders);
+        openSalaryDetail(row.dataset.payStaffid, periodOrders, payrollPeriodLabel(payrollPeriod));
       });
     });
   }

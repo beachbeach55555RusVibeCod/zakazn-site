@@ -2085,6 +2085,7 @@
   .pay-month-picker{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:13px;color:var(--text-muted);}
   .pay-month-picker input{padding:9px 12px;border:1px solid var(--border);border-radius:9px;background:var(--bg-panel);color:var(--text-main);font:inherit;min-width:160px;color-scheme:dark;}
   [data-theme="light"] .pay-month-picker input{color-scheme:light;}
+  .salary-widget .sw-month-label{font-size:10px;line-height:1.2;font-weight:400;color:var(--text-muted);}
 </style>
 
 <style id="aiAssistantStyles">
@@ -4466,7 +4467,7 @@
       var todayAmount = todayRec ? todayRec.amount : 0;
       return '<div class="salary-widget" data-staffid="' + escapeAttr(r.staffId) + '" title="' + escapeHtml(r.name) + '">' +
         '<div class="sw-name">' + firstName + '</div>' +
-        '<div class="sw-today-label">За ' + currentSalaryMonthName() + '</div>' +
+        '<div class="sw-month-label">' + currentSalaryMonthName().replace(/^./, function(c){ return c.toUpperCase(); }) + '</div>' +
         '<div class="sw-amount">' + fmtMoney(r.amount) + '</div>' +
         '<div class="sw-today">' +
           '<span class="sw-today-label">Сегодня</span>' +

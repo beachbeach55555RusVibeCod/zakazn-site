@@ -4269,6 +4269,10 @@
   var mobileSalaryPeriod = 'day';
   var mobileSalaryView = 'salary';
 
+  function currentSalaryMonthName(){
+    return ['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'][new Date().getMonth()];
+  }
+
   function localDateKey(d){
     var y = d.getFullYear();
     var m = String(d.getMonth()+1).padStart(2,'0');
@@ -4324,7 +4328,7 @@
     var titles = {
       day: 'ЗП сегодня',
       week: 'ЗП за 7 дней',
-      month: 'ЗП за текущий месяц',
+      month: 'ЗП за ' + currentSalaryMonthName(),
       year: 'ЗП за год'
     };
 
@@ -4414,7 +4418,7 @@
       var nextRevenue = nextOrders.reduce(function(sum,o){ return sum + calcOrderTotal(o); }, 0);
       var titleEl = box.querySelector('.mds-title');
       if(titleEl){
-        titleEl.textContent = period === 'day' ? 'ЗП сегодня' : (period === 'week' ? 'ЗП за 7 дней' : (period === 'month' ? 'ЗП за текущий месяц' : 'ЗП за год'));
+        titleEl.textContent = period === 'day' ? 'ЗП сегодня' : (period === 'week' ? 'ЗП за 7 дней' : (period === 'month' ? 'ЗП за ' + currentSalaryMonthName() : 'ЗП за год'));
       }
       var revenueAmountEl = box.querySelector('.mds-revenue-amount');
       if(revenueAmountEl) revenueAmountEl.textContent = fmtMoney(nextRevenue);
@@ -4459,7 +4463,7 @@
       var todayAmount = todayRec ? todayRec.amount : 0;
       return '<div class="salary-widget" data-staffid="' + escapeAttr(r.staffId) + '" title="' + escapeHtml(r.name) + '">' +
         '<div class="sw-name">' + firstName + '</div>' +
-        '<div class="sw-today-label">За текущий месяц</div>' +
+        '<div class="sw-today-label">За ' + currentSalaryMonthName() + '</div>' +
         '<div class="sw-amount">' + fmtMoney(r.amount) + '</div>' +
         '<div class="sw-today">' +
           '<span class="sw-today-label">Сегодня</span>' +
@@ -8878,7 +8882,7 @@
     if(period === 'previousMonth') return 'за прошлый месяц';
     return period === 'day' ? 'сегодня' :
       (period === 'week' ? 'за 7 дней' :
-      (period === 'month' ? 'за текущий месяц' :
+      (period === 'month' ? 'за ' + currentSalaryMonthName() :
       (period === 'year' ? 'за год' : 'за всё время')));
   }
 
@@ -8886,7 +8890,7 @@
     var periods = [
       ['day','Сегодня'],
       ['week','7 дней'],
-      ['month','Этот месяц'],
+      ['month', currentSalaryMonthName().replace(/^./, function(c){ return c.toUpperCase(); })],
       ['previousMonth','Прошлый месяц'],
       ['year','Год'],
       ['all','Всё время']

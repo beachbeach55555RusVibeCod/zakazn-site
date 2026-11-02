@@ -4276,17 +4276,25 @@
     return y + '-' + m + '-' + day;
   }
 
-  function mobileSalaryOrders(period){
-    var now = new Date();
+  function salaryPeriodOrders(period, currentDate){
+    var now = currentDate || new Date();
     var today = localDateKey(now);
-    var daysBack = period === 'year' ? 364 : (period === 'month' ? 29 : (period === 'week' ? 6 : 0));
-    var fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysBack);
-    var from = localDateKey(fromDate);
-
+    var from = today, through = today;
+    if(period === 'month') from = localDateKey(new Date(now.getFullYear(), now.getMonth(), 1));
+    if(period === 'previousMonth'){
+      from = localDateKey(new Date(now.getFullYear(), now.getMonth()-1, 1));
+      through = localDateKey(new Date(now.getFullYear(), now.getMonth(), 0));
+    }
+    if(period === 'year') from = localDateKey(new Date(now.getFullYear(), 0, 1));
+    if(period === 'week') from = localDateKey(new Date(now.getFullYear(), now.getMonth(), now.getDate()-6));
     return state.orders.filter(function(o){
-      return o.status === 'done' && o.dateOut && o.dateOut >= from && o.dateOut <= today;
+      if(o.status !== 'done' || !o.dateOut) return false;
+      var day = String(o.dateOut).slice(0,10);
+      return period === 'all' || (day >= from && day <= through);
     });
   }
+
+  function mobileSalaryOrders(period){ return salaryPeriodOrders(period); }
 
   function renderMobileDailySalary(){
     var box = document.getElementById('mobileDailySalary');
@@ -4316,7 +4324,7 @@
     var titles = {
       day: 'ЗП сегодня',
       week: 'ЗП за 7 дней',
-      month: 'ЗП за 30 дней',
+      month: 'ЗП за текущий месяц',
       year: 'ЗП за год'
     };
 
@@ -4406,7 +4414,7 @@
       var nextRevenue = nextOrders.reduce(function(sum,o){ return sum + calcOrderTotal(o); }, 0);
       var titleEl = box.querySelector('.mds-title');
       if(titleEl){
-        titleEl.textContent = period === 'day' ? 'ЗП сегодня' : (period === 'week' ? 'ЗП за 7 дней' : (period === 'month' ? 'ЗП за 30 дней' : 'ЗП за год'));
+        titleEl.textContent = period === 'day' ? 'ЗП сегодня' : (period === 'week' ? 'ЗП за 7 дней' : (period === 'month' ? 'ЗП за текущий месяц' : 'ЗП за год'));
       }
       var revenueAmountEl = box.querySelector('.mds-revenue-amount');
       if(revenueAmountEl) revenueAmountEl.textContent = fmtMoney(nextRevenue);
@@ -4437,8 +4445,11 @@
     var row = document.getElementById('salaryWidgetsRow');
     if(!row) return;
     if(!state.loaded){ row.innerHTML = ''; return; }
-    var map = aggregateCommissionsByStaff(state.orders);
+    var map = aggregateCommissionsByStaff(payrollOrdersForPeriod('month'));
     var todayMap = aggregateCommissionsByStaff(mobileSalaryOrders('day'));
+    state.staff.forEach(function(staff){
+      if(!map[staff.id]) map[staff.id] = { staffId:staff.id, name:staff.name, amount:0, orderIds:{} };
+    });
     var rows = Object.keys(map).map(function(k){ return map[k]; });
     rows.sort(function(a,b){ return b.amount - a.amount; });
     if(rows.length === 0){ row.innerHTML = ''; return; }
@@ -4448,6 +4459,7 @@
       var todayAmount = todayRec ? todayRec.amount : 0;
       return '<div class="salary-widget" data-staffid="' + escapeAttr(r.staffId) + '" title="' + escapeHtml(r.name) + '">' +
         '<div class="sw-name">' + firstName + '</div>' +
+        '<div class="sw-today-label">За текущий месяц</div>' +
         '<div class="sw-amount">' + fmtMoney(r.amount) + '</div>' +
         '<div class="sw-today">' +
           '<span class="sw-today-label">Сегодня</span>' +
@@ -4457,12 +4469,12 @@
     }).join('');
     row.onclick = function(e){
       var widget = e.target.closest('.salary-widget');
-      if(widget) openSalaryDetail(widget.dataset.staffid);
+      if(widget) openSalaryDetail(widget.dataset.staffid, payrollOrdersForPeriod('month'));
     };
   }
 
   function openSalaryDetail(staffId, ordersOverride){
-    var sourceOrders = Array.isArray(ordersOverride) ? ordersOverride : state.orders;
+    var sourceOrders = Array.isArray(ordersOverride) ? ordersOverride : payrollOrdersForPeriod('month');
     var map = aggregateCommissionsByStaff(sourceOrders);
     var rec = map[staffId];
     if(!rec) return;
@@ -4596,8 +4608,8 @@
     var todayStr = now.getFullYear()+'-'+pad2(now.getMonth()+1)+'-'+pad2(now.getDate());
     var monthStr = now.getFullYear()+'-'+pad2(now.getMonth()+1);
 
-    var todayDone = state.orders.filter(function(o){ return o.status==='done' && (o.dateOut||'').startsWith(todayStr); });
-    var monthDone = state.orders.filter(function(o){ return o.status==='done' && (o.dateOut||'').startsWith(monthStr); });
+    var todayDone = salaryPeriodOrders('day', now);
+    var monthDone = salaryPeriodOrders('month', now);
 
     var todayRev = todayDone.reduce(function(s,o){ return s+calcOrderTotal(o); },0);
     var monthRev = monthDone.reduce(function(s,o){ return s+calcOrderTotal(o); },0);
@@ -8845,29 +8857,28 @@
 
   // ---------- Payroll tab ----------
 
-  var payrollPeriod = 'all';
-
-  function payrollOrdersForPeriod(period){
-    var done = state.orders.filter(function(o){
-      return o.status === 'done' && o.dateOut;
-    });
-    if(period === 'all') return done;
-
-    var now = new Date();
-    var today = localDateKey(now);
-    var daysBack = period === 'year' ? 364 : (period === 'month' ? 29 : (period === 'week' ? 6 : 0));
-    var fromDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() - daysBack);
-    var from = localDateKey(fromDate);
-
-    return done.filter(function(o){
-      return o.dateOut >= from && o.dateOut <= today;
-    });
+  var payrollPeriod = 'month';
+  var salaryRenderedDate = localDateKey(new Date());
+  function refreshSalaryCalendar(){
+    var day = localDateKey(new Date());
+    if(day === salaryRenderedDate || !state.loaded) return;
+    salaryRenderedDate = day;
+    renderSalaryWidgets();
+    renderDashboard();
+    if(state.activeTab === 'payroll') renderPayrollTab();
   }
+  setInterval(refreshSalaryCalendar, 60000);
+  document.addEventListener('visibilitychange', function(){
+    if(!document.hidden) refreshSalaryCalendar();
+  });
+
+  function payrollOrdersForPeriod(period){ return salaryPeriodOrders(period); }
 
   function payrollPeriodLabel(period){
+    if(period === 'previousMonth') return 'за прошлый месяц';
     return period === 'day' ? 'сегодня' :
       (period === 'week' ? 'за 7 дней' :
-      (period === 'month' ? 'за 30 дней' :
+      (period === 'month' ? 'за текущий месяц' :
       (period === 'year' ? 'за год' : 'за всё время')));
   }
 
@@ -8875,7 +8886,8 @@
     var periods = [
       ['day','Сегодня'],
       ['week','7 дней'],
-      ['month','30 дней'],
+      ['month','Этот месяц'],
+      ['previousMonth','Прошлый месяц'],
       ['year','Год'],
       ['all','Всё время']
     ];
@@ -8934,7 +8946,7 @@
 
     wrap.querySelectorAll('[data-pay-period]').forEach(function(btn){
       btn.addEventListener('click', function(){
-        payrollPeriod = btn.dataset.payPeriod || 'all';
+        payrollPeriod = btn.dataset.payPeriod || 'month';
         renderPayrollTab();
       });
     });

@@ -2816,9 +2816,48 @@
     catch(e){ console.error(e); showToast('Не удалось сохранить изменения'); return false; }
   }
 
+
+  var payrollSnapshots = null;
+  var payrollSnapshotMonth = '';
+  var payrollLoadPromise = null;
+  function payrollToday(){
+    return new Intl.DateTimeFormat('sv-SE',{timeZone:'Europe/Moscow',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
+  }
+  async function loadPayrollSnapshots(){
+    if(payrollLoadPromise) return payrollLoadPromise;
+    payrollLoadPromise = (async function(){
+      try{
+        var close = await getSB().rpc('close_payroll_months');
+        if(close.error) throw close.error;
+        var res = await getSB().from('payroll_months').select('month,closed_at,orders').order('month');
+        if(res.error) throw res.error;
+        payrollSnapshots = res.data || [];
+        payrollSnapshotMonth = payrollToday().slice(0,7);
+        return true;
+      }catch(e){
+        console.error('Не удалось загрузить зафиксированную зарплату',e);
+        payrollSnapshotMonth = '';
+        return false;
+      }finally{ payrollLoadPromise = null; }
+    })();
+    return payrollLoadPromise;
+  }
+  function payrollSourceOrders(){
+    // Never silently recalculate a closed month from mutable work orders.
+    if(!payrollSnapshots || payrollSnapshotMonth !== payrollToday().slice(0,7)) return [];
+    var frozen=[], ids={};
+    payrollSnapshots.forEach(function(s){
+      (s.orders||[]).forEach(function(o){ frozen.push(o); ids[o.id]=true; });
+    });
+    return frozen.concat(state.orders.filter(function(o){
+      return !ids[o.id] && String(o.dateOut||'').slice(0,7)>=payrollSnapshotMonth;
+    }));
+  }
+
   async function loadOrders(){
     var failed = false;
     try{
+      await loadPayrollSnapshots();
       var orders = await loadStoredItems('order:');
       orders.sort(function(a,b){ return (b.createdAt||0) - (a.createdAt||0); });
       state.orders = orders;
@@ -3469,6 +3508,7 @@
 
   // Returns array of { staffId, name, amount } commission entries for a single line item
   function calcLineCommissions(l){
+    if(Array.isArray(l.payrollCommissions)) return l.payrollCommissions;
     if(l.type !== 'work') return [];
     var assignees = (l.assignees||[]).filter(Boolean);
     if(assignees.length === 0) return [];
@@ -3512,7 +3552,7 @@
   }
 
   function salaryBreakdownForStaff(staffId, orders){
-    var source = Array.isArray(orders) ? orders : state.orders;
+    var source = Array.isArray(orders) ? orders : payrollSourceOrders();
     var rows = [];
     source.filter(function(o){ return o.status === 'done'; }).forEach(function(o){
       (o.lines||[]).forEach(function(l){
@@ -4274,7 +4314,7 @@
   var mobileSalaryView = 'salary';
 
   function currentSalaryMonthName(){
-    return ['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'][new Date().getMonth()];
+    return ['январь','февраль','март','апрель','май','июнь','июль','август','сентябрь','октябрь','ноябрь','декабрь'][Number(payrollToday().slice(5,7))-1];
   }
 
   function localDateKey(d){
@@ -4285,7 +4325,7 @@
   }
 
   function salaryPeriodOrders(period, currentDate){
-    var now = currentDate || new Date();
+    var now = currentDate || new Date(payrollToday()+'T12:00:00');
     var today = localDateKey(now);
     var from = today, through = today;
     if(period === 'month') from = localDateKey(new Date(now.getFullYear(), now.getMonth(), 1));
@@ -4295,7 +4335,7 @@
     }
     if(period === 'year') from = localDateKey(new Date(now.getFullYear(), 0, 1));
     if(period === 'week') from = localDateKey(new Date(now.getFullYear(), now.getMonth(), now.getDate()-6));
-    return state.orders.filter(function(o){
+    return payrollSourceOrders().filter(function(o){
       if(o.status !== 'done' || !o.dateOut) return false;
       var day = String(o.dateOut).slice(0,10);
       return period === 'all' || (day >= from && day <= through);
@@ -4307,7 +4347,7 @@
   function renderMobileDailySalary(){
     var box = document.getElementById('mobileDailySalary');
     if(!box) return;
-    if(!state.loaded || !state.staff || state.staff.length === 0){
+    if(!state.loaded || !state.staff || state.staff.length === 0 || !payrollSnapshots || payrollSnapshotMonth !== payrollToday().slice(0,7)){
       box.innerHTML = '';
       return;
     }
@@ -4452,7 +4492,7 @@
     renderMobileDailySalary();
     var row = document.getElementById('salaryWidgetsRow');
     if(!row) return;
-    if(!state.loaded){ row.innerHTML = ''; return; }
+    if(!state.loaded || !payrollSnapshots || payrollSnapshotMonth !== payrollToday().slice(0,7)){ row.innerHTML = ''; return; }
     var map = aggregateCommissionsByStaff(payrollOrdersForPeriod('month'));
     var todayMap = aggregateCommissionsByStaff(mobileSalaryOrders('day'));
     state.staff.forEach(function(staff){
@@ -4762,7 +4802,7 @@
 
     order.status = newStatus;
     if(newStatus === 'done'){
-      if(!order.dateOut) order.dateOut = todayStr();
+      if(!order.dateOut || order.dateOut.slice(0,7)<payrollToday().slice(0,7)) order.dateOut = payrollToday();
       if(!order.issuedAt) order.issuedAt = Date.now();
     }
     render();
@@ -8881,7 +8921,7 @@
   });
 
   function payrollMonthKey(){
-    return localDateKey(new Date()).slice(0,7);
+    return payrollToday().slice(0,7);
   }
   function payrollMonthName(key){
     var parts = key.split('-');
@@ -8890,8 +8930,8 @@
   }
   function payrollOrdersForPeriod(period){
     if(/^\d{4}-(0[1-9]|1[0-2])$/.test(period)){
-      var today = localDateKey(new Date());
-      return state.orders.filter(function(o){
+      var today = payrollToday();
+      return payrollSourceOrders().filter(function(o){
         var day = String(o.dateOut || '').slice(0,10);
         return o.status === 'done' && day.slice(0,7) === period && day <= today;
       });
@@ -8903,7 +8943,7 @@
     if(period === 'month') return 'за ' + payrollMonthName(payrollMonthKey());
     if(/^\d{4}-(0[1-9]|1[0-2])$/.test(period)) return 'за ' + payrollMonthName(period);
     if(period === 'previousMonth'){
-      var now = new Date();
+      var now = new Date(payrollToday()+'T12:00:00');
       return 'за ' + payrollMonthName(localDateKey(new Date(now.getFullYear(), now.getMonth()-1, 1)).slice(0,7));
     }
     return period === 'day' ? 'сегодня' : period === 'week' ? 'за 7 дней' :
@@ -8930,6 +8970,11 @@
 
   function renderPayrollTab(){
     var wrap = document.getElementById('payrollWrap');
+    if(!payrollSnapshots || payrollSnapshotMonth !== payrollToday().slice(0,7)){
+      wrap.innerHTML='<div class="pay-empty">Не удалось загрузить зафиксированную зарплату. <button class="btn" id="retryPayroll">Повторить</button></div>';
+      document.getElementById('retryPayroll').onclick=async function(){await loadPayrollSnapshots();renderPayrollTab();};
+      return;
+    }
     var periodOrders = payrollOrdersForPeriod(payrollPeriod);
     var map = aggregateCommissionsByStaff(periodOrders);
     var rows = Object.keys(map).map(function(k){ return map[k]; });
@@ -8943,6 +8988,9 @@
       '<div class="pay-hero-meta">Только по выданным ЗН' + (rows.length ? ' · ' + rows.length + ' сотрудник(ов)' : '') + '</div>' +
     '</div>' +
     payrollPeriodButtons();
+    if(/^\\d{4}-\\d{2}$/.test(payrollPeriod) && payrollPeriod < payrollSnapshotMonth){
+      html += '<div class="pay-hero-meta" style="margin:0 0 16px">🔒 Месяц закрыт. Начисления и расшифровка зафиксированы.</div>';
+    }
 
     if(rows.length === 0){
       html += '<div class="pay-empty">За выбранный период начислений нет. Зарплата появляется по выданным ЗН, где на работе назначен исполнитель.</div>';
@@ -9734,6 +9782,12 @@
     if(results[5]) await seedDefaultPriceListIfNeeded();
     renderCurrentView();
     startRealtimeSync();
+    if(!window._payrollMonthTimer) window._payrollMonthTimer=setInterval(function(){
+      if(document.getElementById('appRoot').style.display==='none') return;
+      if(payrollSnapshotMonth && payrollSnapshotMonth!==payrollToday().slice(0,7)){
+        loadPayrollSnapshots().then(renderCurrentView);
+      }
+    },60000);
   }
 
   // ---------- Auth ----------
@@ -9745,6 +9799,7 @@
   }
 
   function showAuthScreen(){
+    payrollSnapshots=null; payrollSnapshotMonth='';
     document.getElementById('authScreen').style.display = 'flex';
     document.getElementById('appRoot').style.display = 'none';
   }

@@ -8311,12 +8311,27 @@
   }
 
   function partkomReceiptKey(x){ return [x.order||'',x.row||'',x.sku||''].join('|'); }
-  function findStockItemForPartkom(x){ var sku=String(x.sku||'').trim().toLowerCase(); if(sku){ var bySku=state.stockItems.find(function(s){return String(s.sku||'').trim().toLowerCase()===sku;}); if(bySku)return bySku; } return findStockItemByName(x.name||''); }
+  function partkomIdentity(v){ return String(v||'').replace(/\s+/g,'').toLowerCase(); }
+  function findStockItemForPartkom(x){
+    var sku=partkomIdentity(x.sku), brand=partkomIdentity(x.brand);
+    // A shared description is not a product identifier. Never merge different SKUs or brands.
+    var matches=state.stockItems.filter(function(s){
+      if(partkomIdentity(s.brand)!==brand) return false;
+      if(sku) return partkomIdentity(s.sku)===sku;
+      return !partkomIdentity(s.sku) && String(s.name||'').trim().toLowerCase()===String(x.name||'').trim().toLowerCase();
+    });
+    return matches.length===1 ? matches[0] : null;
+  }
+  function partkomReceiptAlreadyReceived(key){
+    return state.stockItems.some(function(s){return Array.isArray(s.partkomReceipts) && s.partkomReceipts.indexOf(key)!==-1;});
+  }
   async function receivePartkomItem(groupIndex,itemIndex){
     var g=(state.partkomHistoryGroups||[])[groupIndex], x=g&&g.items&&g.items[itemIndex]; if(!g||!x)return;
     var qty=Number(x.quantity)||0;
     if(qty<=0){ showToast('У этой позиции количество 0'); return; }
-    var key=partkomReceiptKey(x), item=findStockItemForPartkom(x);
+    var key=partkomReceiptKey(x);
+    if(partkomReceiptAlreadyReceived(key)){ showToast('Эта позиция уже оприходована'); return; }
+    var item=findStockItemForPartkom(x);
     if(!item){ item={id:stockItemUid(),name:x.name||x.sku||'Запчасть',brand:x.brand||'',sku:x.sku||'',costPrice:Number(x.costPrice)||0,quantity:0,minQuantity:0,partkomReceipts:[]}; state.stockItems.push(item); }
     item.partkomReceipts=Array.isArray(item.partkomReceipts)?item.partkomReceipts:[];
     if(item.partkomReceipts.indexOf(key)!==-1){ showToast('Эта позиция уже оприходована'); return; }

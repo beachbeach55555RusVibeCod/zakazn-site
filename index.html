@@ -3551,7 +3551,7 @@
     return stockRecency(b)-stockRecency(a) || String(a.name||'').localeCompare(String(b.name||''),'ru') || String(a.id||'').localeCompare(String(b.id||''));
   }
 
-  function stockOrderPartName(item){ var brand=String(item&&item.brand||'').trim(), name=String(item&&item.name||'').trim(); return brand ? brand+' · '+name : name; }
+  function stockOrderPartName(item){ var brand=String(item&&item.brand||'').trim(), name=String(item&&item.name||'').trim(); return (brand ? brand+' · '+name : name)+(item&&item.unit==='l'?' (л)':''); }
   function roundPriceToTenth(value){
     var n = Number(value) || 0;
     return Math.round((n + Number.EPSILON) * 10) / 10;
@@ -3585,11 +3585,23 @@
   }
 
   // Build a map stockItemId -> total qty used, from an order's part lines.
+
+  function stockUnit(item){return item && item.unit==='l' ? 'л' : 'шт.';}
+  function lineUnit(line){return line.unit==='l' || (line.stockItemId && (getStockItemById(line.stockItemId)||{}).unit==='l') ? 'л' : 'шт.';}
+  function stockRound(value){return Math.round((Number(value)||0)*1000)/1000;}
+  function stockAddAmount(item,remaining){return item.unit==='l' ? Math.min(1,remaining) : 1;}
+  function displayedLineQty(line){return String(line.qty||0)+(lineUnit(line)==='л'?' л':'');}
+  function bulkReceipt(volume,containers,totalPerContainer){
+    volume=Number(volume);containers=Number(containers);totalPerContainer=Number(totalPerContainer);
+    if(!Number.isFinite(volume)||volume<=0||!Number.isInteger(containers)||containers<=0||!Number.isFinite(totalPerContainer)||totalPerContainer<0)throw new Error('Укажите объём тары больше 0, целое количество тар и закупочную цену не меньше 0.');
+    return {quantity:stockRound(volume*containers),costPrice:Math.round(totalPerContainer/volume*10000)/10000,containerVolume:volume};
+  }
+
   function stockUsageMap(order){
     var map = {};
     (order && order.lines || []).forEach(function(l){
       if(l.type === 'part' && l.stockItemId){
-        map[l.stockItemId] = (map[l.stockItemId] || 0) + (Number(l.qty) || 0);
+        map[l.stockItemId] = stockRound((map[l.stockItemId] || 0) + (Number(l.qty) || 0));
       }
     });
     return map;
@@ -3598,6 +3610,9 @@
   // Checks whether applying the diff between oldOrder and newLines is possible given current stock.
   // Returns { ok:true } or { ok:false, item: stockItem, needed: number, available: number }
   function checkStockAvailability(oldOrder, newLines){
+    var invalid=(newLines||[]).find(function(l){return l.type==='part'&&l.stockItemId&&(!Number.isFinite(Number(l.qty))||Number(l.qty)<=0);});
+    if(invalid)return {ok:false,invalidQuantity:true,item:getStockItemById(invalid.stockItemId),needed:invalid.qty,available:0};
+
     var oldMap = stockUsageMap(oldOrder);
     var newMap = stockUsageMap({ lines: newLines });
     var allIds = {};
@@ -3605,7 +3620,7 @@
     Object.keys(newMap).forEach(function(id){ allIds[id] = true; });
 
     for(var id in allIds){
-      var diff = (newMap[id]||0) - (oldMap[id]||0);
+      var diff = stockRound((newMap[id]||0) - (oldMap[id]||0));
       if(diff > 0){
         var item = getStockItemById(id);
         var available = item ? Number(item.quantity)||0 : 0;
@@ -3626,11 +3641,11 @@
     Object.keys(newMap).forEach(function(id){ allIds[id] = true; });
 
     for(var id in allIds){
-      var diff = (newMap[id]||0) - (oldMap[id]||0);
+      var diff = stockRound((newMap[id]||0) - (oldMap[id]||0));
       if(diff === 0) continue;
       var item = getStockItemById(id);
       if(!item) continue;
-      item.quantity = (Number(item.quantity)||0) - diff;
+      item.quantity = stockRound((Number(item.quantity)||0) - diff);
       if(item.quantity < 0) item.quantity = 0;
       await saveStockItem(item);
     }
@@ -3642,7 +3657,7 @@
     for(var id in usage){
       var item = getStockItemById(id);
       if(!item) continue;
-      item.quantity = (Number(item.quantity)||0) + usage[id];
+      item.quantity = stockRound((Number(item.quantity)||0) + usage[id]);
       await saveStockItem(item);
     }
   }
@@ -5048,7 +5063,7 @@
         ? commissions.map(function(c){ return escapeHtml(c.name) + ' (' + fmtMoney(c.amount) + ')'; }).join(', ')
         : '<span style="color:var(--text-subtle);">не назначен</span>';
       return '<tr><td>' + escapeHtml(l.name||'') + '</td>' +
-        '<td class="num">' + (l.qty||0) + '</td>' +
+        '<td class="num">' + displayedLineQty(l) + '</td>' +
         '<td class="num">' + escapeHtml(displayNormHours(l, detailClient)) + '</td>' +
         '<td class="num">' + fmtMoney(l.price) + '</td>' +
         '<td class="num">' + fmtMoney(lineTotal(l)) + '</td>' +
@@ -5057,7 +5072,7 @@
 
     var partRowsHtml = partLines.map(function(l){
       return '<tr><td>' + escapeHtml(l.name||'') + '</td>' +
-        '<td class="num">' + (l.qty||0) + '</td>' +
+        '<td class="num">' + displayedLineQty(l) + '</td>' +
         '<td class="num">' + fmtMoney(l.price) + '</td>' +
         '<td class="num">' + fmtMoney(lineTotal(l)) + '</td></tr>';
     }).join('');
@@ -5364,7 +5379,7 @@
         return '<tr>' +
           '<td class="num" style="color:#888;">' + (i+1) + '</td>' +
           '<td>' + escapeHtml(l.name||'') + '</td>' +
-          '<td class="num">' + (l.qty||1) + '</td>' +
+          '<td class="num">' + displayedLineQty(l) + '</td>' +
           '<td class="num">' + (function(){ var h=(l.normHours!==undefined&&l.normHours!==null&&l.normHours!=='')?Number(l.normHours):null; var rate=Number(l.hourRate)||Number(client.hourRate)||0; if(h===null && rate>0) h=Math.round(((Number(l.price)||0)/rate)*100)/100; return h===null?'—':escapeHtml(String(h)); })() + '</td>' +
           '<td class="num">' + fmtMoney(l.price) + '</td>' +
           '<td class="num"><b>' + fmtMoney(lineTotal(l)) + '</b></td>' +
@@ -5378,7 +5393,7 @@
         return '<tr>' +
           '<td class="num" style="color:#888;">' + (i+1) + '</td>' +
           '<td>' + escapeHtml(l.name||'') + '</td>' +
-          '<td class="num">' + (l.qty||1) + '</td>' +
+          '<td class="num">' + displayedLineQty(l) + '</td>' +
           '<td class="num">' + fmtMoney(l.price) + '</td>' +
           '<td class="num"><b>' + fmtMoney(lineTotal(l)) + '</b></td>' +
         '</tr>';
@@ -5646,7 +5661,7 @@
         '<td class="num" style="color:#888;">' + (i+1) + '</td>' +
         '<td>' + escapeHtml(l.name||'') + '</td>' +
         '<td>' + escapeHtml(unit) + '</td>' +
-        '<td class="num">' + (l.qty||1) + '</td>' +
+        '<td class="num">' + displayedLineQty(l) + '</td>' +
         '<td class="num">' + (l.type === 'work' ? escapeHtml(displayNormHours(l, client)) : '—') + '</td>' +
         '<td class="num">' + fmtMoney(l.price) + '</td>' +
         '<td class="num"><b>' + fmtMoney(lineTotal(l)) + '</b></td>' +
@@ -5767,7 +5782,7 @@
         return '<tr>' +
           '<td class="num" style="color:#888;">' + (i+1) + '</td>' +
           '<td>' + escapeHtml(l.name||'') + '</td>' +
-          '<td class="num">' + (l.qty||1) + '</td>' +
+          '<td class="num">' + displayedLineQty(l) + '</td>' +
           (includeNormHours ? '<td class="num">' + escapeHtml(displayNormHours(l, client)) + '</td>' : '') +
           '<td class="num">' + fmtMoney(l.price) + '</td>' +
           '<td class="num"><b>' + fmtMoney(lineTotal(l)) + '</b></td>' +
@@ -6157,7 +6172,7 @@
     function remainingStock(item){
       var oldUsed=stockUsageMap(existingOrder)[item.id]||0;
       var used=stockUsageMap(qOrder)[item.id]||0;
-      return Math.max(0,(Number(item.quantity)||0)+oldUsed-used);
+      return Math.max(0,stockRound((Number(item.quantity)||0)+oldUsed-used));
     }
     function renderQuickStock(){
       var term=overlay.querySelector('#qStockSearch').value.trim().toLowerCase();
@@ -6170,17 +6185,18 @@
         var button=document.createElement('button');button.type='button';button.className='q-stock-item';
         var inOrder=stockUsageMap(qOrder)[item.id]||0;
         var available=remainingStock(item);
-        button.disabled=available<1;
-        button.innerHTML='<div class="q-stock-brand">'+escapeHtml(item.brand||'Без бренда')+'</div><div class="q-stock-name">'+escapeHtml(item.name||'Запчасть')+'</div><div class="q-stock-meta"><span>'+escapeHtml(item.sku||'Без артикула')+'</span><span>В ЗН: '+inOrder+' шт. · Ещё доступно: '+available+' шт.</span></div><div class="q-stock-meta"><strong>'+fmtMoney(stockSellPrice(item))+'</strong><span style="color:var(--accent)">'+(available>0?'+ 1 шт. в ЗН':'Всё добавлено')+'</span></div>';
+        button.disabled=available < (item.unit==='l' ? 0.001 : 1);
+        button.innerHTML='<div class="q-stock-brand">'+escapeHtml(item.brand||'Без бренда')+'</div><div class="q-stock-name">'+escapeHtml(item.name||'Запчасть')+'</div><div class="q-stock-meta"><span>'+escapeHtml(item.sku||'Без артикула')+'</span><span>В ЗН: '+inOrder+' '+stockUnit(item)+' · Ещё доступно: '+available+' '+stockUnit(item)+'</span></div><div class="q-stock-meta"><strong>'+fmtMoney(stockSellPrice(item))+'</strong><span style="color:var(--accent)">'+(available>0?'+ '+stockAddAmount(item,available)+' '+stockUnit(item)+' в ЗН':'Всё добавлено')+'</span></div>';
         button.onclick=function(){
           var current=getStockItemById(item.id);
-          if(!current || remainingStock(current)<1){showToast('Недостаточно остатка для добавления');renderQuickStock();return;}
+          if(!current || remainingStock(current)<(current.unit==='l'?0.001:1)){showToast('Недостаточно остатка для добавления');renderQuickStock();return;}
           var line=qOrder.lines.find(function(l){return l.type==='part' && l.stockItemId===current.id;});
-          if(line){line.qty=(Number(line.qty)||0)+1;}
+          var addQty=stockAddAmount(current,remainingStock(current));
+          if(line){line.qty=stockRound((Number(line.qty)||0)+addQty);}
           else{
             line=qOrder.lines.find(function(l){return l.type==='part' && !l.name && !l.stockItemId && !l.price && !l.costPrice;});
             if(!line){line={_key:lineId(),type:'part',assignees:[]};qOrder.lines.push(line);}
-            Object.assign(line,{name:stockOrderPartName(current),stockItemId:current.id,qty:1,costPrice:Number(current.costPrice)||0,price:stockSellPrice(current)});
+            Object.assign(line,{name:stockOrderPartName(current),stockItemId:current.id,unit:current.unit||'pcs',qty:addQty,costPrice:Number(current.costPrice)||0,price:stockSellPrice(current)});
           }
           renderQLines();updateQTotal();renderQuickStock();showToast('Добавлено: '+stockOrderPartName(current));
         };results.appendChild(button);
@@ -6243,6 +6259,7 @@
       line.name = name;
       var stockMatch = null;
       line.stockItemId = stockMatch ? stockMatch.id : null;
+              line.unit=stockMatch&&stockMatch.unit==='l'?'l':'pcs';
       if(stockMatch){
         line.costPrice = roundPriceToTenth(stockMatch.costPrice);
         line.price = stockSellPrice(stockMatch);
@@ -6322,7 +6339,7 @@
           : '<input class="q-price" data-key="' + escapeAttr(line._key) + '" data-f="price" type="number" min="0" step="0.01" value="' + (line.price||'') + '" placeholder="Цена" title="Цена" style="' + fi + 'padding:8px 6px;">';
         row.innerHTML =
           '<input class="q-name" data-key="' + escapeAttr(line._key) + '" data-f="name" value="' + escapeHtml(line.name) + '" placeholder="' + (type === 'work' ? 'Работа' : 'Запчасть') + '"' + ' autocomplete="off" style="' + fi + 'padding:8px 10px;">' +
-          '<input class="q-qty" data-key="' + escapeAttr(line._key) + '" data-f="qty" type="number" min="1" value="' + line.qty + '" placeholder="Кол" style="' + fi + 'padding:8px 6px;text-align:center;">' +
+          '<input class="q-qty" data-key="' + escapeAttr(line._key) + '" data-f="qty" type="number" min="' + (lineUnit(line)==='л'?0.001:1) + '" step="' + (lineUnit(line)==='л'?0.001:1) + '" value="' + line.qty + '" title="Количество, ' + lineUnit(line) + '" placeholder="Кол" style="' + fi + 'padding:8px 6px;text-align:center;">' +
           (type === 'work' ? '<input class="q-hours" data-key="' + escapeAttr(line._key) + '" data-f="normHours" type="number" min="0" step="0.01" value="' + (line.normHours===undefined?'':line.normHours) + '" placeholder="Н/ч" title="Время: цена работы ÷ ставка нормо-часа" readonly style="' + fi + 'padding:8px 6px;">' : '') +
           quickPriceFields +
           '<button class="q-remove" data-key="' + escapeAttr(line._key) + '" data-f="remove" style="background:none;border:none;color:var(--text-subtle);cursor:pointer;font-size:18px;padding:0 4px;line-height:1;">×</button>' +
@@ -6345,6 +6362,7 @@
               var stockMatch = line.stockItemId ? getStockItemById(line.stockItemId) : null;
               if(stockMatch && el.value !== stockOrderPartName(stockMatch)) stockMatch=null;
               line.stockItemId = stockMatch ? stockMatch.id : null;
+              line.unit=stockMatch&&stockMatch.unit==='l'?'l':'pcs';
               var costInput = currentRow.querySelector('.q-cost');
               var priceInput = currentRow.querySelector('.q-price');
               if(stockMatch){
@@ -6535,6 +6553,7 @@
           type:l.type,
           assignees:l.type === 'work' ? (l.assignees||[]).filter(Boolean) : [],
           stockItemId:l.type === 'part' ? (l.stockItemId || null) : null,
+          unit:lineUnit(l)==='л'?'l':'pcs',
           costPrice:l.type === 'part' ? (Number(l.costPrice)||0) : null,
           quickCostPrice:manualQuickPart ? (Number(l.costPrice)||0) : null
         };
@@ -6543,7 +6562,7 @@
       var stockCheck = checkStockAvailability(existingOrder, order.lines);
       if(!stockCheck.ok){
         var itemName = stockCheck.item ? stockCheck.item.name : 'запчасть';
-        var stockError='Недостаточно на складе «' + itemName + '»: нужно ' + stockCheck.needed + ', есть ' + stockCheck.available;
+        var stockError=stockCheck.invalidQuantity?'Укажите количество запчасти больше нуля.':'Недостаточно на складе «' + itemName + '»: нужно ' + stockCheck.needed + ', есть ' + stockCheck.available;
         errorBox.textContent=stockError;errorBox.hidden=false;showToast(stockError);
         if(overlay.classList.contains('q-stock-open')) renderQuickStock();
         btn.disabled = false;
@@ -6764,7 +6783,7 @@
     function remainingStock(item){
       var oldUsed=stockUsageMap(existing)[item.id]||0;
       var used=stockUsageMap(order)[item.id]||0;
-      return Math.max(0,(Number(item.quantity)||0)+oldUsed-used);
+      return Math.max(0,stockRound((Number(item.quantity)||0)+oldUsed-used));
     }
     function renderFullStock(){
       var term=overlay.querySelector('#fullStockSearch').value.trim().toLowerCase();
@@ -6777,17 +6796,18 @@
         var button=document.createElement('button');button.type='button';button.className='q-stock-item';
         var inOrder=stockUsageMap(order)[item.id]||0;
         var available=remainingStock(item);
-        button.disabled=available<1;
-        button.innerHTML='<div class="q-stock-brand">'+escapeHtml(item.brand||'Без бренда')+'</div><div class="q-stock-name">'+escapeHtml(item.name||'Запчасть')+'</div><div class="q-stock-meta"><span>'+escapeHtml(item.sku||'Без артикула')+'</span><span>В ЗН: '+inOrder+' шт. · Ещё доступно: '+available+' шт.</span></div><div class="q-stock-meta"><strong>'+fmtMoney(stockSellPrice(item))+'</strong><span style="color:var(--accent)">'+(available>0?'+ 1 шт. в ЗН':'Всё добавлено')+'</span></div>';
+        button.disabled=available < (item.unit==='l' ? 0.001 : 1);
+        button.innerHTML='<div class="q-stock-brand">'+escapeHtml(item.brand||'Без бренда')+'</div><div class="q-stock-name">'+escapeHtml(item.name||'Запчасть')+'</div><div class="q-stock-meta"><span>'+escapeHtml(item.sku||'Без артикула')+'</span><span>В ЗН: '+inOrder+' '+stockUnit(item)+' · Ещё доступно: '+available+' '+stockUnit(item)+'</span></div><div class="q-stock-meta"><strong>'+fmtMoney(stockSellPrice(item))+'</strong><span style="color:var(--accent)">'+(available>0?'+ '+stockAddAmount(item,available)+' '+stockUnit(item)+' в ЗН':'Всё добавлено')+'</span></div>';
         button.onclick=function(){
           var current=getStockItemById(item.id);
-          if(!current || remainingStock(current)<1){showToast('Недостаточно остатка для добавления');renderFullStock();return;}
+          if(!current || remainingStock(current)<(current.unit==='l'?0.001:1)){showToast('Недостаточно остатка для добавления');renderFullStock();return;}
           var line=order.lines.find(function(l){return l.type==='part' && l.stockItemId===current.id;});
-          if(line){line.qty=(Number(line.qty)||0)+1;}
+          var addQty=stockAddAmount(current,remainingStock(current));
+          if(line){line.qty=stockRound((Number(line.qty)||0)+addQty);}
           else{
             line=order.lines.find(function(l){return l.type==='part' && !l.name && !l.stockItemId && !l.price && !l.costPrice;});
             if(!line){line={_key:lineId(),type:'part',assignees:[]};order.lines.push(line);}
-            Object.assign(line,{name:stockOrderPartName(current),stockItemId:current.id,qty:1,costPrice:Number(current.costPrice)||0,price:stockSellPrice(current)});
+            Object.assign(line,{name:stockOrderPartName(current),stockItemId:current.id,unit:current.unit||'pcs',qty:addQty,costPrice:Number(current.costPrice)||0,price:stockSellPrice(current)});
           }
           renderAllLines();renderFullStock();showToast('Добавлено: '+stockOrderPartName(current));
         };results.appendChild(button);
@@ -7031,6 +7051,7 @@
 
       line.name = name;
       line.stockItemId = null;
+      line.unit='pcs';
 
       renderAllLines();
 
@@ -7110,7 +7131,7 @@
           '<div class="line-row">' +
             '<input type="text" placeholder="Например: Замена масла" value="' + escapeHtml(line.name) + '" data-field="name" list="' + nameDatalistId + '" autocomplete="off">' +
             '<datalist id="' + nameDatalistId + '">' + nameOptions + '</datalist>' +
-            '<input type="number" min="0" step="1" value="' + (line.qty||1) + '" data-field="qty">' +
+            '<input type="number" min="0" step="' + (lineUnit(line)==='л'?0.001:1) + '" value="' + (line.qty||1) + '" data-field="qty">' +
             '<input type="number" min="0" step="0.01" value="' + (line.price||0) + '" data-field="price">' +
             '<input type="number" min="0" step="0.01" value="' + (line.normHours===undefined?'':line.normHours) + '" data-field="normHours" placeholder="Н/ч" title="Время: цена работы ÷ ставка нормо-часа" readonly>' +
             '<span class="line-sum">' + fmtMoney(lineTotal(line)) + '</span>' +
@@ -7199,7 +7220,7 @@
             '<input type="text" placeholder="Например: Масляный фильтр" value="' + escapeHtml(line.name) + '" data-field="name" autocomplete="off">' +
           '</div>' +
           '<div class="line-row part-line-row">' +
-            '<input type="number" min="0" step="1" value="' + (line.qty||1) + '" data-field="qty" title="Количество">' +
+            '<input type="number" min="0" step="' + (lineUnit(line)==='л'?0.001:1) + '" value="' + (line.qty||1) + '" data-field="qty" title="Количество, ' + lineUnit(line) + '">' +
             '<input class="part-cost-input" type="number" min="0" step="0.1" value="' + priceInputValue(line.costPrice||0) + '" data-field="costPrice" placeholder="Закупка" title="' + (line.stockItemId ? 'Закупочная цена со склада' : 'Закупочная цена; после изменения цена продажи пересчитается с +45%') + '"' + (line.stockItemId ? ' readonly' : '') + '>' +
             '<input class="part-sell-input" type="number" min="0" step="0.1" value="' + priceInputValue(line.price||0) + '" data-field="price" placeholder="После наценки" title="Цена продажи после наценки — можно изменить вручную">' +
             '<span class="line-sum">' + fmtMoney(lineTotal(line)) + '</span>' +
@@ -7214,6 +7235,7 @@
               var stockMatch = getStockItemById(previousStockItemId);
               if(stockMatch && inp.value !== stockOrderPartName(stockMatch)) stockMatch = null;
               line.stockItemId = stockMatch ? stockMatch.id : null;
+              line.unit=stockMatch&&stockMatch.unit==='l'?'l':'pcs';
               var costInput2 = block.querySelector('.line-row input[data-field="costPrice"]');
               var priceInput2 = block.querySelector('.line-row input[data-field="price"]');
               if(stockMatch){
@@ -7422,6 +7444,7 @@
           type: l.type === 'part' ? 'part' : 'work',
           assignees: l.type === 'work' ? (l.assignees||[]).filter(Boolean) : [],
           stockItemId: l.type === 'part' ? (l.stockItemId || null) : null,
+          unit:lineUnit(l)==='л'?'l':'pcs',
           costPrice: l.type === 'part' ? (Number(l.costPrice)||0) : null,
           quickCostPrice: (l.type === 'part' && !l.stockItemId) ? (Number(l.costPrice)||0) : null
         };
@@ -7451,7 +7474,7 @@
     var stockCheck = checkStockAvailability(existingOrderForStock, order.lines);
     if(!stockCheck.ok){
       var itemName = stockCheck.item ? stockCheck.item.name : 'запчасть';
-      showToast('Недостаточно на складе «' + itemName + '»: нужно ' + stockCheck.needed + ', есть ' + stockCheck.available);
+      showToast(stockCheck.invalidQuantity?'Укажите количество запчасти больше нуля.':'Недостаточно на складе «' + itemName + '»: нужно ' + stockCheck.needed + ', есть ' + stockCheck.available);
       return;
     }
 
@@ -8464,9 +8487,9 @@
         var badge = qty <= 0 ? '<span class="stock-badge zero">нет в наличии</span>' : (minQty > 0 && qty <= minQty ? '<span class="stock-badge low">заканчивается</span>' : '');
         html += '<tr class="' + rowClass + '">' +
           '<td><div class="stock-name">' + escapeHtml(s.name) + badge + '</div>' + ((s.brand||s.sku) ? '<div class="stock-sku">' + (s.brand ? escapeHtml(s.brand) : '') + (s.brand&&s.sku ? ' · ' : '') + (s.sku ? 'арт. ' + escapeHtml(s.sku) : '') + '</div>' : '') + '</td>' +
-          '<td class="stock-qty ' + qtyClass + '">' + qty + '</td>' +
-          '<td class="stock-num stock-cost-col">' + fmtMoney(s.costPrice) + '</td>' +
-          '<td class="stock-num stock-sale-col">' + fmtMoney(stockSellPrice(s)) + '</td>' +
+          '<td class="stock-qty ' + qtyClass + '">' + qty + ' '+stockUnit(s)+'</td>' +
+          '<td class="stock-num stock-cost-col">' + fmtMoney(s.costPrice) + (s.unit==='l'?' / л':'') + '</td>' +
+          '<td class="stock-num stock-sale-col">' + fmtMoney(stockSellPrice(s)) + (s.unit==='l'?' / л':'') + '</td>' +
           '<td><div class="stock-actions">' +
             '<button class="icon-btn" data-edit-stock="' + escapeAttr(s.id) + '" title="Редактировать">✎</button>' +
             '<button class="icon-btn danger" data-delete-stock="' + escapeAttr(s.id) + '" title="Удалить">&times;</button>' +
@@ -8559,6 +8582,7 @@
     var key=partkomReceiptKey(x);
     if(partkomReceiptAlreadyReceived(key)){ showToast('Эта позиция уже оприходована'); return; }
     var item=findStockItemForPartkom(x);
+    if(item && item.unit==='l'){showToast('Товар учитывается в литрах. Откройте его карточку склада и добавьте тару с указанием объёма.');return;}
     if(!item){ item={id:stockItemUid(),name:x.name||x.sku||'Запчасть',brand:x.brand||'',sku:x.sku||'',costPrice:Number(x.costPrice)||0,quantity:0,minQuantity:0,createdAt:Date.now(),partkomReceipts:[]}; state.stockItems.push(item); }
     item.partkomReceipts=Array.isArray(item.partkomReceipts)?item.partkomReceipts:[];
     if(item.partkomReceipts.indexOf(key)!==-1){ showToast('Эта позиция уже оприходована'); return; }
@@ -8925,6 +8949,7 @@
     var item = editId ? JSON.parse(JSON.stringify(getStockItemById(editId))) : { id: stockItemUid(), name:'', sku:'', costPrice:0, quantity:0, minQuantity:0 };
     state.editingStockItemId = editId || null;
 
+    var originalUnit=item.unit==='l'?'l':'pcs';
     var html =
       '<div class="modal-overlay" id="stockFormOverlay">' +
         '<div class="modal" style="max-width:460px;">' +
@@ -8935,13 +8960,20 @@
           '<div class="modal-body">' +
             '<div class="field required"><label>Название</label><input id="sf_name" type="text" placeholder="Например: Масляный фильтр Mann W712" value="' + escapeHtml(item.name) + '"></div>' +
             '<div class="field"><label>Артикул (опционально)</label><input id="sf_sku" type="text" placeholder="W712" value="' + escapeHtml(item.sku||'') + '"></div>' +
-            '<div class="grid2">' +
-              '<div class="field required"><label>Закупочная цена, ₽</label><input id="sf_cost" type="number" min="0" step="0.01" value="' + (item.costPrice||0) + '"></div>' +
-              '<div class="field"><label>Цена продажи (расчётная)</label><input id="sf_sellPreview" type="text" disabled value="' + fmtMoney(stockSellPrice(item)) + '" style="opacity:0.7;"></div>' +
+            '<div class="field"><label>Единица учёта</label><select id="sf_unit" '+(editId?'disabled':'')+'><option value="pcs" '+(item.unit!=='l'?'selected':'')+'>Штуки</option><option value="l" '+(item.unit==='l'?'selected':'')+'>Литры — масло и жидкости</option></select>'+(editId?'<small style="color:var(--text-muted)">Единица существующего товара сохраняется для корректной истории списаний.</small>':'')+'</div>' +
+            '<div id="sf_bulk" style="display:none;border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px">' +
+              '<div style="font-weight:600;margin-bottom:10px">Приёмка тары</div>' +
+              '<div class="grid2"><div class="field"><label>Объём одной тары, л</label><input id="sf_volume" type="number" min="0.001" step="0.001" value="'+(item.containerVolume||200)+'"></div><div class="field"><label>Количество тар</label><input id="sf_containers" type="number" min="1" step="1" value="1"></div></div>' +
+              '<div class="field"><label>Закупочная цена одной тары, ₽</label><input id="sf_containerCost" type="number" min="0" step="0.01" value=""></div>' +
+              '<button class="btn btn-ghost" type="button" id="sf_applyBulk">Добавить тару к остатку</button><div id="sf_bulkResult" role="status" style="font-size:12px;color:var(--accent);margin-top:8px">После расчёта нажмите «Сохранить».</div>' +
             '</div>' +
             '<div class="grid2">' +
-              '<div class="field required"><label>Остаток на складе, шт</label><input id="sf_qty" type="number" min="0" step="1" value="' + (item.quantity||0) + '"></div>' +
-              '<div class="field"><label>Мин. остаток (для подсветки)</label><input id="sf_minQty" type="number" min="0" step="1" value="' + (item.minQuantity||0) + '"></div>' +
+              '<div class="field required"><label id="sf_costLabel">Закупочная цена, ₽ / шт.</label><input id="sf_cost" type="number" min="0" step="0.01" value="' + (item.costPrice||0) + '"></div>' +
+              '<div class="field"><label id="sf_saleLabel">Цена продажи за штуку</label><input id="sf_sellPreview" type="text" disabled value="' + fmtMoney(stockSellPrice(item)) + '" style="opacity:0.7;"></div>' +
+            '</div>' +
+            '<div class="grid2">' +
+              '<div class="field required"><label id="sf_qtyLabel">Остаток на складе, шт.</label><input id="sf_qty" type="number" min="0" step="0.001" value="' + (item.quantity||0) + '"></div>' +
+              '<div class="field"><label>Мин. остаток (для подсветки)</label><input id="sf_minQty" type="number" min="0" step="0.001" value="' + (item.minQuantity||0) + '"></div>' +
             '</div>' +
           '</div>' +
           '<div class="modal-foot">' +
@@ -8961,6 +8993,34 @@
       if(e.target.id === 'stockFormOverlay') closeModal();
     });
 
+
+    var appliedBulk=null;
+    function updateStockUnits(){
+      var litres=document.getElementById('sf_unit').value==='l';
+      document.getElementById('sf_bulk').style.display=litres?'':'none';
+      document.getElementById('sf_costLabel').textContent='Закупочная цена, ₽ / '+(litres?'л':'шт.');
+      document.getElementById('sf_saleLabel').textContent='Цена продажи за '+(litres?'литр':'штуку');
+      document.getElementById('sf_qtyLabel').textContent='Остаток на складе, '+(litres?'л':'шт.');
+      document.getElementById('sf_qty').step=litres?'0.001':'1';
+      document.getElementById('sf_minQty').step=litres?'0.001':'1';
+    }
+    document.getElementById('sf_unit').addEventListener('change',updateStockUnits);
+    updateStockUnits();
+    document.getElementById('sf_applyBulk').onclick=function(){
+      try{
+        var priceField=document.getElementById('sf_containerCost');
+        if(priceField.value==='')throw new Error('Укажите закупочную цену тары.');
+        var receipt=bulkReceipt(document.getElementById('sf_volume').value,document.getElementById('sf_containers').value,priceField.value);
+        var signature=[receipt.quantity,receipt.costPrice,receipt.containerVolume].join('|');
+        if(appliedBulk===signature){showToast('Эта тара уже добавлена в текущую форму');return;}
+        document.getElementById('sf_qty').value=stockRound(Number(document.getElementById('sf_qty').value)+receipt.quantity);
+        document.getElementById('sf_cost').value=receipt.costPrice;
+        document.getElementById('sf_sellPreview').value=fmtMoney(stockSellPrice({costPrice:receipt.costPrice}))+' / л';
+        document.getElementById('sf_bulkResult').textContent='Добавлено '+receipt.quantity+' л · закупка '+fmtMoney(receipt.costPrice)+' / л. Нажмите «Сохранить».';
+        appliedBulk=signature;
+        document.getElementById('sf_unit').disabled=true;
+      }catch(e){showToast(e.message);}
+    };
     document.getElementById('sf_cost').addEventListener('input', function(){
       var preview = { costPrice: document.getElementById('sf_cost').value };
       document.getElementById('sf_sellPreview').value = fmtMoney(stockSellPrice(preview));
@@ -8969,10 +9029,20 @@
     document.getElementById('stockFormSave').onclick = async function(){
       var name = document.getElementById('sf_name').value.trim();
       if(!name){ showToast('Укажите название запчасти'); return; }
+      var unit=document.getElementById('sf_unit').value==='l'?'l':'pcs';
+      var quantity=Number(document.getElementById('sf_qty').value);
+      var cost=Number(document.getElementById('sf_cost').value);
+      var minimum=Number(document.getElementById('sf_minQty').value);
+      if(!Number.isFinite(quantity)||quantity<0||!Number.isFinite(cost)||cost<0||!Number.isFinite(minimum)||minimum<0 || (unit==='pcs'&&(!Number.isInteger(quantity)||!Number.isInteger(minimum)))){
+        showToast('Проверьте остаток, минимальный остаток и цену: значения не должны быть отрицательными; штуки — целые.');return;
+      }
+      if(unit==='l'&&document.getElementById('sf_containerCost').value!==''&&!appliedBulk){showToast('Сначала нажмите «Добавить тару к остатку».');return;}
+      item.unit=editId?originalUnit:unit;
+      if(item.unit==='l')item.containerVolume=Number(document.getElementById('sf_volume').value)||200;
       item.name = name;
       item.sku = document.getElementById('sf_sku').value.trim();
       item.costPrice = Number(document.getElementById('sf_cost').value) || 0;
-      item.quantity = Number(document.getElementById('sf_qty').value) || 0;
+      item.quantity = stockRound(quantity);
       item.minQuantity = Number(document.getElementById('sf_minQty').value) || 0;
       if(!item.createdAt) item.createdAt = Date.now();
 

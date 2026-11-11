@@ -2118,6 +2118,8 @@
   .q-car-row>div{min-width:0}
   .q-car-row .q-car-combo:focus-within{z-index:2}
   @media(max-width:480px){.q-car-row{gap:8px}.q-car-row .q-car-field input{padding-left:9px;padding-right:5px}.q-car-row .q-car-toggle{flex-basis:32px}.q-car-row .q-car-menu{min-width:200px}.q-car-row>div:last-child .q-car-menu{left:auto;right:0}}
+  .q-stock-item:disabled{cursor:default;opacity:.7}
+  .q-stock-item .q-stock-meta{flex-wrap:wrap}
 </style>
 
 <style id="aiAssistantStyles">
@@ -6160,16 +6162,19 @@
     function renderQuickStock(){
       var term=overlay.querySelector('#qStockSearch').value.trim().toLowerCase();
       var items=state.stockItems.filter(function(item){
-        return Number(item.quantity)>0 && remainingStock(item)>0 && [item.name,item.brand,item.sku].join(' ').toLowerCase().indexOf(term)!==-1;
+        return (remainingStock(item)>0 || (stockUsageMap(qOrder)[item.id]||0)>0) && [item.name,item.brand,item.sku].join(' ').toLowerCase().indexOf(term)!==-1;
       }).sort(newestStockFirst);
       var results=overlay.querySelector('#qStockResults');results.innerHTML='';
       if(!items.length){results.textContent='Нет доступных запчастей'+(term?' по вашему запросу':' на складе');return;}
       items.forEach(function(item){
         var button=document.createElement('button');button.type='button';button.className='q-stock-item';
-        button.innerHTML='<div class="q-stock-brand">'+escapeHtml(item.brand||'Без бренда')+'</div><div class="q-stock-name">'+escapeHtml(item.name||'Запчасть')+'</div><div class="q-stock-meta"><span>'+escapeHtml(item.sku||'Без артикула')+'</span><span>Доступно: '+remainingStock(item)+'</span></div><div class="q-stock-meta"><strong>'+fmtMoney(stockSellPrice(item))+'</strong><span style="color:var(--accent)">+ В ЗН</span></div>';
+        var inOrder=stockUsageMap(qOrder)[item.id]||0;
+        var available=remainingStock(item);
+        button.disabled=available<1;
+        button.innerHTML='<div class="q-stock-brand">'+escapeHtml(item.brand||'Без бренда')+'</div><div class="q-stock-name">'+escapeHtml(item.name||'Запчасть')+'</div><div class="q-stock-meta"><span>'+escapeHtml(item.sku||'Без артикула')+'</span><span>В ЗН: '+inOrder+' шт. · Ещё доступно: '+available+' шт.</span></div><div class="q-stock-meta"><strong>'+fmtMoney(stockSellPrice(item))+'</strong><span style="color:var(--accent)">'+(available>0?'+ 1 шт. в ЗН':'Всё добавлено')+'</span></div>';
         button.onclick=function(){
           var current=getStockItemById(item.id);
-          if(!current || !(Number(current.quantity)>0) || remainingStock(current)<1){showToast('Недостаточно остатка для добавления');renderQuickStock();return;}
+          if(!current || remainingStock(current)<1){showToast('Недостаточно остатка для добавления');renderQuickStock();return;}
           var line=qOrder.lines.find(function(l){return l.type==='part' && l.stockItemId===current.id;});
           if(line){line.qty=(Number(line.qty)||0)+1;}
           else{
@@ -6764,16 +6769,19 @@
     function renderFullStock(){
       var term=overlay.querySelector('#fullStockSearch').value.trim().toLowerCase();
       var items=state.stockItems.filter(function(item){
-        return Number(item.quantity)>0 && remainingStock(item)>0 && [item.name,item.brand,item.sku].join(' ').toLowerCase().indexOf(term)!==-1;
+        return (remainingStock(item)>0 || (stockUsageMap(order)[item.id]||0)>0) && [item.name,item.brand,item.sku].join(' ').toLowerCase().indexOf(term)!==-1;
       }).sort(newestStockFirst);
       var results=overlay.querySelector('#fullStockResults');results.innerHTML='';
       if(!items.length){results.textContent='Нет доступных запчастей'+(term?' по вашему запросу':' на складе');return;}
       items.forEach(function(item){
         var button=document.createElement('button');button.type='button';button.className='q-stock-item';
-        button.innerHTML='<div class="q-stock-brand">'+escapeHtml(item.brand||'Без бренда')+'</div><div class="q-stock-name">'+escapeHtml(item.name||'Запчасть')+'</div><div class="q-stock-meta"><span>'+escapeHtml(item.sku||'Без артикула')+'</span><span>Доступно: '+remainingStock(item)+'</span></div><div class="q-stock-meta"><strong>'+fmtMoney(stockSellPrice(item))+'</strong><span style="color:var(--accent)">+ В ЗН</span></div>';
+        var inOrder=stockUsageMap(order)[item.id]||0;
+        var available=remainingStock(item);
+        button.disabled=available<1;
+        button.innerHTML='<div class="q-stock-brand">'+escapeHtml(item.brand||'Без бренда')+'</div><div class="q-stock-name">'+escapeHtml(item.name||'Запчасть')+'</div><div class="q-stock-meta"><span>'+escapeHtml(item.sku||'Без артикула')+'</span><span>В ЗН: '+inOrder+' шт. · Ещё доступно: '+available+' шт.</span></div><div class="q-stock-meta"><strong>'+fmtMoney(stockSellPrice(item))+'</strong><span style="color:var(--accent)">'+(available>0?'+ 1 шт. в ЗН':'Всё добавлено')+'</span></div>';
         button.onclick=function(){
           var current=getStockItemById(item.id);
-          if(!current || !(Number(current.quantity)>0) || remainingStock(current)<1){showToast('Недостаточно остатка для добавления');renderFullStock();return;}
+          if(!current || remainingStock(current)<1){showToast('Недостаточно остатка для добавления');renderFullStock();return;}
           var line=order.lines.find(function(l){return l.type==='part' && l.stockItemId===current.id;});
           if(line){line.qty=(Number(line.qty)||0)+1;}
           else{

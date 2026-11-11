@@ -2103,6 +2103,17 @@
   .q-car-option[aria-selected="true"]{color:var(--accent);font-weight:600}
   .q-car-empty{padding:14px 10px;font-size:13px;color:var(--text-muted);line-height:1.5}
 
+
+  select:not([multiple]):not([size]),select[size="1"],.site-list-input{
+    appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")!important;
+    background-repeat:no-repeat!important;background-position:right 12px center!important;padding-right:38px!important;border-radius:9px;
+  }
+  select:focus-visible,.site-list-input:focus{outline:2px solid var(--accent);outline-offset:1px}
+  .site-dropdown-menu{position:fixed;z-index:10000;display:flex;flex-direction:column;overflow:hidden;background:var(--bg-panel);border:1px solid var(--border);border-radius:12px;box-shadow:0 14px 35px rgba(0,0,0,.3);color:var(--text-main)}
+  .site-dropdown-menu .q-car-options{min-height:0;max-height:none;flex:1;overscroll-behavior:contain}
+  .site-dropdown-search{margin:8px;padding:10px 12px;min-width:0;border:1px solid var(--border);border-radius:8px;background:var(--bg-panel-2);color:var(--text-main);font:inherit;font-size:13px}
+  .site-dropdown-search:focus{outline:1px solid var(--accent)}
+
 </style>
 
 <style id="aiAssistantStyles">
@@ -2477,8 +2488,8 @@
   }
 
 
-  function setupQuickCarCombo(overlay){
-    var input=overlay.querySelector('#qCarMake'), root=overlay.querySelector('.q-car-combo');
+  function setupQuickCarCombo(overlay, fieldId, getValues){
+    var input=overlay.querySelector('#'+fieldId), root=input.closest('.q-car-combo');
     var toggle=root.querySelector('.q-car-toggle'), menu=root.querySelector('.q-car-menu'), list=root.querySelector('.q-car-options');
     var active=-1, matches=[];
     function close(){
@@ -2488,16 +2499,16 @@
     function activate(i){
       active=i;
       Array.from(list.querySelectorAll('[role="option"]')).forEach(function(el,n){el.classList.toggle('is-active',n===i);});
-      if(i>=0){input.setAttribute('aria-activedescendant','qCarOption'+i);var el=list.children[i];if(el&&el.scrollIntoView)el.scrollIntoView({block:'nearest'});}
+      if(i>=0){input.setAttribute('aria-activedescendant',fieldId+'Option'+i);var el=list.children[i];if(el&&el.scrollIntoView)el.scrollIntoView({block:'nearest'});}
       else input.removeAttribute('aria-activedescendant');
     }
     function choose(value){input.value=value;input.dispatchEvent(new Event('change',{bubbles:true}));close();input.focus();}
     function open(all){
       var term=all?'':input.value.trim().toLocaleLowerCase('ru');
-      matches=CAR_MAKES.filter(function(v){return v.toLocaleLowerCase('ru').indexOf(term)!==-1;});
+      matches=getValues().filter(function(v){return v.toLocaleLowerCase('ru').indexOf(term)!==-1;});
       list.replaceChildren();active=-1; input.removeAttribute('aria-activedescendant');
       matches.forEach(function(value,i){
-        var option=document.createElement('div');option.className='q-car-option';option.id='qCarOption'+i;
+        var option=document.createElement('div');option.className='q-car-option';option.id=fieldId+'Option'+i;
         option.setAttribute('role','option');option.setAttribute('aria-selected',String(value.toLowerCase()===input.value.trim().toLowerCase()));
         var name=document.createElement('span');name.textContent=value;option.appendChild(name);
         if(option.getAttribute('aria-selected')==='true'){var check=document.createElement('span');check.textContent='✓';check.setAttribute('aria-hidden','true');option.appendChild(check);}
@@ -2519,6 +2530,111 @@
     });
     root.addEventListener('focusout',function(e){if(!root.contains(e.relatedTarget))close();});
     overlay.addEventListener('pointerdown',function(e){if(!root.contains(e.target))close();});
+  }
+
+
+  function initStyledDropdowns(){
+    var target=null,popup=null,list=null,search=null,active=-1,choices=[];
+    function isSelect(el){return el && el.tagName==='SELECT' && !el.multiple && (!el.size||el.size<=1);}
+    function isList(el){return el && el.matches && el.matches('input[data-styled-list]');}
+    function close(){
+      if(target){target.setAttribute('aria-expanded','false');target.removeAttribute('aria-activedescendant');target.removeAttribute('aria-controls');}
+      if(popup)popup.remove();
+      target=popup=list=search=null;active=-1;choices=[];
+    }
+    function prepare(root){
+      var inputs=[];
+      if(root.matches && root.matches('input[list]'))inputs.push(root);
+      if(root.querySelectorAll)inputs=inputs.concat(Array.from(root.querySelectorAll('input[list]')));
+      inputs.forEach(function(input){
+        input.dataset.styledList=input.getAttribute('list');input.removeAttribute('list');
+        input.classList.add('site-list-input');input.setAttribute('role','combobox');input.setAttribute('aria-autocomplete','list');input.setAttribute('aria-expanded','false');
+      });
+    }
+    function values(){
+      var source=isSelect(target)?target:document.getElementById(target.dataset.styledList);
+      return source?Array.from(source.querySelectorAll('option')).filter(function(o){return !o.hasAttribute('disabled')&&!o.hidden&&!(o.parentElement.tagName==='OPTGROUP'&&o.parentElement.hasAttribute('disabled'));}).map(function(o){return {value:o.value,label:o.label||o.textContent||o.value};}):[];
+    }
+    function position(){
+      if(!target||!target.isConnected||target.disabled){close();return;}
+      var r=target.getBoundingClientRect(),height=window.innerHeight,width=Math.min(Math.max(r.width,220),window.innerWidth-16);
+      if(!r.width||!r.height){close();return;}
+      popup.style.width=width+'px';popup.style.left=Math.max(8,Math.min(r.left,window.innerWidth-width-8))+'px';
+      var below=height-r.bottom-12,above=r.top-12,up=below<200&&above>below,space=Math.max(80,up?above:below);
+      popup.style.maxHeight=Math.min(320,space)+'px';
+      popup.style.top=up?'auto':(r.bottom+6)+'px';popup.style.bottom=up?(height-r.top+6)+'px':'auto';
+    }
+    function mark(i){
+      active=i;
+      Array.from(list.children).forEach(function(el,n){el.classList.toggle('is-active',n===i);});
+      var focused=search||target;
+      if(i>=0&&choices.length){focused.setAttribute('aria-activedescendant','siteDropdownOption'+i);list.children[i].scrollIntoView({block:'nearest'});}
+      else focused.removeAttribute('aria-activedescendant');
+    }
+    function choose(i){
+      if(!choices[i])return;
+      var field=target,value=choices[i].value;close();field.value=value;
+      field.focus();field.dispatchEvent(new Event('input',{bubbles:true}));field.dispatchEvent(new Event('change',{bubbles:true}));
+      // Input listeners may have reopened suggestions. The selection is complete.
+      if(target===field)close();
+    }
+    function render(term){
+      if(!target)return;
+      choices=values().filter(function(v){return v.label.toLocaleLowerCase('ru').indexOf(String(term||'').toLocaleLowerCase('ru'))!==-1;});
+      list.replaceChildren();active=-1;
+      (search||target).removeAttribute('aria-activedescendant');
+      choices.forEach(function(v,i){
+        var option=document.createElement('div');option.className='q-car-option';option.id='siteDropdownOption'+i;
+        option.setAttribute('role','option');option.setAttribute('aria-selected',String(v.value===target.value));
+        var label=document.createElement('span');label.textContent=v.label||'Не выбрано';option.appendChild(label);
+        if(v.value===target.value){var check=document.createElement('span');check.textContent='✓';check.setAttribute('aria-hidden','true');option.appendChild(check);}
+        option.addEventListener('pointerdown',function(e){e.preventDefault();});
+        option.addEventListener('click',function(){choose(i);});list.appendChild(option);
+      });
+      if(!choices.length){var empty=document.createElement('div');empty.className='q-car-empty';empty.textContent=isList(target)?'Нет совпадений — можно оставить свой вариант.':'Нет доступных вариантов';list.appendChild(empty);}
+      position();
+    }
+    function open(el,all){
+      if(el.disabled||el.readOnly)return;
+      close();target=el;
+      popup=document.createElement('div');popup.className='site-dropdown-menu';
+      if(isSelect(el)){
+        search=document.createElement('input');search.className='site-dropdown-search';search.placeholder='Найти в списке…';search.setAttribute('aria-label','Поиск в списке');search.setAttribute('role','combobox');search.setAttribute('aria-expanded','true');search.setAttribute('aria-controls','siteDropdownOptions');search.setAttribute('aria-autocomplete','list');popup.appendChild(search);
+        search.addEventListener('input',function(){render(search.value);});
+      }else{
+        var hint=document.createElement('div');hint.className='q-car-hint';hint.textContent='Выберите из списка или введите свой вариант';popup.appendChild(hint);
+      }
+      list=document.createElement('div');list.className='q-car-options';list.id='siteDropdownOptions';list.setAttribute('role','listbox');list.setAttribute('aria-label',el.getAttribute('aria-label')||'Варианты');popup.appendChild(list);document.body.appendChild(popup);
+      el.setAttribute('aria-expanded','true');el.setAttribute('aria-controls','siteDropdownOptions');
+      render(all?'':el.value);if(search)search.focus();
+    }
+    prepare(document);
+    new MutationObserver(function(records){
+      records.forEach(function(r){if(r.type==='attributes')prepare(r.target);else r.addedNodes.forEach(function(n){if(n.nodeType===1)prepare(n);});});
+      if(target&&(!target.isConnected||target.disabled))close();
+    }).observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:['list','disabled']});
+    document.addEventListener('pointerdown',function(e){
+      var el=e.target;
+      if(isSelect(el)&&!el.disabled){e.preventDefault();if(target===el)close();else open(el,true);return;}
+      if(isList(el)&&e.clientX>=el.getBoundingClientRect().right-38){e.preventDefault();el.focus();if(target===el)close();else open(el,true);return;}
+      if(popup&&!popup.contains(el)&&target!==el)close();
+    });
+    document.addEventListener('input',function(e){if(isList(e.target))open(e.target,false);});
+    document.addEventListener('keydown',function(e){
+      var el=e.target;
+      if(!popup){
+        if((isSelect(el)||isList(el))&&(e.key==='ArrowDown'||e.key==='ArrowUp'||(isSelect(el)&&(e.key==='Enter'||e.key===' ')))){e.preventDefault();open(el,true);}
+        return;
+      }
+      if(el!==target&&!popup.contains(el))return;
+      if(e.key==='ArrowDown'||e.key==='ArrowUp'){e.preventDefault();e.stopPropagation();if(choices.length)mark(e.key==='ArrowDown'?(active+1)%choices.length:(active<=0?choices.length-1:active-1));}
+      else if(e.key==='Enter'&&active>=0){e.preventDefault();e.stopPropagation();choose(active);}
+      else if(e.key==='Escape'){e.preventDefault();e.stopPropagation();var field=target;close();field.focus();}
+      else if(e.key==='Tab'){var field=target;if(search){field.focus();}close();}
+    },true);
+    document.addEventListener('focusin',function(e){if(popup&&e.target!==target&&!popup.contains(e.target))close();});
+    window.addEventListener('resize',position);
+    document.addEventListener('scroll',function(e){if(popup&&!popup.contains(e.target))position();},true);
   }
 
   function stockItemUid(){
@@ -5976,6 +6092,14 @@
               '<div class="q-car-menu" hidden><div class="q-car-hint">Выберите из списка или введите свой вариант</div><div class="q-car-options" id="qCarOptions" role="listbox" aria-label="Марки автомобилей"></div></div>' +
             '</div>' +
           '</div>' +
+          '<div>' +
+            '<label style="' + fl + '">Модель автомобиля</label>' +
+            '<div class="q-car-combo">' +
+              '<div class="q-car-field"><input id="qCarModel" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="qCarModelOptions" aria-label="Модель автомобиля" placeholder="Выберите модель или введите свою" autocomplete="off">' +
+              '<button type="button" class="q-car-toggle" aria-label="Показать модели автомобилей" aria-controls="qCarModelOptions" aria-expanded="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></div>' +
+              '<div class="q-car-menu" hidden><div class="q-car-hint">Модели выбранной марки · можно ввести свою</div><div class="q-car-options" id="qCarModelOptions" role="listbox" aria-label="Модели автомобилей"></div></div>' +
+            '</div>' +
+          '</div>' +
 
           /* Строки: работы и запчасти двумя столбцами */
           '<div class="q-sections" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">' +
@@ -6072,7 +6196,20 @@
       : new Date().toLocaleDateString('ru-RU');
     document.getElementById('qOrderNum').textContent = '№ ' + orderNum + ' · ' + orderDateLabel;
     document.getElementById('qCarMake').value = existingOrder ? (existingOrder.carMake || '') : '';
-    setupQuickCarCombo(overlay);
+    document.getElementById('qCarModel').value=existingOrder ? (existingOrder.carModel||'') : '';
+    setupQuickCarCombo(overlay,'qCarMake',function(){return CAR_MAKES;});
+    setupQuickCarCombo(overlay,'qCarModel',function(){
+      var value=document.getElementById('qCarMake').value.trim().toLowerCase();
+      var make=CAR_MAKES.find(function(m){return m.toLowerCase()===value;});
+      return make ? CAR_DB[make]||[] : [];
+    });
+    var quickLastMake=document.getElementById('qCarMake').value.trim().toLowerCase();
+    function quickMakeChanged(){
+      var value=document.getElementById('qCarMake').value.trim().toLowerCase();
+      if(value!==quickLastMake){document.getElementById('qCarModel').value='';quickLastMake=value;}
+    }
+    document.getElementById('qCarMake').addEventListener('input',quickMakeChanged);
+    document.getElementById('qCarMake').addEventListener('change',quickMakeChanged);
 
     /* Добавление строк */
     function addLine(type){
@@ -6375,6 +6512,7 @@
       order.clientId = qOrder.clientId;
       applyClientHourRateToEditableOrder(qOrder, false);
       order.carMake = (document.getElementById('qCarMake').value || '').trim();
+      order.carModel = (document.getElementById('qCarModel').value || '').trim();
       order.lines = qOrder.lines.filter(function(l){
         return (l.name && l.name.trim()) || Number(l.price) > 0;
       }).map(function(l){
@@ -9933,6 +10071,7 @@
   document.getElementById('btnTheme').addEventListener('click', toggleTheme);
     var btnExportCSV = document.getElementById('btnExportCSV'); if(btnExportCSV) btnExportCSV.addEventListener('click', exportOrdersCSV);
     var btnExportPayroll = document.getElementById('btnExportPayroll'); if(btnExportPayroll) btnExportPayroll.addEventListener('click', exportPayrollCSV);
+    initStyledDropdowns();
     initPhoneInputs();
     initTheme();
     initRadio();

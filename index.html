@@ -2114,6 +2114,10 @@
   .site-dropdown-search{margin:8px;padding:10px 12px;min-width:0;border:1px solid var(--border);border-radius:8px;background:var(--bg-panel-2);color:var(--text-main);font:inherit;font-size:13px}
   .site-dropdown-search:focus{outline:1px solid var(--accent)}
 
+  .q-car-row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+  .q-car-row>div{min-width:0}
+  .q-car-row .q-car-combo:focus-within{z-index:2}
+  @media(max-width:480px){.q-car-row{gap:8px}.q-car-row .q-car-field input{padding-left:9px;padding-right:5px}.q-car-row .q-car-toggle{flex-basis:32px}.q-car-row .q-car-menu{min-width:200px}.q-car-row>div:last-child .q-car-menu{left:auto;right:0}}
 </style>
 
 <style id="aiAssistantStyles">
@@ -6084,22 +6088,22 @@
         '<div class="q-form-body" style="overflow-y:auto;flex:1;padding:16px 18px;display:flex;flex-direction:column;gap:14px;">' +
 
           /* Марка автомобиля — свободный ввод */
-          '<div>' +
-            '<label style="' + fl + '">🚗 Марка автомобиля</label>' +
+          '<div class="q-car-row"><div>' +
+            '<label style="' + fl + '">🚗 Марка</label>' +
             '<div class="q-car-combo">' +
-              '<div class="q-car-field"><input id="qCarMake" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="qCarOptions" aria-label="Марка автомобиля" placeholder="Выберите марку или введите свою" autocomplete="off">' +
+              '<div class="q-car-field"><input id="qCarMake" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="qCarOptions" aria-label="Марка автомобиля" placeholder="Марка" autocomplete="off">' +
               '<button type="button" class="q-car-toggle" aria-label="Показать марки автомобилей" aria-controls="qCarOptions" aria-expanded="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></div>' +
               '<div class="q-car-menu" hidden><div class="q-car-hint">Выберите из списка или введите свой вариант</div><div class="q-car-options" id="qCarOptions" role="listbox" aria-label="Марки автомобилей"></div></div>' +
             '</div>' +
           '</div>' +
           '<div>' +
-            '<label style="' + fl + '">Модель автомобиля</label>' +
+            '<label style="' + fl + '">Модель</label>' +
             '<div class="q-car-combo">' +
-              '<div class="q-car-field"><input id="qCarModel" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="qCarModelOptions" aria-label="Модель автомобиля" placeholder="Выберите модель или введите свою" autocomplete="off">' +
+              '<div class="q-car-field"><input id="qCarModel" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="qCarModelOptions" aria-label="Модель автомобиля" placeholder="Модель" autocomplete="off">' +
               '<button type="button" class="q-car-toggle" aria-label="Показать модели автомобилей" aria-controls="qCarModelOptions" aria-expanded="false"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></button></div>' +
               '<div class="q-car-menu" hidden><div class="q-car-hint">Модели выбранной марки · можно ввести свою</div><div class="q-car-options" id="qCarModelOptions" role="listbox" aria-label="Модели автомобилей"></div></div>' +
             '</div>' +
-          '</div>' +
+          '</div></div>' +
 
           /* Строки: работы и запчасти двумя столбцами */
           '<div class="q-sections" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">' +

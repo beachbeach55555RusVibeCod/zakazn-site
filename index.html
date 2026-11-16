@@ -2120,6 +2120,13 @@
   @media(max-width:480px){.q-car-row{gap:8px}.q-car-row .q-car-field input{padding-left:9px;padding-right:5px}.q-car-row .q-car-toggle{flex-basis:32px}.q-car-row .q-car-menu{min-width:200px}.q-car-row>div:last-child .q-car-menu{left:auto;right:0}}
   .q-stock-item:disabled{cursor:default;opacity:.7}
   .q-stock-item .q-stock-meta{flex-wrap:wrap}
+
+  #qForm .q-line-row .q-staff-buttons{grid-column:1/-1;grid-row:3;display:flex;flex-wrap:wrap;gap:5px;min-width:0}
+  .q-staff-toggle{flex:1 1 75px;min-width:0;padding:8px 6px;border:1px solid var(--border);border-radius:8px;background:var(--bg-panel-2);color:var(--text-muted);font:inherit;font-size:11px;cursor:pointer;overflow-wrap:anywhere;min-height:36px}
+  .q-staff-toggle:hover{border-color:var(--accent);color:var(--text-main)}
+  .q-staff-toggle.is-selected{border-color:var(--accent);background:rgba(20,184,166,.16);color:var(--accent);font-weight:600}
+  .q-staff-toggle:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .q-staff-empty{font-size:12px;color:var(--text-muted)}
 </style>
 
 <style id="aiAssistantStyles">
@@ -2641,6 +2648,23 @@
     document.addEventListener('focusin',function(e){if(popup&&e.target!==target&&!popup.contains(e.target))close();});
     window.addEventListener('resize',position);
     document.addEventListener('scroll',function(e){if(popup&&!popup.contains(e.target))position();},true);
+  }
+
+
+  function toggleQuickStaff(line,id){
+    var ids=Array.from(new Set((line.assignees||[]).filter(Boolean)));
+    line.assignees=ids.indexOf(id)!==-1?ids.filter(function(v){return v!==id;}):ids.concat(id);
+  }
+  function quickStaffButtons(line){
+    var people=state.staff.slice();
+    (line.assignees||[]).filter(Boolean).forEach(function(id){
+      if(!people.some(function(p){return p.id===id;}))people.push({id:id,name:'Бывший сотрудник'});
+    });
+    return '<div class="q-staff-buttons" role="group" aria-label="Исполнители работы">'+people.map(function(person){
+      var name=String(person.name||'Сотрудник').trim(),surname=name.split(/\s+/)[0];
+      var selected=(line.assignees||[]).indexOf(person.id)!==-1;
+      return '<button type="button" class="q-staff-toggle'+(selected?' is-selected':'')+'" data-key="'+escapeAttr(line._key)+'" data-staff-id="'+escapeAttr(person.id)+'" aria-pressed="'+selected+'" aria-label="'+escapeAttr(name)+'" title="'+escapeAttr(name)+'">'+escapeHtml(surname)+'</button>';
+    }).join('')+(people.length?'':'<span class="q-staff-empty">Добавьте сотрудников во вкладке «Сотрудники»</span>')+'</div>';
   }
 
   function stockItemUid(){
@@ -6327,12 +6351,6 @@
         var row = document.createElement('div');
         row.className = 'q-line-row' + (type === 'part' ? ' q-part-line' : '');
         row.style.cssText = 'display:grid;gap:7px;align-items:center;';
-        function quickStaffOptionsFor(idx){
-          if(type !== 'work') return '';
-          return state.staff.map(function(s){
-            return '<option value="' + escapeHtml(s.id) + '"' + ((line.assignees||[])[idx] === s.id ? ' selected' : '') + '>' + escapeHtml(s.name) + '</option>';
-          }).join('');
-        }
         var quickPriceFields = type === 'part'
           ? '<input class="q-cost" data-key="' + escapeAttr(line._key) + '" data-f="costPrice" type="number" min="0" step="0.1" value="' + (line.costPrice ? priceInputValue(line.costPrice) : '') + '" placeholder="Закупка" title="' + (line.stockItemId ? 'Закупочная цена со склада' : 'Закупочная цена; после изменения цена продажи пересчитается с +45%') + '"' + (line.stockItemId ? ' readonly' : '') + ' style="' + fi + 'padding:8px 6px;">' +
             '<input class="q-price" data-key="' + escapeAttr(line._key) + '" data-f="price" type="number" min="0" step="0.1" value="' + (line.price ? priceInputValue(line.price) : '') + '" placeholder="После наценки" title="Цена продажи после наценки — можно изменить вручную" style="' + fi + 'padding:8px 6px;">'
@@ -6343,9 +6361,7 @@
           (type === 'work' ? '<input class="q-hours" data-key="' + escapeAttr(line._key) + '" data-f="normHours" type="number" min="0" step="0.01" value="' + (line.normHours===undefined?'':line.normHours) + '" placeholder="Н/ч" title="Время: цена работы ÷ ставка нормо-часа" readonly style="' + fi + 'padding:8px 6px;">' : '') +
           quickPriceFields +
           '<button class="q-remove" data-key="' + escapeAttr(line._key) + '" data-f="remove" style="background:none;border:none;color:var(--text-subtle);cursor:pointer;font-size:18px;padding:0 4px;line-height:1;">×</button>' +
-          (type === 'work' ? '<select class="q-assignee" data-key="' + escapeAttr(line._key) + '" data-assignee-idx="0" style="' + fi + 'padding:8px 8px;"><option value="">Исп. 1</option>' + quickStaffOptionsFor(0) + '</select>' +
-            '<select class="q-assignee" data-key="' + escapeAttr(line._key) + '" data-assignee-idx="1" style="' + fi + 'padding:8px 8px;"><option value="">Исп. 2</option>' + quickStaffOptionsFor(1) + '</select>' +
-            '<select class="q-assignee" data-key="' + escapeAttr(line._key) + '" data-assignee-idx="2" style="' + fi + 'padding:8px 8px;"><option value="">Исп. 3</option>' + quickStaffOptionsFor(2) + '</select>' : '');
+          (type === 'work' ? quickStaffButtons(line) : '');
         wrap.appendChild(row);
       });
 
@@ -6428,14 +6444,14 @@
           updateQTotal();
         });
       });
-      wrap.querySelectorAll('.q-assignee').forEach(function(sel){
-        sel.addEventListener('change', function(){
-          var line = qOrder.lines.find(function(l){ return l._key === sel.dataset.key; });
-          if(!line) return;
-          if(!line.assignees) line.assignees = [];
-          var assigneeIdx = Number(sel.dataset.assigneeIdx)||0;
-          line.assignees[assigneeIdx] = sel.value || null;
-          while(line.assignees.length && !line.assignees[line.assignees.length-1]){ line.assignees.pop(); }
+      wrap.querySelectorAll('.q-staff-toggle').forEach(function(btn){
+        btn.addEventListener('click', function(){
+          var line=qOrder.lines.find(function(l){return l._key===btn.dataset.key;});
+          if(!line)return;
+          toggleQuickStaff(line,btn.dataset.staffId);
+          var selected=line.assignees.indexOf(btn.dataset.staffId)!==-1;
+          btn.classList.toggle('is-selected',selected);
+          btn.setAttribute('aria-pressed',String(selected));
         });
       });
       wrap.querySelectorAll('[data-f="remove"]').forEach(function(btn){

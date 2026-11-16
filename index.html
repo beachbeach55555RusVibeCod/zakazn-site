@@ -2281,7 +2281,7 @@
 <div class="ai-panel" id="aiAssistantPanel">
   <div class="ai-head"><b>✦ ИИ-помощник</b><button class="ai-close" id="aiAssistantClose" type="button">&times;</button></div>
   <div class="ai-body" id="aiAssistantBody"><div class="ai-msg">Напишите задачу обычным текстом. Например:<br><b>Руслан, X-Ray, пробег 223500, замена масла 1200, фильтр 500</b></div></div>
-  <div class="ai-foot"><label for="aiAssistantMode">Что сделать</label><select class="ai-input" id="aiAssistantMode" style="width:100%;margin-bottom:8px"><option value="order">Создать заказ-наряд</option><option value="client">Добавить клиента + авто</option></select><div class="ai-compose"><textarea class="ai-input" id="aiAssistantInput" rows="4" placeholder="Задача или данные клиента и автомобиля…"></textarea><button class="ai-send" id="aiAssistantSend" type="button">➜</button></div><div class="ai-hint">Пока это локальный помощник: он использует только данные вашего сайта и ничего не отправляет во внешний ИИ.</div></div>
+  <div class="ai-foot"><label for="aiAssistantMode">Что сделать</label><select class="ai-input" id="aiAssistantMode" style="width:100%;margin-bottom:8px"><option value="order">Создать заказ-наряд</option><option value="client">Добавить клиента / юрлицо + авто</option></select><div class="ai-compose"><textarea class="ai-input" id="aiAssistantInput" rows="4" placeholder="Задача или данные клиента и автомобиля…"></textarea><button class="ai-send" id="aiAssistantSend" type="button">➜</button></div><div class="ai-hint">Пока это локальный помощник: он использует только данные вашего сайта и ничего не отправляет во внешний ИИ.</div></div>
 </div>
 <div id="modalRoot"></div>
 <div id="toastRoot"></div>
@@ -9914,15 +9914,23 @@
     return found;
   }
   function aiDetectVehicleText(text){
-    var make=aiAliasMatch(text,AI_CAR_ALIASES), model=aiAliasMatch(text,AI_MODEL_ALIASES);
-    if(!make){
-      Object.keys(CAR_DB).some(function(m){if(aiWords(text).indexOf(aiWords(m))>=0){make=m;return true;}return false;});
+    var t=aiWords(text);
+    function matches(value){
+      var token=aiWords(value),pos=t.indexOf(token);
+      while(pos>=0){if((pos===0||!/[a-zа-я0-9]/i.test(t[pos-1]))&&(pos+token.length===t.length||!/[a-zа-я0-9]/i.test(t[pos+token.length])))return true;pos=t.indexOf(token,pos+1);}
+      return false;
     }
-    if(make && !model){
-      (CAR_DB[make]||[]).some(function(m){if(aiWords(text).indexOf(aiWords(m))>=0){model=m;return true;}return false;});
-    }
-    if(model && !make){
-      Object.keys(CAR_DB).some(function(m){if((CAR_DB[m]||[]).indexOf(model)>=0){make=m;return true;}return false;});
+    var make='',model='';
+    Object.keys(CAR_DB).sort(function(a,b){return b.length-a.length;}).some(function(m){
+      if([m].concat(AI_CAR_ALIASES[m]||[]).some(matches)){make=m;return true;}return false;
+    });
+    var models=make?(CAR_DB[make]||[]):Object.keys(AI_MODEL_ALIASES);
+    models.slice().sort(function(a,b){return b.length-a.length;}).some(function(m){
+      if([m].concat(AI_MODEL_ALIASES[m]||[]).some(matches)){model=m;return true;}return false;
+    });
+    if(model&&!make){
+      var owners=Object.keys(CAR_DB).filter(function(m){return (CAR_DB[m]||[]).indexOf(model)>=0;});
+      if(owners.length===1)make=owners[0];
     }
     return {make:make,model:model};
   }
@@ -10019,7 +10027,7 @@
   function aiParseClient(text){
     var clean=String(text||'').replace(/\*\*/g,'').replace(/\u00a0/g,' ').trim();
     var lines=clean.split(/\r?\n/).map(function(s){return s.trim();}).filter(Boolean);
-    var labels={'модификация':'modification','гос. номер':'plate','госномер':'plate','vin':'vin','№ кузова':'bodyNumber','тип двигателя':'engineType','год':'year','пробег':'mileage','цвет':'color','владелец':'name','клиент':'name','телефон':'phone','марка':'carMake','модель':'carModel'};
+    var labels={'модификация':'modification','гос. номер':'plate','госномер':'plate','vin':'vin','№ кузова':'bodyNumber','тип двигателя':'engineType','год':'year','пробег':'mileage','цвет':'color','владелец':'name','клиент':'name','телефон':'phone','марка':'carMake','модель':'carModel','марка и модель':'vehicle','автомобиль':'vehicle','организация':'orgName','название организации':'orgName','юридическое лицо':'orgName','юрлицо':'orgName','инн':'inn','кпп':'kpp','юридический адрес':'legalAddress','юр. адрес':'legalAddress','банк':'bank','бик':'bik','расчетный счет':'account','расчётный счёт':'account','р/с':'account','корреспондентский счет':'corraccount','к/с':'corraccount','контактное лицо':'name','фио':'name','email':'email','электронная почта':'email','номер договора':'contractNumber','нормочас':'hourRate'};
     var d={}, pending='';
     lines.forEach(function(line){
       var match=line.match(/^([^:]+):\s*(.*)$/), label=(match?match[1]:line).toLowerCase().trim();
@@ -10030,10 +10038,47 @@
     if(!d.phone&&phone)d.phone=phone[0];
     var vin=clean.toUpperCase().match(/\b[A-HJ-NPR-Z0-9]{17}\b/);if(!d.vin&&vin)d.vin=vin[0];
     var plate=clean.toUpperCase().match(/[АВЕКМНОРСТУХABEKMHOPCTYX]\s*\d{3}\s*[АВЕКМНОРСТУХABEKMHOPCTYX]{2}\s*\d{2,3}/);if(!d.plate&&plate)d.plate=plate[0];
-    var detected=aiDetectVehicleText(lines[0]||'');
-    d.carMake=d.carMake||detected.make||'';d.carModel=d.carModel||detected.model||'';
+    var orgLine=lines.find(function(line){return /^(?:ООО|АО|ПАО|ОАО|ЗАО|ИП)\s/i.test(line);});
+    if(!d.orgName&&orgLine)d.orgName=orgLine;
+    d.type=(d.orgName||d.inn||/юр(?:идическ\S*|лицо|\.?\s*лицо)/i.test(clean))?'org':'person';
+    if(d.type==='org'&&!d.orgName&&/^(ООО|АО|ПАО|ОАО|ЗАО|ИП)\s/i.test(d.name||'')){d.orgName=d.name;d.name='';}
+    var candidates=[d.vehicle,d.carModel,d.carMake].concat(lines.filter(function(line){return !/^[^:]+:/.test(line);}));
+    candidates.some(function(value){
+      if(!value)return false;
+      var detected=aiDetectVehicleText(value);
+      if(!detected.make)return false;
+      d.carMake=d.carMake||detected.make;
+      if(!d.carModel)d.carModel=detected.model||'';
+      return !!d.carModel;
+    });
+    aiNormalizeClientVehicle(d);
     d.name=(d.name||'').replace(/^[.\s]+/,'');
     d.mileage=(d.mileage||'').replace(/[^0-9]/g,'');
+    return d;
+  }
+
+  function aiNormalizeClientVehicle(d){
+    var source=String(d.carModel||d.vehicle||d.carMake||'').trim();
+    var detected=aiDetectVehicleText(source);
+    if(!d.carMake&&detected.make)d.carMake=detected.make;
+    var makeDetected=aiDetectVehicleText(d.carMake||'');
+    if(makeDetected.make){
+      var rawMake=d.carMake;
+      d.carMake=makeDetected.make;
+      if(!d.carModel&&aiWords(rawMake)!==aiWords(d.carMake))source=rawMake;
+    }
+    var aliases=[d.carMake];
+    if(typeof AI_CAR_ALIASES!=='undefined')Object.keys(AI_CAR_ALIASES).forEach(function(key){
+      if(key===d.carMake)aliases=aliases.concat(AI_CAR_ALIASES[key]);
+    });
+    var stripped=source;
+    aliases.filter(Boolean).sort(function(a,b){return b.length-a.length;}).some(function(alias){
+      if(source.toLowerCase().indexOf(alias.toLowerCase())===0 && (!source[alias.length]||/[\s,/-]/.test(source[alias.length]))){
+        stripped=source.slice(alias.length).replace(/^[\s,/-]+/,'');return true;
+      }return false;
+    });
+    d.carModel=stripped!==source?stripped:(d.carModel||detected.model||'');
+    d.carMake=d.carMake||'';
     return d;
   }
 
@@ -10043,24 +10088,31 @@
   }
 
   function aiClientImportPlan(d,clients,cars){
-    if(!d.name.trim())throw new Error('Укажите имя клиента.');
-    if(normalizePhone(d.phone).length!==10)throw new Error('Проверьте телефон клиента: нужно 10 цифр без кода страны.');
-    if(!d.carMake.trim()||!d.carModel.trim())throw new Error('Укажите марку и модель автомобиля.');
+    d=Object.assign({name:'',phone:'',carMake:'',carModel:'',vin:'',plate:''},d);
+    aiNormalizeClientVehicle(d);
+    var isOrg=d.type==='org', hasCar=!!(d.carMake||d.carModel||d.vin||d.plate);
+    if(isOrg&&!String(d.orgName||'').trim())throw new Error('Укажите название организации.');
+    if(!isOrg&&!d.name.trim())throw new Error('Укажите имя клиента.');
+    d.inn=String(d.inn||'').replace(/\s/g,'');
+    if(isOrg&&!/^(\d{10}|\d{12})$/.test(d.inn))throw new Error('Для проверки дублей укажите ИНН: 10 или 12 цифр.');
+    if(isOrg&&d.kpp&&!/^\d{9}$/.test(d.kpp))throw new Error('КПП должен содержать 9 цифр.');
+    if((!isOrg||d.phone)&&normalizePhone(d.phone).length!==10)throw new Error('Проверьте телефон клиента: нужно 10 цифр без кода страны.');
+    if((!isOrg||hasCar)&&(!d.carMake.trim()||!d.carModel.trim()))throw new Error('Укажите марку и модель автомобиля.');
     if(d.vin&&!/^[A-HJ-NPR-Z0-9]{17}$/.test(d.vin))throw new Error('VIN должен содержать 17 латинских букв и цифр.');
-    if(!d.vin&&!d.plate)throw new Error('Укажите VIN или госномер для проверки дублей.');
+    if((!isOrg||hasCar)&&!d.vin&&!d.plate)throw new Error('Укажите VIN или госномер для проверки дублей.');
     if(d.year&&!/^(19|20)\d{2}$/.test(d.year))throw new Error('Проверьте год выпуска.');
     if(d.mileage&&!/^\d+$/.test(d.mileage))throw new Error('Пробег должен содержать только цифры.');
-    var people=clients.filter(function(c){return normalizePhone(c.phone)===normalizePhone(d.phone);});
+    var people=clients.filter(function(c){return isOrg ? c.type==='org'&&String(c.inn||'').replace(/\s/g,'')===d.inn : c.type!=='org'&&normalizePhone(c.phone)===normalizePhone(d.phone);});
     var vehicles=cars.filter(function(c){return (d.vin&&normalizeVin(c.vin)===d.vin)||(d.plate&&aiImportPlate(c.plate)===aiImportPlate(d.plate));});
     if(people.length>1||vehicles.length>1)throw new Error('Найдено несколько совпадений в базе. Уточните данные в разделе клиентов или авто.');
     var client=people[0],car=vehicles[0];
     if(car&&(!client||car.clientId!==client.id))throw new Error('Этот автомобиль уже есть в базе с другим владельцем или без владельца. Проверьте его карточку.');
     if(car&&((d.vin&&car.vin&&normalizeVin(car.vin)!==d.vin)||(d.plate&&car.plate&&aiImportPlate(car.plate)!==aiImportPlate(d.plate))))throw new Error('VIN и госномер не совпадают с карточкой автомобиля. Проверьте данные.');
     var now=Date.now(), rows=[];
-    var detail=['Автомобиль: '+d.carMake+' '+d.carModel, 'Госномер: '+d.plate, 'VIN: '+d.vin];
+    var detail=hasCar?['Автомобиль: '+d.carMake+' '+d.carModel, 'Госномер: '+d.plate, 'VIN: '+d.vin]:[];
     [['modification','Модификация'],['bodyNumber','№ кузова'],['engineType','Тип двигателя'],['year','Год'],['mileage','Пробег, км'],['color','Цвет']].forEach(function(f){if(d[f[0]])detail.push(f[1]+': '+d[f[0]]);});
-    if(!client){client={id:clientUid(),type:'person',name:d.name,phone:d.phone,email:'',note:detail.join('\n'),createdAt:now};rows.push({key:'client:'+client.id,value:JSON.stringify(client)});}
-    if(!car){car={id:carUid(),clientId:client.id,carMake:d.carMake,carModel:d.carModel,plate:d.plate,vin:d.vin,year:d.year,carYear:d.year,mileage:d.mileage,color:d.color,modification:d.modification,bodyNumber:d.bodyNumber,engineType:d.engineType,createdAt:now};rows.push({key:'car:'+car.id,value:JSON.stringify(car)});
+    if(!client){client={id:clientUid(),type:isOrg?'org':'person',name:d.name,phone:d.phone,email:d.email||'',note:detail.join('\n'),createdAt:now};if(isOrg){['orgName','inn','kpp','legalAddress','bank','bik','account','corraccount','contractNumber'].forEach(function(key){client[key]=d[key]||'';});client.hourRate=Math.max(0,Number(String(d.hourRate||'').replace(',','.'))||0);}rows.push({key:'client:'+client.id,value:JSON.stringify(client)});}
+    if(hasCar&&!car){car={id:carUid(),clientId:client.id,carMake:d.carMake,carModel:d.carModel,plate:d.plate,vin:d.vin,year:d.year,carYear:d.year,mileage:d.mileage,color:d.color,modification:d.modification,bodyNumber:d.bodyNumber,engineType:d.engineType,createdAt:now};rows.push({key:'car:'+car.id,value:JSON.stringify(car)});
       // Existing contact details stay intact; append vehicle details to their visible note.
       if(people.length){client=Object.assign({},client,{note:[client.note,detail.join('\n')].filter(Boolean).join('\n\n'),updatedAt:now});rows.push({key:'client:'+client.id,value:JSON.stringify(client)});}
     }
@@ -10071,13 +10123,17 @@
   function aiShowClientDraft(d){
     var body=document.getElementById('aiAssistantBody');
     var form=document.createElement('form');form.className='ai-preview';
-    var fields=[['name','Имя клиента'],['phone','Телефон'],['carMake','Марка'],['carModel','Модель'],['plate','Госномер'],['vin','VIN'],['year','Год'],['mileage','Пробег, км'],['modification','Модификация'],['bodyNumber','№ кузова'],['engineType','Тип двигателя'],['color','Цвет']];
-    form.innerHTML='<h4>Новый клиент и автомобиль</h4><div class="ai-hint">Проверьте и исправьте данные. Существующего клиента найдём по телефону; владельца уже записанного авто не меняем.</div>'+fields.map(function(f){return '<label style="display:block;margin-top:8px">'+f[1]+'<input class="ai-input" style="display:block;width:100%;box-sizing:border-box" name="'+f[0]+'" value="'+aiEsc(f[0]==='phone' ? formatPhone(d[f[0]]) : (d[f[0]]||''))+'"></label>';}).join('')+'<p class="ai-import-status" role="status"></p><button class="ai-confirm" type="submit">Сохранить клиента и авто</button>';
+    var fields=[['name','ФИО / контактное лицо'],['phone','Телефон'],['email','Email'],['orgName','Название организации'],['inn','ИНН'],['kpp','КПП'],['legalAddress','Юридический адрес'],['bank','Банк'],['bik','БИК'],['account','Расчётный счёт'],['corraccount','Корреспондентский счёт'],['contractNumber','Номер договора'],['hourRate','Стоимость нормочаса'],['carMake','Марка'],['carModel','Модель'],['plate','Госномер'],['vin','VIN'],['year','Год'],['mileage','Пробег, км'],['modification','Модификация'],['bodyNumber','№ кузова'],['engineType','Тип двигателя'],['color','Цвет']];
+    form.innerHTML='<h4>Новый клиент и автомобиль</h4><div class="ai-hint">Проверьте и исправьте данные. Физлицо найдём по телефону, юрлицо — по ИНН. Юрлицо можно сохранить без автомобиля. Данные существующего клиента не перезаписываем.</div><label>Тип клиента<select class="ai-input" name="type"><option value="person">Физическое лицо</option><option value="org">Юридическое лицо / ИП</option></select></label>'+fields.map(function(f){return '<label style="display:block;margin-top:8px">'+f[1]+'<input class="ai-input" style="display:block;width:100%;box-sizing:border-box" name="'+f[0]+'" value="'+aiEsc(f[0]==='phone' ? formatPhone(d[f[0]]) : (d[f[0]]||''))+'"></label>';}).join('')+'<p class="ai-import-status" role="status"></p><button class="ai-confirm" type="submit">Сохранить клиента и авто</button>';
     body.appendChild(form);body.scrollTop=form.offsetTop;
+    form.elements.type.value=d.type||'person';
+    var orgFields=['orgName','inn','kpp','legalAddress','bank','bik','account','corraccount','contractNumber','hourRate'];
+    function showTypeFields(){orgFields.forEach(function(key){form.elements[key].parentElement.hidden=form.elements.type.value!=='org';});}
+    form.elements.type.addEventListener('change',showTypeFields);showTypeFields();
     form.addEventListener('submit',async function(e){
       e.preventDefault();if(aiClientImportBusy)return;
       var status=form.querySelector('.ai-import-status'),button=form.querySelector('button');
-      var data={};fields.forEach(function(f){data[f[0]]=form.elements[f[0]].value.trim();});
+      var data={type:form.elements.type.value};fields.forEach(function(f){data[f[0]]=form.elements[f[0]].value.trim();});
       data.phone=formatPhone(data.phone);data.vin=normalizeVin(data.vin);data.plate=normalizePlate(data.plate);
       aiClientImportBusy=true;button.disabled=true;status.textContent='Проверяем базу…';
       try{
@@ -10087,8 +10143,8 @@
         if(plan.rows.length){
           var r=await getSB().from('kv_store').upsert(plan.rows,{onConflict:'key'});if(r.error)throw r.error;
         }
-        upsertStateItem('clients',plan.client);upsertStateItem('cars',plan.car);renderCurrentView();
-        status.textContent=plan.rows.length?(plan.existingClient?'Автомобиль добавлен существующему клиенту.':'Клиент и автомобиль сохранены.'):'Этот клиент и автомобиль уже есть в базе. Дубликаты не созданы.';
+        upsertStateItem('clients',plan.client);if(plan.car)upsertStateItem('cars',plan.car);renderCurrentView();
+        status.textContent=plan.rows.length?(plan.car?(plan.existingClient?'Автомобиль добавлен существующему клиенту.':'Клиент и автомобиль сохранены.'):'Юридическое лицо сохранено.'):'Клиент и указанный автомобиль уже есть в базе. Дубликаты не созданы.';
         button.textContent='Готово';Array.from(form.elements).forEach(function(el){el.disabled=true;});
       }catch(err){status.textContent=err.message||'Не удалось сохранить. Попробуйте ещё раз.';button.disabled=false;}
       finally{aiClientImportBusy=false;}
@@ -10097,7 +10153,7 @@
 
   function aiSubmit(){
     var inp=document.getElementById('aiAssistantInput'),text=inp.value.trim();if(!text)return;
-    document.getElementById('aiAssistantBody').insertAdjacentHTML('beforeend','<div class="ai-msg user">'+aiEsc(text)+'</div>');inp.value='';if(document.getElementById('aiAssistantMode').value==='client'||/добав[ьи][\s\S]{0,30}клиент/i.test(text)||(/владелец/i.test(text)&&/VIN/i.test(text))){aiShowClientDraft(aiParseClient(text));}else{aiDraft=aiParseDraft(text);aiShowDraft(aiDraft);}
+    document.getElementById('aiAssistantBody').insertAdjacentHTML('beforeend','<div class="ai-msg user">'+aiEsc(text)+'</div>');inp.value='';if(document.getElementById('aiAssistantMode').value==='client'||/добав[ьи][\s\S]{0,30}клиент/i.test(text)||/добав[ьи][\s\S]{0,30}(юрлицо|юр\.?\s*лицо|организац)/i.test(text)||(/владелец/i.test(text)&&/VIN/i.test(text))){aiShowClientDraft(aiParseClient(text));}else{aiDraft=aiParseDraft(text);aiShowDraft(aiDraft);}
   }
   document.getElementById('aiAssistantBtn').addEventListener('click',function(){document.getElementById('aiAssistantPanel').classList.add('open');});
   document.getElementById('aiAssistantClose').addEventListener('click',function(){document.getElementById('aiAssistantPanel').classList.remove('open');});

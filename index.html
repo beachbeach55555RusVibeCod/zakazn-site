@@ -2127,6 +2127,10 @@
   .q-staff-toggle.is-selected{border-color:var(--accent);background:rgba(20,184,166,.16);color:var(--accent);font-weight:600}
   .q-staff-toggle:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   .q-staff-empty{font-size:12px;color:var(--text-muted)}
+  #formOverlay .q-staff-buttons{display:flex;flex-wrap:wrap;gap:6px;flex:1 1 100%;min-width:0}
+  #formOverlay .q-staff-toggle{flex:0 1 auto;padding:9px 13px;font-size:12px}
+  #formOverlay .q-staff-toggle:disabled{opacity:.45;cursor:default}
+  #formOverlay .line-commission-hint{flex-basis:100%}
 </style>
 
 <style id="aiAssistantStyles">
@@ -2651,6 +2655,14 @@
   }
 
 
+  function toggleAllWorksStaff(lines,id){
+    var works=lines.filter(function(l){return l.type==='work';});
+    var remove=works.length>0&&works.every(function(l){return (l.assignees||[]).indexOf(id)!==-1;});
+    works.forEach(function(l){
+      var ids=Array.from(new Set((l.assignees||[]).filter(Boolean)));
+      l.assignees=remove?ids.filter(function(v){return v!==id;}):(ids.indexOf(id)===-1?ids.concat(id):ids);
+    });
+  }
   function toggleQuickStaff(line,id){
     var ids=Array.from(new Set((line.assignees||[]).filter(Boolean)));
     line.assignees=ids.indexOf(id)!==-1?ids.filter(function(v){return v!==id;}):ids.concat(id);
@@ -6743,7 +6755,7 @@
               '<div class="lines-columns">' +
                 '<div class="form-section lines-column">' +
                   '<div class="form-section-title">Работы</div>' +
-                  '<div style="margin:-3px 0 10px;"><select id="allWorksAssignee" style="width:100%;padding:9px 11px;border-radius:9px;border:1px solid var(--border);background:var(--bg-panel-2);color:var(--text-main);font:inherit;"><option value="">Исполнитель на все работы…</option>' + state.staff.map(function(s){ return '<option value="' + escapeHtml(s.id) + '">' + escapeHtml(s.name) + '</option>'; }).join('') + '</select></div>' +
+                  '<div style="margin:-3px 0 10px;"><div style="font-size:12px;color:var(--text-muted);margin-bottom:6px">Исполнители на все работы</div><div id="allWorksAssignee"></div></div>' +
                   '<div class="lines" id="workLinesWrap"></div>' +
                   '<div style="display:grid;grid-template-columns:72px minmax(0,1fr);gap:8px;">' +
                     '<button type="button" class="add-line-btn" id="presetTOBtn" title="Добавить стандартное ТО" style="border-style:solid;border-color:var(--accent);color:var(--accent);font-weight:700;">ТО</button>' +
@@ -7004,18 +7016,19 @@
       });
     });
 
-    document.getElementById('allWorksAssignee').onchange = function(){
-      var staffId=this.value;
-      if(!staffId) return;
-      order.lines.forEach(function(line){
-        if(line.type !== 'work') return;
-        if(!line.assignees) line.assignees=[];
-        line.assignees[0]=staffId;
-      });
+    function updateAllWorksStaffButtons(){
+      var root=document.getElementById('allWorksAssignee');if(!root)return;
+      var works=order.lines.filter(function(l){return l.type==='work';});
+      var selected=state.staff.filter(function(person){return works.length && works.every(function(l){return (l.assignees||[]).indexOf(person.id)!==-1;});}).map(function(p){return p.id;});
+      root.innerHTML=quickStaffButtons({_key:'all-works',assignees:selected});
+      root.querySelectorAll('button').forEach(function(btn){btn.disabled=!works.length;});
+    }
+    document.getElementById('allWorksAssignee').onclick=function(e){
+      var btn=e.target.closest('.q-staff-toggle');if(!btn||btn.disabled)return;
+      toggleAllWorksStaff(order.lines,btn.dataset.staffId);
       renderAllLines();
-      document.getElementById('allWorksAssignee').value=staffId;
-      var staffMember=state.staff.find(function(x){ return x.id===staffId; });
-      showToast('Исполнитель ' + (staffMember ? staffMember.name : '') + ' назначен на все работы');
+      var restored=document.querySelector('#allWorksAssignee [data-staff-id="'+btn.dataset.staffId+'"]');
+      if(restored)restored.focus();
     };
     document.getElementById('presetTOBtn').onclick = function(){
       var preset = [
@@ -7135,7 +7148,6 @@
         var block = document.createElement('div');
         block.className = 'line-block';
 
-        var staffOptions = state.staff.map(function(s){ return '<option value="' + s.id + '">' + escapeHtml(s.name) + '</option>'; }).join('');
         var nameDatalistId = 'priceList_' + line._key;
         var nameOptions = state.priceList.map(function(p){ return '<option value="' + escapeHtml(p.name) + '">'; }).join('');
 
@@ -7153,9 +7165,7 @@
             '<span class="line-sum">' + fmtMoney(lineTotal(line)) + '</span>' +
           '</div>' +
           '<div class="line-assignees">' +
-            '<select class="assignee-select" data-assignee-idx="0"><option value="">Исполнитель 1</option>' + staffOptions + '</select>' +
-            '<select class="assignee-select" data-assignee-idx="1"><option value="">Исполнитель 2</option>' + staffOptions + '</select>' +
-            '<select class="assignee-select" data-assignee-idx="2"><option value="">Исполнитель 3</option>' + staffOptions + '</select>' +
+            quickStaffButtons(line) +
             '<span class="line-commission-hint" data-commission-hint></span>' +
           '</div>';
 
@@ -7183,14 +7193,14 @@
           });
         });
 
-        var selects = block.querySelectorAll('.assignee-select');
-        selects.forEach(function(sel, idx){
-          sel.value = line.assignees && line.assignees[idx] ? line.assignees[idx] : '';
-          sel.addEventListener('change', function(){
-            if(!line.assignees) line.assignees = [];
-            line.assignees[idx] = sel.value || null;
-            while(line.assignees.length && !line.assignees[line.assignees.length-1]){ line.assignees.pop(); }
+        block.querySelectorAll('.q-staff-toggle').forEach(function(btn){
+          btn.addEventListener('click',function(){
+            toggleQuickStaff(line,btn.dataset.staffId);
+            var selected=line.assignees.indexOf(btn.dataset.staffId)!==-1;
+            btn.classList.toggle('is-selected',selected);
+            btn.setAttribute('aria-pressed',String(selected));
             updateCommissionHint();
+            updateAllWorksStaffButtons();
           });
         });
 
@@ -7214,6 +7224,7 @@
 
       var workSum = workLines.reduce(function(s,l){ return s + lineTotal(l); }, 0);
       document.getElementById('workLinesTotal').textContent = fmtMoney(workSum);
+      updateAllWorksStaffButtons();
     }
 
 

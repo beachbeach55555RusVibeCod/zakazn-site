@@ -5203,7 +5203,7 @@
             '<div style="display:flex; gap:10px;">' +
               '<button class="btn btn-ghost" id="detailCloseBtn">Закрыть</button>' +
               '<div style="position:relative;display:inline-block;">' +
-                '<button class="btn btn-ghost" id="detailPrint">🖨 Печать ▾</button>' +
+                '<button class="btn btn-ghost" id="detailPrint">🖨 Печать ▾</button><button class="btn btn-ghost" id="detailPdf">↓ PDF ▾</button>' +
               '</div>' +
               '<button class="btn btn-primary" id="detailEdit"' + (o.status === 'done' ? ' disabled title="Нельзя редактировать выданный наряд. Сначала измените его статус."' : '') + '>' + (o.status === 'done' ? '🔒 Редактирование закрыто' : 'Редактировать') + '</button>' +
             '</div>' +
@@ -5227,14 +5227,14 @@
       if(isQuickOrder(o)) openQuickOrderForm(o.id);
       else openOrderForm(o.id);
     };
-    document.getElementById('detailPrint').onclick = function(e){
+    function showDocumentMenu(e,download){
       e.stopPropagation();
       var existing = document.querySelector('.assign-popup');
       if(existing){ existing.remove(); return; }
       var popup = document.createElement('div');
       popup.className = 'assign-popup';
       popup.innerHTML =
-        '<div class="assign-popup-label">Тип документа</div>' +
+        '<div class="assign-popup-label">' + (download?'Скачать PDF':'Печать документа') + '</div>' +
         '<div class="assign-popup-item" data-doc="order">📋 Заказ-наряд</div>' +
         '<div class="assign-popup-item" data-doc="invoice">🧾 Счёт на оплату</div>' +
         '<div class="assign-popup-item" data-doc="act">📄 Акт выполненных работ</div>';
@@ -5257,15 +5257,17 @@
         item.addEventListener('click', function(ev){
           ev.stopPropagation();
           closePrintPopup();
-          if(item.dataset.doc === 'order')   printOrder(o);
-          if(item.dataset.doc === 'invoice') printInvoice(o);
-          if(item.dataset.doc === 'act')     printAct(o);
+          if(item.dataset.doc === 'order') printOrder(o,download);
+          if(item.dataset.doc === 'invoice') printInvoice(o,download);
+          if(item.dataset.doc === 'act') printAct(o,download);
         });
       });
       setTimeout(function(){
         document.addEventListener('click', closePrintPopup);
       }, 0);
     };
+    document.getElementById('detailPrint').onclick=function(e){showDocumentMenu(e,false);};
+    document.getElementById('detailPdf').onclick=function(e){showDocumentMenu(e,true);};
     var detailDeleteBtn = document.getElementById('detailDelete');
     if(detailDeleteBtn) detailDeleteBtn.onclick = function(){
       confirmDelete(o.id);
@@ -5391,7 +5393,7 @@
     return words.charAt(0).toUpperCase() + words.slice(1);
   }
 
-  function printOrder(o){
+  function printOrder(o,download){
     var total     = calcOrderTotal(o);
     var carLine   = [o.carMake, o.carModel, o.carYear ? o.carYear + ' г.' : ''].filter(Boolean).join(' ') || '—';
     var comp      = state.company || {};
@@ -5462,7 +5464,7 @@
         '<div class="p-info-grid">' +
           '<div class="p-info-col">' +
             '<div class="p-section-title">Клиент</div>' +
-            '<div class="p-row"><span class="p-lbl">ФИО</span><span class="p-val">' + escapeHtml(o.clientName||'—') + '</span></div>' +
+            '<div class="p-row"><span class="p-lbl">Заказчик</span><span class="p-val">' + escapeHtml((client.type==='org'&&client.orgName)||o.clientName||'—') + '</span></div>' +
             '<div class="p-row"><span class="p-lbl">Телефон</span><span class="p-val">' + escapeHtml(formatPhone(o.clientPhone)||'—') + '</span></div>' +
           '</div>' +
           '<div class="p-info-col">' +
@@ -5579,12 +5581,61 @@
       '.p-sig-block.has-sig .p-sig-line{margin-top:0;}' +
       '@media print{@page{margin:12mm;size:A4;}body{padding:0;}}';
 
-    openPrintWindow('Наряд № ' + (o.orderNumber||''), bodyHtml, css, true);
+    openPrintWindow('Наряд № ' + (o.orderNumber||''), bodyHtml, css, true, download);
   }
 
   // ---------- Invoice & Act ----------
 
-  function openPrintWindow(title, bodyHtml, css, fitOnePage){
+
+  var documentPdfBusy=false;
+  async function downloadDocumentPdf(title,bodyHtml,css){
+    if(documentPdfBusy){showToast('PDF уже формируется…');return;}
+    documentPdfBusy=true;
+    var frame=document.createElement('iframe');
+    frame.setAttribute('aria-hidden','true');
+    frame.style.cssText='position:fixed;left:-12000px;top:0;width:800px;height:1100px;border:0;pointer-events:none;';
+    document.body.appendChild(frame);
+    showToast('Формируем PDF…');
+    try{
+      var doc=frame.contentDocument, win=frame.contentWindow;
+      doc.open();doc.write('<!doctype html><html lang="ru"><head><meta charset="UTF-8"><title>'+escapeHtml(title)+'</title><style>'+css+
+        'html,body{margin:0!important;padding:0!important;width:190mm!important;background:#fff;color:#111;}*{box-sizing:border-box;}tr,.p-total-block,.total-block,.p-signatures,.sigs,.act-parties{break-inside:avoid;page-break-inside:avoid;}img{max-width:100%;}'+
+        '</style></head><body>'+bodyHtml+'</body></html>');doc.close();
+      await new Promise(function(resolve,reject){
+        var script=doc.createElement('script');
+        var timer=setTimeout(function(){reject(new Error('Не удалось загрузить модуль PDF. Проверьте интернет и повторите.'));},20000);
+        script.src='https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js';
+        script.onload=function(){clearTimeout(timer);resolve();};
+        script.onerror=function(){clearTimeout(timer);reject(new Error('Не удалось загрузить модуль PDF. Повторите попытку.'));};
+        doc.head.appendChild(script);
+      });
+      if(doc.fonts)await doc.fonts.ready;
+      await Promise.all(Array.from(doc.images).map(function(img){
+        if(img.complete){if(!img.naturalWidth)throw new Error('Не загрузилась подпись или изображение документа.');return;}
+        return new Promise(function(resolve,reject){
+          var timer=setTimeout(function(){reject(new Error('Не загрузилось изображение документа.'));},15000);
+          img.onload=function(){clearTimeout(timer);resolve();};
+          img.onerror=function(){clearTimeout(timer);reject(new Error('Не загрузилось изображение документа.'));};
+        });
+      }));
+      var filename=title.replace(/[\\/:*?"<>|]/g,'-')+'.pdf';
+      var blob=await win.html2pdf().set({
+        margin:10,filename:filename,
+        image:{type:'jpeg',quality:0.98},
+        html2canvas:{scale:2,useCORS:true,backgroundColor:'#ffffff',logging:false},
+        jsPDF:{unit:'mm',format:'a4',orientation:'portrait',compress:true},
+        pagebreak:{mode:['css','legacy'],avoid:['tr','.p-total-block','.total-block','.p-signatures','.sigs','.act-parties']}
+      }).from(doc.body).outputPdf('blob');
+      var url=URL.createObjectURL(blob),a=document.createElement('a');
+      a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+      setTimeout(function(){URL.revokeObjectURL(url);},60000);
+      showToast('PDF готов — файл скачивается');
+    }catch(err){console.error('PDF export',err);showToast(err.message||'Не удалось создать PDF. Повторите попытку.');}
+    finally{frame.remove();documentPdfBusy=false;}
+  }
+
+  function openPrintWindow(title, bodyHtml, css, fitOnePage, download){
+    if(download)return downloadDocumentPdf(title,bodyHtml,css);
     if(fitOnePage){
       // A4 printable area: 190 x 277 mm with 10 mm page margins.
       css += 'body{width:190mm;margin:0 auto;padding:0;box-sizing:border-box;}' +
@@ -5671,7 +5722,7 @@
       '@media print{@page{margin:12mm;size:A4;}body{padding:0;}}';
   }
 
-  function printInvoice(o){
+  function printInvoice(o,download){
     var comp   = state.company || {};
     var client = getClientById(o.clientId) || {};
     var total  = calcOrderTotal(o);
@@ -5753,7 +5804,7 @@
         '<div class="sig"><div class="sig-line">Главный бухгалтер</div></div>' +
       '</div>';
 
-    openPrintWindow('Счёт № ' + num, '<div class="print-doc">' + body + '</div>', buildDocCss(), true);
+    openPrintWindow('Счёт № ' + num, '<div class="print-doc">' + body + '</div>', buildDocCss(), true, download);
   }
 
   function buildOrderLikeDocCss(){
@@ -5795,7 +5846,7 @@
       '@media print{@page{margin:12mm;size:A4;}body{padding:0;}}';
   }
 
-  function printAct(o){
+  function printAct(o,download){
     var comp   = state.company || {};
     var client = getClientById(o.clientId) || {};
     var total  = calcOrderTotal(o);
@@ -5945,7 +5996,7 @@
       'table.p-table th{padding:4px 5px;}' +
       '.p-total-block{padding:8px 11px;margin-top:7px;}' +
       '.p-section-title{margin-bottom:5px;}';
-    openPrintWindow('Акт № ' + num, body, actCss, true);
+    openPrintWindow('Акт № ' + num, body, actCss, true, download);
   }
 
   // ---------- Order form (create / edit) ----------
